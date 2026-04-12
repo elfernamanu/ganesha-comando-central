@@ -5,7 +5,8 @@ import { ServiceBox } from './ServiceBox';
 const shiftsData = [
   {
     title: 'Box 1: Depilación',
-    colorScheme: 'slate' as const,
+    headerColor: 'slate' as const,
+    shiftColor: 'blue' as const,
     totalShifts: 2,
     shifts: [
       { time: '09:00 - 10:30', name: 'Mariana López', service: 'Pierna entera + Axilas' },
@@ -14,7 +15,8 @@ const shiftsData = [
   },
   {
     title: 'Box 2: Uñas',
-    colorScheme: 'rose' as const,
+    headerColor: 'rose' as const,
+    shiftColor: 'rose' as const,
     totalShifts: 1,
     shifts: [
       { time: '15:00 - 16:30', name: 'Lucía Fernández', service: 'Esculpidas / Soft Gel' },
@@ -23,7 +25,8 @@ const shiftsData = [
   },
   {
     title: 'Box 3: Estética',
-    colorScheme: 'emerald' as const,
+    headerColor: 'emerald' as const,
+    shiftColor: 'emerald' as const,
     totalShifts: 1,
     shifts: [
       { time: '14:00 - 15:00', name: 'Camila Sosa', service: 'Himfu / Criofrecuencia' },
@@ -32,7 +35,8 @@ const shiftsData = [
   },
   {
     title: 'Box 4: Pestañas',
-    colorScheme: 'purple' as const,
+    headerColor: 'purple' as const,
+    shiftColor: 'purple' as const,
     totalShifts: 2,
     shifts: [
       { time: '10:00 - 11:00', name: 'Ana Martínez', service: 'Lifting + Tinte' },
