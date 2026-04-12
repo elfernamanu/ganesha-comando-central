@@ -1,24 +1,18 @@
 'use client';
 
-import { useAccessibility } from '@/context/AccessibilityCtx';
-import { designTokens } from '@/config/designTokens';
 import { ThemeZoomControls } from '@/components/Controls/ThemeZoomControls';
 
 export function DrawerMain() {
-  const { isDarkMode } = useAccessibility();
-  const theme = isDarkMode ? designTokens.dark : designTokens.light;
-
   return (
-    <aside
-      className={`w-80 flex flex-col border-r ${theme.border} ${theme.sidebar} p-5 overflow-y-auto transition-colors duration-300`}
-    >
+    <aside className="w-80 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 overflow-y-auto transition-colors duration-300">
+
       {/* Logo y Status */}
       <div className="mb-6">
         <div className="flex items-center text-xs font-mono text-green-600 mb-2">
           <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
           (Sistema Estable)
         </div>
-        <h1 className={`text-2xl font-bold tracking-tight ${theme.text}`}>Ganesha esthetic</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Ganesha esthetic</h1>
       </div>
 
       {/* Controls */}
@@ -26,48 +20,23 @@ export function DrawerMain() {
 
       {/* Nav Principal */}
       <nav className="flex flex-col gap-1 mb-8">
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          📅 Agenda
-        </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          🕒 Turnos
-        </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          ✨ Depilación
-        </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          💅 Uñas
-        </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          👁️ Pestañas
-        </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          ⚡ Estética hinfus
-        </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium transition-colors ${theme.hover}`}
-        >
-          📢 Promocionar contactos
-        </a>
+        {[
+          '📅 Agenda',
+          '🕒 Turnos',
+          '✨ Depilación',
+          '💅 Uñas',
+          '👁️ Pestañas',
+          '⚡ Estética hinfus',
+          '📢 Promocionar contactos',
+        ].map((label) => (
+          <a
+            key={label}
+            href="#"
+            className="p-2 rounded cursor-pointer font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {label}
+          </a>
+        ))}
       </nav>
 
       {/* Panel de Control */}
@@ -77,41 +46,23 @@ export function DrawerMain() {
         </h2>
       </div>
       <nav className="flex flex-col gap-1">
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer flex justify-between items-center transition-colors ${theme.hover}`}
-        >
+        <a href="#" className="p-2 rounded cursor-pointer flex justify-between items-center transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           <span className="font-medium text-blue-600">🤖 Comunicación IA</span>
           <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">Activa</span>
         </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium text-sm leading-relaxed transition-colors ${theme.hover}`}
-        >
+        <a href="#" className="p-2 rounded cursor-pointer font-medium text-sm leading-relaxed transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           👥 Contactos activos / Visitas confirmadas / Pagos señas / Promociones
         </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium text-red-500 transition-colors ${theme.hover}`}
-        >
+        <a href="#" className="p-2 rounded cursor-pointer font-medium text-red-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           🚫 Contactos negativos
         </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium text-green-600 transition-colors ${theme.hover}`}
-        >
+        <a href="#" className="p-2 rounded cursor-pointer font-medium text-green-600 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           📱 WhatsApp empresa
         </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium text-pink-500 opacity-50 transition-colors ${theme.hover}`}
-        >
+        <a href="#" className="p-2 rounded cursor-pointer font-medium text-pink-500 opacity-50 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           📸 Instagram chat (Próximamente)
         </a>
-        <a
-          href="#"
-          className={`p-2 rounded cursor-pointer font-medium mt-4 transition-colors ${theme.hover}`}
-        >
+        <a href="#" className="p-2 rounded cursor-pointer font-medium mt-4 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           ⚙️ Cambiar promociones
         </a>
       </nav>
