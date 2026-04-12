@@ -13,7 +13,7 @@ export default function Home() {
       <div className="flex h-screen">
 
         {/* Sidebar Drawer */}
-        <div className="w-64 overflow-y-auto border-r border-slate-200 dark:border-slate-700">
+        <div className="w-80 flex-shrink-0 overflow-y-auto border-r border-slate-200 dark:border-slate-700">
           <DrawerMain />
         </div>
 

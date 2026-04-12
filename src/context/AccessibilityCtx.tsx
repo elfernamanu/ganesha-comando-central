@@ -27,16 +27,17 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     if (savedZoom) setZoomLevel(parseFloat(savedZoom));
   }, []);
 
-  // Guardar cambios en localStorage y aplicar zoom
+  // Guardar cambios en localStorage, aplicar dark class y zoom
   useEffect(() => {
     if (mounted) {
       localStorage.setItem('ganesha-dark-mode', JSON.stringify(isDarkMode));
       localStorage.setItem('ganesha-zoom-level', zoomLevel.toString());
 
+      // Aplicar clase dark al <html> para Tailwind dark: utilities
+      document.documentElement.classList.toggle('dark', isDarkMode);
+
       // Aplicar zoom al documento
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.fontSize = `${16 * zoomLevel}px`;
-      }
+      document.documentElement.style.fontSize = `${16 * zoomLevel}px`;
     }
   }, [isDarkMode, zoomLevel, mounted]);
 

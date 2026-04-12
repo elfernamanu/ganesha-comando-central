@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Dark mode por clase (para el toggle manual) */
+@variant dark (&:where(.dark, .dark *));
+
 /* Scrollbar personalizado */
 ::-webkit-scrollbar {
   width: 6px;
