@@ -15,7 +15,14 @@
       "Bash(powershell -Command \"rm -r -Force node_modules -ErrorAction SilentlyContinue; npm install 2>&1 | tail -20\")",
       "Bash(npx next:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git pull:*)",
+      "Bash(gh pr create --title 'Refactor frontend to Next.js with React components' --body ':*)",
+      "Bash(npm ci:*)",
+      "Bash(curl -I http://localhost:3000)"
     ]
   }
 }
