@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { DrawerMain } from '@/components/Drawer/DrawerMain';
 import { Header } from '@/components/MainContent/Header';
 import { ShiftsGrid } from '@/components/MainContent/ShiftsGrid';
