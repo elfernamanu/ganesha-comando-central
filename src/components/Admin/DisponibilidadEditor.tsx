@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccessibility } from '@/context/AccessibilityCtx';
 
 interface Servicio {
   id: number;
@@ -24,7 +23,6 @@ interface DisponibilidadEditorProps {
 }
 
 export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
-  const { isDarkMode } = useAccessibility();
   const [horarios, setHorarios] = useState<HorarioDisponible[]>([
     { dia: 'Lunes', inicio: '09:00', fin: '13:00', activo: true },
     { dia: 'Miércoles', inicio: '14:00', fin: '18:00', activo: true },
@@ -61,10 +59,11 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
       let minutoActual = hInicio * 60 + mInicio;
       const minutoFin = hFin * 60 + mFin;
 
-      while (minutoActual < minutoFin) {
+      while (minutoActual + servicio.duracion_minutos <= minutoFin) {
         const h = Math.floor(minutoActual / 60);
         const m = minutoActual % 60;
-        slots.push(`${horario.dia} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+        const slot = `${horario.dia} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        slots.push(slot);
         minutoActual += servicio.duracion_minutos;
       }
     });
@@ -76,7 +75,7 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className={`border rounded-lg p-6 ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}>
+      <div className="border rounded-lg p-6 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <h2 className="text-2xl font-bold mb-2">{servicio.nombre}</h2>
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
@@ -95,16 +94,12 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
       </div>
 
       {/* Editor de horarios */}
-      <div className={`border rounded-lg p-6 ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}>
+      <div className="border rounded-lg p-6 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-lg">Horarios disponibles</h3>
           <button
             onClick={agregarHorario}
-            className={`px-4 py-2 rounded font-medium transition-colors ${
-              isDarkMode
-                ? 'bg-green-900 hover:bg-green-800 text-green-100'
-                : 'bg-green-100 hover:bg-green-200 text-green-900'
-            }`}
+            className="px-4 py-2 rounded font-medium transition-colors bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 text-green-900 dark:text-green-100"
           >
             + Agregar horario
           </button>
@@ -114,25 +109,17 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
           {horarios.map((horario, idx) => (
             <div
               key={idx}
-              className={`flex gap-4 p-4 rounded border ${
+              className={`flex gap-4 p-4 rounded border transition-colors ${
                 horario.activo
-                  ? isDarkMode
-                    ? 'border-slate-700 bg-slate-700'
-                    : 'border-slate-200 bg-slate-50'
-                  : isDarkMode
-                  ? 'border-slate-600 bg-slate-600 opacity-50'
-                  : 'border-slate-300 bg-slate-100 opacity-50'
+                  ? 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700'
+                  : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-600 opacity-50'
               }`}
             >
               {/* Día */}
               <select
                 value={horario.dia}
                 onChange={(e) => actualizarHorario(idx, 'dia', e.target.value)}
-                className={`px-3 py-2 rounded border ${
-                  isDarkMode
-                    ? 'bg-slate-800 border-slate-600'
-                    : 'bg-white border-slate-300'
-                }`}
+                className="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
               >
                 {DIAS.map((dia) => (
                   <option key={dia} value={dia}>{dia}</option>
@@ -144,11 +131,7 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
                 type="time"
                 value={horario.inicio}
                 onChange={(e) => actualizarHorario(idx, 'inicio', e.target.value)}
-                className={`px-3 py-2 rounded border ${
-                  isDarkMode
-                    ? 'bg-slate-800 border-slate-600'
-                    : 'bg-white border-slate-300'
-                }`}
+                className="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
               />
 
               {/* Hora fin */}
@@ -156,24 +139,16 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
                 type="time"
                 value={horario.fin}
                 onChange={(e) => actualizarHorario(idx, 'fin', e.target.value)}
-                className={`px-3 py-2 rounded border ${
-                  isDarkMode
-                    ? 'bg-slate-800 border-slate-600'
-                    : 'bg-white border-slate-300'
-                }`}
+                className="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
               />
 
               {/* Toggle activo */}
               <button
                 onClick={() => toggleDia(idx)}
-                className={`px-3 py-2 rounded font-medium ${
+                className={`px-3 py-2 rounded font-medium transition-colors ${
                   horario.activo
-                    ? isDarkMode
-                      ? 'bg-green-900 text-green-100'
-                      : 'bg-green-100 text-green-900'
-                    : isDarkMode
-                    ? 'bg-red-900 text-red-100'
-                    : 'bg-red-100 text-red-900'
+                    ? 'bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100'
+                    : 'bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100'
                 }`}
               >
                 {horario.activo ? '✓ Activo' : '✗ Inactivo'}
@@ -182,11 +157,7 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
               {/* Eliminar */}
               <button
                 onClick={() => eliminarHorario(idx)}
-                className={`px-3 py-2 rounded font-medium ${
-                  isDarkMode
-                    ? 'bg-slate-700 hover:bg-slate-600 text-red-400'
-                    : 'bg-slate-200 hover:bg-slate-300 text-red-600'
-                }`}
+                className="px-3 py-2 rounded font-medium bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-red-600 dark:text-red-400 transition-colors"
               >
                 🗑️ Eliminar
               </button>
@@ -196,18 +167,14 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
       </div>
 
       {/* Preview de slots */}
-      <div className={`border rounded-lg p-6 ${isDarkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}>
+      <div className="border rounded-lg p-6 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <h3 className="font-bold text-lg mb-4">Vista previa de turnos disponibles</h3>
         <div className="grid grid-cols-4 gap-2">
           {slots.length > 0 ? (
             slots.map((slot) => (
               <div
                 key={slot}
-                className={`p-2 rounded text-center text-sm font-medium ${
-                  isDarkMode
-                    ? 'bg-green-900 text-green-100'
-                    : 'bg-green-100 text-green-900'
-                }`}
+                className="p-2 rounded text-center text-sm font-medium bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
               >
                 {slot}
               </div>
@@ -222,22 +189,10 @@ export function DisponibilidadEditor({ servicio }: DisponibilidadEditorProps) {
 
       {/* Botón guardar */}
       <div className="flex justify-end gap-2">
-        <button
-          className={`px-6 py-3 rounded font-bold ${
-            isDarkMode
-              ? 'bg-slate-700 hover:bg-slate-600'
-              : 'bg-slate-200 hover:bg-slate-300'
-          }`}
-        >
+        <button className="px-6 py-3 rounded font-bold bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
           Cancelar
         </button>
-        <button
-          className={`px-6 py-3 rounded font-bold text-white ${
-            isDarkMode
-              ? 'bg-blue-900 hover:bg-blue-800'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-        >
+        <button className="px-6 py-3 rounded font-bold text-white bg-blue-600 dark:bg-blue-900 hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors">
           💾 Guardar cambios
         </button>
       </div>
