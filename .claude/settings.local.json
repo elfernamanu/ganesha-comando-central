@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm -v)",
+      "Bash(npm create:*)",
+      "Read(//tmp/**)",
+      "Bash(cp -r /tmp/ganesha/. /c/Users/lucia/Desktop/PROYECTOPRINCESA/ --verbose)",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash([ ! -d \"node_modules\" ])",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(powershell -Command \"rm -r -Force node_modules -ErrorAction SilentlyContinue; npm install 2>&1 | tail -20\")",
+      "Bash(npx next:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
+    ]
+  }
+}
