@@ -22,7 +22,14 @@
       "Bash(git pull:*)",
       "Bash(gh pr create --title 'Refactor frontend to Next.js with React components' --body ':*)",
       "Bash(npm ci:*)",
-      "Bash(curl -I http://localhost:3000)"
+      "Bash(curl -I http://localhost:3000)",
+      "Bash(python3 -m http.server 3000)",
+      "Bash(npx http-server:*)",
+      "Bash(node server.js)",
+      "Bash(xargs kill:*)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(curl -s http://localhost:58709)",
+      "Bash(git commit:*)"
     ]
   }
 }

@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "ganesha-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }
