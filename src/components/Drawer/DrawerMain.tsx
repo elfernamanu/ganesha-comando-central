@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ThemeZoomControls } from '@/components/Controls/ThemeZoomControls';
 
 export function DrawerMain() {
@@ -62,9 +63,9 @@ export function DrawerMain() {
         <a href="#" className="p-2 rounded cursor-pointer font-medium text-pink-500 opacity-50 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
           📸 Instagram chat (Próximamente)
         </a>
-        <a href="#" className="p-2 rounded cursor-pointer font-medium mt-4 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
-          ⚙️ Cambiar promociones
-        </a>
+        <Link href="/admin/panel-control" className="p-2 rounded cursor-pointer font-medium mt-4 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 block">
+          ⚙️ Panel de Control
+        </Link>
       </nav>
     </aside>
   );

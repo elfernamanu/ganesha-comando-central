@@ -54,7 +54,10 @@
       "Bash(git -C /c/Users/lucia/Desktop/PROYECTOPRINCESA commit -m 'fix: Hacer páginas dinámicas para evitar pre-renderizado:*)",
       "Bash(ls *.md *.json *.mjs *.ts)",
       "Bash(rmdir src/security)",
-      "Bash(rm BACKUP_ESTRUCTURA.md CHECKLIST_DEPLOY.md)"
+      "Bash(rm BACKUP_ESTRUCTURA.md CHECKLIST_DEPLOY.md)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:65186/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:57462/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://ganesha-comando-central.vercel.app/)"
     ]
   }
 }
