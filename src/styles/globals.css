@@ -1,33 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* Scrollbar personalizado */
 ::-webkit-scrollbar {
   width: 6px;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Dark mode scrollbar */
-:is(.dark) ::-webkit-scrollbar-thumb {
-  background: #4b5563;
-}
-
-/* Body reset */
 body {
   margin: 0;
   padding: 0;
-  transition: background-color 0.3s duration, color 0.3s duration;
-}
-
-html {
-  scroll-behavior: smooth;
 }
