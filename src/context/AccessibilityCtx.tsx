@@ -44,8 +44,6 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   const zoomIn = () => setZoomLevel(Math.min(zoomLevel + 0.1, 1.5));
   const zoomOut = () => setZoomLevel(Math.max(zoomLevel - 0.1, 0.8));
 
-  if (!mounted) return <>{children}</>;
-
   return (
     <AccessibilityContext.Provider value={{ isDarkMode, zoomLevel, toggleTheme, zoomIn, zoomOut }}>
       {children}
