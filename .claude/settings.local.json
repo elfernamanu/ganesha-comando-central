@@ -30,7 +30,9 @@
       "Bash(pkill -f \"node server.js\")",
       "Bash(curl -s http://localhost:58709)",
       "Bash(git commit:*)",
-      "Bash(ping -c 2 209.38.111.153)"
+      "Bash(ping -c 2 209.38.111.153)",
+      "Bash(curl -s https://ganesha-comando-central.vercel.app/)",
+      "Bash(ssh root@209.38.111.153)"
     ]
   }
 }

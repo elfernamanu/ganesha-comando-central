@@ -27,11 +27,16 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     if (savedZoom) setZoomLevel(parseFloat(savedZoom));
   }, []);
 
-  // Guardar cambios en localStorage
+  // Guardar cambios en localStorage y aplicar zoom
   useEffect(() => {
     if (mounted) {
       localStorage.setItem('ganesha-dark-mode', JSON.stringify(isDarkMode));
       localStorage.setItem('ganesha-zoom-level', zoomLevel.toString());
+
+      // Aplicar zoom al documento
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.fontSize = `${16 * zoomLevel}px`;
+      }
     }
   }, [isDarkMode, zoomLevel, mounted]);
 

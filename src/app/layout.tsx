@@ -9,9 +9,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className="transition-colors duration-300">
-        <AccessibilityProvider>{children}</AccessibilityProvider>
+    <html lang="es" suppressHydrationWarning>
+      <body className="antialiased overflow-hidden">
+        <AccessibilityProvider>
+          {children}
+        </AccessibilityProvider>
       </body>
     </html>
   );
