@@ -32,7 +32,10 @@
       "Bash(git commit:*)",
       "Bash(ping -c 2 209.38.111.153)",
       "Bash(curl -s https://ganesha-comando-central.vercel.app/)",
-      "Bash(ssh root@209.38.111.153)"
+      "Bash(ssh root@209.38.111.153)",
+      "Bash(git -C /c/Users/lucia/Desktop/PROYECTOPRINCESA add -A)",
+      "Bash(git -C /c/Users/lucia/Desktop/PROYECTOPRINCESA commit -m 'Agregar Admin Panel: Editor de disponibilidad por servicio:*)",
+      "Bash(git -C /c/Users/lucia/Desktop/PROYECTOPRINCESA log --oneline -2)"
     ]
   }
 }
