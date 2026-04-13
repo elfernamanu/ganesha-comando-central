@@ -4,6 +4,22 @@ import Link from 'next/link';
 
 const SECCIONES = [
   {
+    href: '/admin/panel-control/turnos',
+    icon: '📅',
+    titulo: 'Turnos del Día',
+    descripcion: 'Tabla compacta con turnos, asistencia y pagos',
+    color: 'border-blue-400 dark:border-blue-600',
+    badge: 'NEW',
+  },
+  {
+    href: '/admin/panel-control/caja',
+    icon: '💰',
+    titulo: 'Control de Caja',
+    descripcion: '4 columnas · Ingresos · Ganancia extra',
+    color: 'border-emerald-400 dark:border-emerald-600',
+    badge: 'NEW',
+  },
+  {
     href: '/admin/panel-control/depilacion',
     icon: '✨',
     titulo: 'Depilación Definitiva',
@@ -13,10 +29,10 @@ const SECCIONES = [
   },
   {
     href: '/admin/panel-control/precios',
-    icon: '💰',
+    icon: '🏷️',
     titulo: 'Precios',
     descripcion: 'Editar precios y duración de cada servicio',
-    color: 'border-blue-400 dark:border-blue-600',
+    color: 'border-amber-400 dark:border-amber-600',
     badge: null,
   },
   {

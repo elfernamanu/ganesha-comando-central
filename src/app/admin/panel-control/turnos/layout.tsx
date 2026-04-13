@@ -1,4 +1,4 @@
-export default function CajaLayout({
+export default function TurnosLayout({
   children,
 }: {
   children: React.ReactNode;
