@@ -31,10 +31,10 @@ const PRECIOS_INICIAL: Precio[] = [
 ];
 
 const PROMOS_INICIAL: Promo[] = [
-  { numero: 1, nombre: 'Promo Cuerpo Completo', descripcion: 'Cuerpo Completo sin rostro', precio: 33000, categoria: 'femenina', activo: true },
-  { numero: 2, nombre: 'Promo Rostro Completo', descripcion: 'Rostro completo femenino', precio: 20500, categoria: 'femenina', activo: true },
-  { numero: 3, nombre: 'Promo Cavado + Cola', descripcion: 'Cavado Completo + Tira de cola', precio: 22500, categoria: 'ambas', activo: true },
-  { numero: 4, nombre: 'Promo Combo Full', descripcion: 'Cavado C. + Pierna E. + Axila + Bozo', precio: 24000, categoria: 'femenina', activo: true },
+  { numero: 1, nombre: 'Depilacion PROMO 1', descripcion: 'Cuerpo Completo sin rostro', precio: 33000, categoria: 'femenina', activo: true },
+  { numero: 2, nombre: 'Depilacion PROMO 2', descripcion: 'Rostro completo femenino', precio: 20500, categoria: 'femenina', activo: true },
+  { numero: 3, nombre: 'Depilacion PROMO 3', descripcion: 'Cavado Completo + Tira de cola', precio: 22500, categoria: 'ambas', activo: true },
+  { numero: 4, nombre: 'Depilacion PROMO 4', descripcion: 'Cavado C. + Pierna E. + Axila + Bozo', precio: 24000, categoria: 'femenina', activo: true },
 ];
 
 type Tab = 'promos' | 'femenina' | 'masculina';
@@ -115,7 +115,7 @@ export default function DepilacionPage() {
 
   const agregarPromo = () => {
     const nuevoNumero = promos.length > 0 ? Math.max(...promos.map(p => p.numero)) + 1 : 1;
-    setPromos(prev => [...prev, { numero: nuevoNumero, nombre: `Promo ${nuevoNumero}`, descripcion: '', precio: 0, categoria: 'ambas', activo: true }]);
+    setPromos(prev => [...prev, { numero: nuevoNumero, nombre: `Depilacion PROMO ${nuevoNumero}`, descripcion: '', precio: 0, categoria: 'ambas', activo: true }]);
   };
 
   const guardar = async () => {
@@ -168,7 +168,7 @@ export default function DepilacionPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Mandá <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">promo 1</span> por Telegram → el bot sabe qué es y para quién
+              Mandá <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">depilacion PROMO 1</span> por Telegram → el bot sabe qué es y para quién
             </p>
             <button onClick={agregarPromo} className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 transition-colors">
               + Nueva
@@ -179,7 +179,7 @@ export default function DepilacionPage() {
               <div key={promo.numero} className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 font-bold text-sm">
-                    Promo {promo.numero}
+                    Depilacion PROMO {promo.numero}
                   </span>
                   <div className="flex gap-2">
                     <button onClick={() => actualizarPromo(promo.numero, 'activo', !promo.activo)}
