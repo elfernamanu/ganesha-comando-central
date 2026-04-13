@@ -39,11 +39,11 @@ export default function CajaPage() {
     resumen,
     movimientos,
     gananciaConcepto,
-    ganancia Monto,
+    gananciaMonto,
     mensaje,
     guardando,
     setGananciaConcepto,
-    setGanancia Monto,
+    setGananciaMonto,
     agregarGananciaExtra,
     eliminarMovimiento,
     guardar,
@@ -92,7 +92,7 @@ export default function CajaPage() {
             placeholder="Ej: Uñas extra"
             className="flex-1 px-2 py-1 rounded text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
           />
-          <NumeroInput value={ganancia Monto} onChange={setGanancia Monto} placeholder="Monto" />
+          <NumeroInput value={gananciaMonto} onChange={setGananciaMonto} placeholder="Monto" />
           <button
             onClick={agregarGananciaExtra}
             className="px-3 py-1 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"

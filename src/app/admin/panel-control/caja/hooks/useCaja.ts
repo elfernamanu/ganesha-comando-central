@@ -33,7 +33,7 @@ export function useCaja(fecha: string, turnoData?: any[]) {
   ]);
 
   const [gananciaConcepto, setGananciaConcepto] = useState('');
-  const [ganancia Monto, setGanancia Monto] = useState('');
+  const [gananciaMonto, setGananciaMonto] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
@@ -41,12 +41,12 @@ export function useCaja(fecha: string, turnoData?: any[]) {
   // ACCIONES
   // ========================================
   const agregarGananciaExtra = () => {
-    if (!gananciaConcepto.trim() || !ganancia Monto.trim()) {
+    if (!gananciaConcepto.trim() || !gananciaMonto.trim()) {
       alert('Completa concepto y monto');
       return;
     }
 
-    const monto = parseInt(ganancia Monto.replace(/\D/g, '')) || 0;
+    const monto = parseInt(gananciaMonto.replace(/\D/g, '')) || 0;
     if (monto <= 0) {
       alert('Monto debe ser mayor a 0');
       return;
@@ -64,7 +64,7 @@ export function useCaja(fecha: string, turnoData?: any[]) {
 
     setMovimientos(prev => [...prev, nuevoMovimiento]);
     setGananciaConcepto('');
-    setGanancia Monto('');
+    setGananciaMonto('');
   };
 
   const eliminarMovimiento = (id: string) => {
@@ -127,11 +127,11 @@ export function useCaja(fecha: string, turnoData?: any[]) {
     resumen,
     movimientos,
     gananciaConcepto,
-    ganancia Monto,
+    gananciaMonto,
     mensaje,
     guardando,
     setGananciaConcepto,
-    setGanancia Monto,
+    setGananciaMonto,
     agregarGananciaExtra,
     eliminarMovimiento,
     actualizarMovimiento,
