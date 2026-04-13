@@ -4,7 +4,13 @@ import { useState, useEffect } from 'react';
 import { TurnosTableProps } from '../types';
 import { leerCatalogo, buscarEnCatalogo, type CatalogoPromos } from '../../_shared/catalogoPromos';
 
-// ── Input numérico sin flechas ─────────────────────────────────────────
+// ── Formatea número con puntos de miles (es-AR: 20000 → "20.000") ──────
+function formatPuntos(n: number): string {
+  if (!n) return '';
+  return n.toLocaleString('es-AR');
+}
+
+// ── Input numérico con puntos de miles, sin flechas ────────────────────
 function NumeroInput({
   value,
   onChange,
@@ -16,9 +22,9 @@ function NumeroInput({
     <input
       type="text"
       inputMode="numeric"
-      value={value || ''}
+      value={formatPuntos(value)}
       onChange={e => {
-        const num = parseInt(e.target.value.replace(/\D/g, '')) || 0;
+        const num = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0;
         onChange(num);
       }}
       onFocus={e => e.currentTarget.select()}
