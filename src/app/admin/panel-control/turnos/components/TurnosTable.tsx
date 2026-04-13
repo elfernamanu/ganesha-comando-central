@@ -57,9 +57,10 @@ export default function TurnosTable({
   }, []);
 
   // Opciones del dropdown agrupadas por tipo
-  // Las promos de depilación ahora tienen nombres como "🎁 PROMO 1: ..."
-  const opcionesDepi   = Object.keys(catalogo).filter(k => k.startsWith('🎁 PROMO'));
-  const opcionesCombos = Object.keys(catalogo).filter(k => k.startsWith('Promo Combo'));
+  // `nombre` (clave) = texto limpio sin emoji → lo que se guarda y envía al bot
+  // `nombreDisplay`  = texto con emoji → lo que ve la secretaria en pantalla
+  const opcionesDepi   = Object.values(catalogo).filter(item => item.nombre.startsWith('PROMO'));
+  const opcionesCombos = Object.values(catalogo).filter(item => item.nombre.startsWith('Combo'));
 
   // Cuando la secretaria cambia el tratamiento → auto-completar detalle + monto
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
@@ -146,8 +147,10 @@ export default function TurnosTable({
                 {/* Grupo Depilación */}
                 {opcionesDepi.length > 0 && (
                   <optgroup label="✨ Promos Depilación">
-                    {opcionesDepi.sort().map(op => (
-                      <option key={op} value={op}>{op}</option>
+                    {opcionesDepi.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+                      <option key={item.nombre} value={item.nombre}>
+                        {item.nombreDisplay}
+                      </option>
                     ))}
                   </optgroup>
                 )}
@@ -155,8 +158,10 @@ export default function TurnosTable({
                 {/* Grupo Combos */}
                 {opcionesCombos.length > 0 && (
                   <optgroup label="🎁 Combos">
-                    {opcionesCombos.sort().map(op => (
-                      <option key={op} value={op}>{op}</option>
+                    {opcionesCombos.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+                      <option key={item.nombre} value={item.nombre}>
+                        {item.nombreDisplay}
+                      </option>
                     ))}
                   </optgroup>
                 )}
@@ -167,6 +172,7 @@ export default function TurnosTable({
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </optgroup>
+
               </select>
 
               {/* Detalle — auto-cargado desde catálogo, editable */}
