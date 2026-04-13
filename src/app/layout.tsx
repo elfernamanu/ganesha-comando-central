@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Ganesha" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#4c1d95" />
       </head>
       <body className="antialiased">
         <AccessibilityProvider>
