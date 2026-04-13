@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface Precio {
   id: number;
@@ -11,9 +11,9 @@ interface Precio {
 }
 
 interface Promo {
-  numero: number;       // "Promo 1", "Promo 2" — lo que manda por Telegram
-  nombre: string;       // nombre completo visible
-  descripcion: string;  // zonas incluidas
+  numero: number;
+  nombre: string;
+  descripcion: string;
   precio: number;
   activo: boolean;
 }
@@ -41,6 +41,8 @@ export default function DepilacionPage() {
   const [promos, setPromos] = useState<Promo[]>(PROMOS_INICIAL);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [seccion, setSeccion] = useState<'promos' | 'femenina' | 'masculina'>('promos');
+  const nuevaPromoRef = useRef<HTMLDivElement>(null);
 
   const actualizarPrecio = (id: number, campo: keyof Precio, valor: string | number | boolean) => {
     setPrecios(prev => prev.map(p => p.id === id ? { ...p, [campo]: valor } : p));
@@ -59,6 +61,9 @@ export default function DepilacionPage() {
       precio: 0,
       activo: true,
     }]);
+    setTimeout(() => {
+      nuevaPromoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   };
 
   const eliminarPromo = (numero: number) => {
@@ -71,11 +76,7 @@ export default function DepilacionPage() {
       const res = await fetch('/api/webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accion: 'actualizar_depilacion',
-          precios,
-          promos,   // el bot lee esto para saber qué es "promo 1"
-        }),
+        body: JSON.stringify({ accion: 'actualizar_depilacion', precios, promos }),
       });
       setMensaje(res.ok ? '✅ Guardado — el bot ya conoce las promos' : '⚠️ Error al guardar — revisá n8n');
     } catch {
@@ -89,20 +90,20 @@ export default function DepilacionPage() {
   const masculina = precios.filter(p => p.categoria === 'masculina');
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold">✨ Depilación Definitiva</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Todo lo que edites acá el bot de Telegram lo conoce automáticamente
+            Lo que edites acá el bot de Telegram lo lee automáticamente
           </p>
         </div>
         <button
           onClick={guardar}
           disabled={guardando}
-          className="px-5 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="px-5 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors w-full sm:w-auto"
         >
           {guardando ? 'Guardando...' : '💾 Guardar todo'}
         </button>
@@ -114,41 +115,73 @@ export default function DepilacionPage() {
         </div>
       )}
 
-      {/* PROMOS — sección principal */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-bold">🔥 Promociones</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Cuando mandás <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">promo 1</span> por Telegram, el bot sabe exactamente qué es
-            </p>
-          </div>
+      {/* Tabs de sección */}
+      <div className="flex gap-2 flex-wrap">
+        {(['promos', 'femenina', 'masculina'] as const).map((tab) => (
           <button
-            onClick={agregarPromo}
-            className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+            key={tab}
+            onClick={() => setSeccion(tab)}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors capitalize ${
+              seccion === tab
+                ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
           >
-            + Nueva Promo
+            {tab === 'promos' ? '🔥 Promos' : tab === 'femenina' ? 'Femenina' : 'Masculina'}
           </button>
-        </div>
+        ))}
+      </div>
 
-        <div className="space-y-3">
-          {promos.map((promo) => (
-            <div
-              key={promo.numero}
-              className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm"
+      {/* PROMOS */}
+      {seccion === 'promos' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Mandá <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">promo 1</span> por Telegram → el bot sabe qué es
+            </p>
+            <button
+              onClick={agregarPromo}
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 transition-colors whitespace-nowrap"
             >
-              <div className="flex flex-wrap gap-4 items-start">
-                {/* Número */}
-                <div className="w-16 text-center">
-                  <label className="text-xs text-slate-400 block mb-1">Nro.</label>
-                  <div className="px-3 py-2 rounded-lg bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 font-bold text-center">
-                    {promo.numero}
+              + Nueva
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {promos.map((promo, idx) => (
+              <div
+                key={promo.numero}
+                ref={idx === promos.length - 1 ? nuevaPromoRef : null}
+                className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3"
+              >
+                {/* Número + toggle + eliminar */}
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 font-bold text-sm">
+                    Promo {promo.numero}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => actualizarPromo(promo.numero, 'activo', !promo.activo)}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        promo.activo
+                          ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {promo.activo ? '✓ Activa' : '✗ Inactiva'}
+                    </button>
+                    <button
+                      onClick={() => eliminarPromo(promo.numero)}
+                      className="px-3 py-1 rounded-lg text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                    >
+                      Eliminar
+                    </button>
                   </div>
                 </div>
 
                 {/* Nombre */}
-                <div className="flex-1 min-w-40">
-                  <label className="text-xs text-slate-400 block mb-1">Nombre de la promo</label>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Nombre</label>
                   <input
                     value={promo.nombre}
                     onChange={(e) => actualizarPromo(promo.numero, 'nombre', e.target.value)}
@@ -157,8 +190,8 @@ export default function DepilacionPage() {
                   />
                 </div>
 
-                {/* Descripción / zonas */}
-                <div className="flex-1 min-w-48">
+                {/* Descripción */}
+                <div>
                   <label className="text-xs text-slate-400 block mb-1">Qué incluye</label>
                   <input
                     value={promo.descripcion}
@@ -169,7 +202,7 @@ export default function DepilacionPage() {
                 </div>
 
                 {/* Precio */}
-                <div className="w-36">
+                <div>
                   <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
                   <input
                     type="number"
@@ -178,43 +211,22 @@ export default function DepilacionPage() {
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
                   />
                 </div>
-
-                {/* Activo + Eliminar */}
-                <div className="flex flex-col gap-2 items-center">
-                  <label className="text-xs text-slate-400">Activo</label>
-                  <button
-                    onClick={() => actualizarPromo(promo.numero, 'activo', !promo.activo)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      promo.activo
-                        ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                    }`}
-                  >
-                    {promo.activo ? '✓ Sí' : '✗ No'}
-                  </button>
-                  <button
-                    onClick={() => eliminarPromo(promo.numero)}
-                    className="px-3 py-1 rounded-lg text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                  >
-                    Eliminar
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* PRECIOS FEMENINA */}
-      <div>
-        <h3 className="text-lg font-bold text-rose-500 mb-3">FEMENINA — Precios</h3>
+      {/* FEMENINA */}
+      {seccion === 'femenina' && (
         <div className="space-y-3">
+          <h3 className="font-bold text-rose-500">FEMENINA — Precios</h3>
           {femenina.map((s) => (
             <div
               key={s.id}
-              className="flex flex-wrap gap-4 items-center p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm"
+              className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3"
             >
-              <div className="flex-1 min-w-48">
+              <div>
                 <label className="text-xs text-slate-400 block mb-1">Servicio</label>
                 <input
                   value={s.nombre}
@@ -222,43 +234,42 @@ export default function DepilacionPage() {
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm"
                 />
               </div>
-              <div className="w-36">
-                <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
-                <input
-                  type="number"
-                  value={s.precio}
-                  onChange={(e) => actualizarPrecio(s.id, 'precio', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
-                />
-              </div>
-              <div className="flex flex-col items-center">
-                <label className="text-xs text-slate-400 mb-1">Activo</label>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
+                  <input
+                    type="number"
+                    value={s.precio}
+                    onChange={(e) => actualizarPrecio(s.id, 'precio', parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
+                  />
+                </div>
                 <button
                   onClick={() => actualizarPrecio(s.id, 'activo', !s.activo)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     s.activo
                       ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                   }`}
                 >
-                  {s.activo ? '✓ Sí' : '✗ No'}
+                  {s.activo ? '✓ Activo' : '✗ No'}
                 </button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* PRECIOS MASCULINA */}
-      <div>
-        <h3 className="text-lg font-bold text-blue-500 mb-3">MASCULINA — Precios</h3>
+      {/* MASCULINA */}
+      {seccion === 'masculina' && (
         <div className="space-y-3">
+          <h3 className="font-bold text-blue-500">MASCULINA — Precios</h3>
           {masculina.map((s) => (
             <div
               key={s.id}
-              className="flex flex-wrap gap-4 items-center p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm"
+              className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3"
             >
-              <div className="flex-1 min-w-48">
+              <div>
                 <label className="text-xs text-slate-400 block mb-1">Servicio</label>
                 <input
                   value={s.nombre}
@@ -266,32 +277,31 @@ export default function DepilacionPage() {
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm"
                 />
               </div>
-              <div className="w-36">
-                <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
-                <input
-                  type="number"
-                  value={s.precio}
-                  onChange={(e) => actualizarPrecio(s.id, 'precio', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
-                />
-              </div>
-              <div className="flex flex-col items-center">
-                <label className="text-xs text-slate-400 mb-1">Activo</label>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
+                  <input
+                    type="number"
+                    value={s.precio}
+                    onChange={(e) => actualizarPrecio(s.id, 'precio', parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
+                  />
+                </div>
                 <button
                   onClick={() => actualizarPrecio(s.id, 'activo', !s.activo)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     s.activo
                       ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                   }`}
                 >
-                  {s.activo ? '✓ Sí' : '✗ No'}
+                  {s.activo ? '✓ Activo' : '✗ No'}
                 </button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
 
     </div>
   );
