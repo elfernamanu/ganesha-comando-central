@@ -12,8 +12,8 @@ export default function Home() {
       {/* Flex container: Drawer + Main Content */}
       <div className="flex h-screen">
 
-        {/* Sidebar Drawer — oculto en mobile, visible en desktop */}
-        <div className="hidden md:flex w-80 flex-shrink-0 overflow-y-auto border-r border-slate-200 dark:border-slate-700">
+        {/* Sidebar Drawer */}
+        <div className="w-80 flex-shrink-0 overflow-y-auto border-r border-slate-200 dark:border-slate-700">
           <DrawerMain />
         </div>
 
