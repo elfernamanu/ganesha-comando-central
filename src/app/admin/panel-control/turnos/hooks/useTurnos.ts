@@ -2,7 +2,30 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Turno } from '../types';
-import { leerCatalogo } from '../../_shared/catalogoPromos';
+import { leerCatalogo, type CatalogoPromos } from '../../_shared/catalogoPromos';
+
+// ── Migración de nombres viejos → nombres del catálogo actual ─────────────
+// Ej: "Depilación PROMO 1" → "PROMO 1: Rostro completo (Mujer)"
+//     "Uñas"               → se deja como está (genérico válido)
+function migrarTratamiento(tratamiento: string, catalogo: CatalogoPromos): string {
+  if (!tratamiento) return tratamiento;
+  // Ya existe en el catálogo → OK
+  if (catalogo[tratamiento]) return tratamiento;
+
+  // Intento 1: quitar prefijo "Depilación " y buscar lo que queda
+  const sinPrefijo = tratamiento.replace(/^depilaci[oó]n\s+/i, '').trim();
+  if (catalogo[sinPrefijo]) return sinPrefijo;
+
+  // Intento 2: buscar un item del catálogo que comience con el texto limpio
+  const encontrado = Object.values(catalogo).find(item =>
+    item.nombre.toLowerCase().startsWith(sinPrefijo.toLowerCase()) ||
+    sinPrefijo.toLowerCase().startsWith(item.nombre.toLowerCase())
+  );
+  if (encontrado) return encontrado.nombre;
+
+  // Sin match → lo dejamos como está (la secretaria lo cambia a mano)
+  return tratamiento;
+}
 
 /**
  * Hook para gestionar turnos del día
@@ -15,13 +38,19 @@ export function useTurnos(fecha: string) {
   const [mensaje, setMensaje] = useState('');
 
   // Cargar turnos guardados de este día al montar
+  // → también migra nombres viejos al formato actual del catálogo
   useEffect(() => {
     try {
       const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
       if (stored) {
         const parsed = JSON.parse(stored) as Turno[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setTurnos(parsed);
+          const catalogo = leerCatalogo();
+          const migrados = parsed.map(t => ({
+            ...t,
+            tratamiento: migrarTratamiento(t.tratamiento, catalogo),
+          }));
+          setTurnos(migrados);
         }
       }
     } catch {

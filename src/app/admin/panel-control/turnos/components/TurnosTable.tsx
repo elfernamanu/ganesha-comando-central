@@ -96,7 +96,7 @@ export default function TurnosTable({
       <div className="overflow-x-auto rounded-lg">
       <div className="min-w-[820px] space-y-1">
         {/* ── Header ── */}
-        <div className="grid grid-cols-[88px_1fr_170px_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+        <div className="grid grid-cols-[64px_130px_1fr_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           <span>Hora</span>
           <span>Clienta</span>
           <span>Promo / Detalle</span>
@@ -111,7 +111,7 @@ export default function TurnosTable({
         {turnos.map((turno, idx) => (
           <div
             key={turno.id}
-            className={`grid grid-cols-[88px_1fr_170px_60px_76px_76px_42px_60px_30px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
+            className={`grid grid-cols-[64px_130px_1fr_60px_76px_76px_42px_60px_30px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
               idx % 2 === 0
                 ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                 : 'bg-slate-50 dark:bg-slate-700/40 border-slate-100 dark:border-slate-600'
@@ -157,10 +157,9 @@ export default function TurnosTable({
                   <option value="">— Elegir servicio —</option>
                 )}
                 {/* Si el tratamiento guardado no existe en el catálogo actual
-                    (datos viejos: 'Uñas', 'Estética', etc.) → lo mostramos igual
-                    para que la secretaria lo vea y pueda cambiarlo */}
+                    (datos viejos) → lo mostramos igual para que la secretaria pueda cambiarlo */}
                 {turno.tratamiento && !catalogo[turno.tratamiento] && (
-                  <option value={turno.tratamiento}>⚠️ {turno.tratamiento}</option>
+                  <option value={turno.tratamiento}>{turno.tratamiento}</option>
                 )}
                 {/* Grupo Depilación */}
                 {opcionesDepi.length > 0 && (
