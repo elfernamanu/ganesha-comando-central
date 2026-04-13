@@ -9,50 +9,19 @@ export function GET() {
         style={{
           width: 512,
           height: 512,
-          background: 'linear-gradient(135deg, #4c1d95 0%, #be185d 100%)',
+          background: '#4c1d95',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 16,
         }}
       >
-        <div
-          style={{
-            width: 190,
-            height: 190,
-            borderRadius: '50%',
-            background: '#f9a8d4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 100,
-              height: 100,
-              borderRadius: '50%',
-              background: '#ec4899',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                background: '#fce7f3',
-              }}
-            />
-          </div>
-        </div>
-        <div style={{ color: 'white', fontSize: 72, fontWeight: 900, letterSpacing: 4 }}>
+        <div style={{ color: 'white', fontSize: 80, fontWeight: 900, letterSpacing: 6 }}>
           GANESHA
         </div>
-        <div style={{ color: '#f9a8d4', fontSize: 36 }}>esthetic</div>
+        <div style={{ color: '#d8b4fe', fontSize: 36, marginTop: 8 }}>
+          esthetic
+        </div>
       </div>
     ),
     { width: 512, height: 512 }
