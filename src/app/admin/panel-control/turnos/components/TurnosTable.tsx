@@ -57,7 +57,8 @@ export default function TurnosTable({
   }, []);
 
   // Opciones del dropdown agrupadas por tipo
-  const opcionesDepi  = Object.keys(catalogo).filter(k => k.startsWith('Depilación PROMO'));
+  // Las promos de depilación ahora tienen nombres como "🎁 PROMO 1: ..."
+  const opcionesDepi   = Object.keys(catalogo).filter(k => k.startsWith('🎁 PROMO'));
   const opcionesCombos = Object.keys(catalogo).filter(k => k.startsWith('Promo Combo'));
 
   // Cuando la secretaria cambia el tratamiento → auto-completar detalle + monto
@@ -144,7 +145,7 @@ export default function TurnosTable({
               >
                 {/* Grupo Depilación */}
                 {opcionesDepi.length > 0 && (
-                  <optgroup label="✨ Depilación">
+                  <optgroup label="✨ Promos Depilación">
                     {opcionesDepi.sort().map(op => (
                       <option key={op} value={op}>{op}</option>
                     ))}
