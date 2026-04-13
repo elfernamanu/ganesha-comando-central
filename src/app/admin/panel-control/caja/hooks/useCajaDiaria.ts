@@ -42,9 +42,14 @@ export function useCajaDiaria(fecha: string) {
 
   useEffect(() => {
     cargarTurnos();
-    // Refrescar cada 30 segundos por si la secretaria actualiza
+    // Refrescar al volver a la pestaña (secretaria puede haber actualizado turnos)
+    window.addEventListener('focus', cargarTurnos);
+    // También cada 30 segundos por si están en la misma pestaña
     const interval = setInterval(cargarTurnos, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      window.removeEventListener('focus', cargarTurnos);
+      clearInterval(interval);
+    };
   }, [cargarTurnos]);
 
   // ========================================
