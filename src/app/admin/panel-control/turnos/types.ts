@@ -18,7 +18,9 @@ export interface Turno {
   id: string;
   horario: string;                    // "09:00"
   clienteNombre: string;              // "Mariana López"
-  tratamiento: Tratamiento;           // "Depilación PROMO 1"
+  tratamiento: Tratamiento;           // "Depilación PROMO 1" (promo/combo)
+  detalle: string;                    // "Cuerpo completo sin rostro" (qué se hace)
+
   asistencia: Asistencia;             // "presente" | "no_vino"
 
   // Financiero

@@ -58,10 +58,10 @@ export default function TurnosTable({
       {/* Cada turno = una fila tipo card bien aireada */}
       <div className="space-y-1">
         {/* Header columnas */}
-        <div className="grid grid-cols-[72px_1fr_110px_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+        <div className="grid grid-cols-[72px_1fr_170px_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           <span>Hora</span>
           <span>Clienta</span>
-          <span>Tratamiento</span>
+          <span>Promo / Detalle</span>
           <span className="text-center">Asist.</span>
           <span className="text-right">Total</span>
           <span className="text-right">Seña</span>
@@ -73,7 +73,7 @@ export default function TurnosTable({
         {turnos.map((turno, idx) => (
           <div
             key={turno.id}
-            className={`grid grid-cols-[72px_1fr_110px_60px_76px_76px_42px_60px_30px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
+            className={`grid grid-cols-[72px_1fr_170px_60px_76px_76px_42px_60px_30px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
               idx % 2 === 0
                 ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                 : 'bg-slate-50 dark:bg-slate-700/40 border-slate-100 dark:border-slate-600'
@@ -100,22 +100,32 @@ export default function TurnosTable({
               />
             </div>
 
-            {/* Tratamiento */}
-            <div>
+            {/* Tratamiento + Detalle */}
+            <div className="flex flex-col gap-1">
               <select
                 value={turno.tratamiento}
                 onChange={e => onActualizar(turno.id, { tratamiento: e.target.value as any })}
-                className="w-full px-1 py-1 rounded text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                className="w-full px-1 py-1 rounded text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-semibold"
               >
                 <option>Depilación PROMO 1</option>
                 <option>Depilación PROMO 2</option>
                 <option>Depilación PROMO 3</option>
                 <option>Depilación PROMO 4</option>
+                <option>Promo Combo 1</option>
+                <option>Promo Combo 2</option>
                 <option>Uñas</option>
                 <option>Estética</option>
                 <option>Pestañas</option>
                 <option>Otro</option>
               </select>
+              {/* Detalle del tratamiento — qué se hace exactamente */}
+              <input
+                type="text"
+                value={turno.detalle || ''}
+                onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                placeholder="Ej: Cuerpo completo, Esculpidas..."
+                className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
+              />
             </div>
 
             {/* Asistencia */}
