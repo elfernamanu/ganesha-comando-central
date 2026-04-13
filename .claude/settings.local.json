@@ -58,7 +58,8 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:65186/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:57462/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://ganesha-comando-central.vercel.app/)",
-      "Bash(gh run:*)"
+      "Bash(gh run:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

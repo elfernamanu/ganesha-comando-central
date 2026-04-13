@@ -112,7 +112,8 @@ const INICIAL: CategoriaServicio[] = [
   },
 ];
 
-const LS_KEY = 'ganesha_config_servicios';
+const LS_KEY     = 'ganesha_config_servicios';
+const LS_VERSION = 'ganesha_config_v3';      // Bump al cambiar INICIAL
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatFechaLabel(f: string): string {
@@ -404,19 +405,22 @@ export default function ConfiguracionServiciosPage() {
 
   useEffect(() => {
     try {
+      // Si la versión del localStorage es diferente a la actual,
+      // los datos son viejos → limpiar y arrancar con INICIAL fresco.
+      const version = localStorage.getItem(LS_VERSION);
+      if (version !== 'ok') {
+        localStorage.removeItem(LS_KEY);
+        localStorage.setItem(LS_VERSION, 'ok');
+        return; // usa INICIAL (valor por defecto del useState)
+      }
+
       const stored = localStorage.getItem(LS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as CategoriaServicio[];
-        // Migración: si tiene fechas_activas (formato viejo) → convertir a jornadas
+        // Migración suave: asegurar que cada categoría tiene jornadas (array)
         const migradas = parsed.map(c => ({
           ...c,
-          jornadas: c.jornadas ?? (c as any).fechas_activas?.map((f: string) => ({
-            id: `migrated_${f}`,
-            fecha: f,
-            hora_inicio: '08:00',
-            hora_fin: '20:00',
-            activa: true,
-          })) ?? [],
+          jornadas: c.jornadas ?? [],
         }));
         setCategorias(migradas);
       }
@@ -424,7 +428,10 @@ export default function ConfiguracionServiciosPage() {
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(categorias)); } catch {}
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(categorias));
+      localStorage.setItem(LS_VERSION, 'ok');
+    } catch {}
   }, [categorias]);
 
   const actualizarJornadas = (catId: string, jornadas: Jornada[]) =>
