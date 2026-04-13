@@ -1,18 +1,35 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DrawerMain } from '@/components/Drawer/DrawerMain';
 import { Header } from '@/components/MainContent/Header';
 import { ShiftsGrid } from '@/components/MainContent/ShiftsGrid';
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Detecta si es mobile y redirige a /web
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        router.push('/web');
+      }
+    };
+
+    handleResize(); // Chequea al cargar
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300">
-      <div className="flex h-screen">
-        {/* Sidebar */}
+      <div className="flex min-h-screen">
+        {/* Sidebar — solo visible en desktop (>= 768px) */}
         <div className="w-80 flex-shrink-0 overflow-y-auto border-r border-slate-200 dark:border-slate-700">
           <DrawerMain />
         </div>
-        {/* Main */}
+        {/* Main Content */}
         <div className="flex-1 overflow-y-auto flex flex-col">
           <div className="border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 bg-white dark:bg-slate-900">
             <Header />
