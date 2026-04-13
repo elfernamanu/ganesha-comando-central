@@ -3,6 +3,16 @@
 import Link from 'next/link';
 import { ThemeZoomControls } from '@/components/Controls/ThemeZoomControls';
 
+const NAV_ITEMS = [
+  { label: '📅 Agenda', href: '#' },
+  { label: '🕒 Turnos', href: '/admin/panel-control/turnos' },
+  { label: '✨ Depilación', href: '#' },
+  { label: '💅 Uñas', href: '#' },
+  { label: '👁️ Pestañas', href: '#' },
+  { label: '⚡ Estética hinfus', href: '#' },
+  { label: '📢 Promocionar contactos', href: '#' },
+];
+
 export function DrawerMain() {
   return (
     <aside className="w-80 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-5 overflow-y-auto transition-colors duration-300">
@@ -21,22 +31,26 @@ export function DrawerMain() {
 
       {/* Nav Principal */}
       <nav className="flex flex-col gap-1 mb-8">
-        {[
-          '📅 Agenda',
-          '🕒 Turnos',
-          '✨ Depilación',
-          '💅 Uñas',
-          '👁️ Pestañas',
-          '⚡ Estética hinfus',
-          '📢 Promocionar contactos',
-        ].map((label) => (
-          <a
-            key={label}
-            href="#"
-            className="p-2 rounded cursor-pointer font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            {label}
-          </a>
+        {NAV_ITEMS.map((item) => (
+          item.href === '#'
+            ? (
+              <a
+                key={item.label}
+                href="#"
+                className="p-2 rounded cursor-pointer font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                {item.label}
+              </a>
+            )
+            : (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="p-2 rounded font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 block"
+              >
+                {item.label}
+              </Link>
+            )
         ))}
       </nav>
 

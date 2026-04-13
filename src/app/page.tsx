@@ -88,9 +88,9 @@ export default function Home() {
           <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-blue-600 dark:text-blue-400 px-3 py-1">
             <span className="text-xl">📅</span>Agenda
           </a>
-          <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 px-3 py-1">
+          <Link href="/admin/panel-control/turnos" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 px-3 py-1">
             <span className="text-xl">🕒</span>Turnos
-          </a>
+          </Link>
           <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 px-3 py-1">
             <span className="text-xl">✨</span>Servicios
           </a>
