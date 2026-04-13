@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCaja } from './hooks/useCaja';
+import type { MovimientoCaja } from './types';
 
 function formatDinero(n: number) {
   return new Intl.NumberFormat('es-AR', {
