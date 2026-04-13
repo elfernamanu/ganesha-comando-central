@@ -2,35 +2,74 @@
 
 import { useState } from 'react';
 
-interface Promocion {
-  id: number;
+interface Combo {
+  numero: number;
   nombre: string;
-  descuento_pct: number;
-  valido_hasta: string;
+  descripcion: string;
+  servicios: {
+    depilacion: boolean;
+    unas: boolean;
+    estetica: boolean;
+    pestanas: boolean;
+  };
+  precio: number;
   activo: boolean;
 }
 
+const COMBOS_INICIAL: Combo[] = [
+  {
+    numero: 1,
+    nombre: 'Combo Depilación + Uñas',
+    descripcion: 'Depilación completa + manicura',
+    servicios: { depilacion: true, unas: true, estetica: false, pestanas: false },
+    precio: 12000,
+    activo: true,
+  },
+  {
+    numero: 2,
+    nombre: 'Combo Completo',
+    descripcion: 'Depilación + Uñas + Estética + Pestañas',
+    servicios: { depilacion: true, unas: true, estetica: true, pestanas: true },
+    precio: 25000,
+    activo: true,
+  },
+];
+
 export default function PromocionesPage() {
-  const [promos, setPromos] = useState<Promocion[]>([
-    { id: 1, nombre: 'Combo Verano', descuento_pct: 20, valido_hasta: '2026-03-31', activo: true },
-  ]);
+  const [combos, setCombos] = useState<Combo[]>(COMBOS_INICIAL);
   const [guardando, setGuardando] = useState(false);
 
-  const agregar = () => setPromos(prev => [...prev, {
-    id: Date.now(), nombre: '', descuento_pct: 10, valido_hasta: '', activo: true,
-  }]);
+  const agregarCombo = () => {
+    const nuevoNumero = Math.max(...combos.map(c => c.numero), 0) + 1;
+    setCombos(prev => [...prev, {
+      numero: nuevoNumero,
+      nombre: '',
+      descripcion: '',
+      servicios: { depilacion: false, unas: false, estetica: false, pestanas: false },
+      precio: 0,
+      activo: true,
+    }]);
+  };
 
-  const eliminar = (id: number) => setPromos(prev => prev.filter(p => p.id !== id));
+  const eliminarCombo = (numero: number) => setCombos(prev => prev.filter(c => c.numero !== numero));
 
-  const actualizar = (id: number, campo: keyof Promocion, valor: string | number | boolean) =>
-    setPromos(prev => prev.map(p => p.id === id ? { ...p, [campo]: valor } : p));
+  const actualizarCombo = (numero: number, campo: keyof Combo, valor: unknown) => {
+    setCombos(prev => prev.map(c => c.numero === numero ? { ...c, [campo]: valor } : c));
+  };
+
+  const actualizarServicio = (numero: number, servicio: keyof Combo['servicios'], checked: boolean) => {
+    setCombos(prev => prev.map(c => c.numero === numero
+      ? { ...c, servicios: { ...c.servicios, [servicio]: checked } }
+      : c
+    ));
+  };
 
   const guardar = async () => {
     setGuardando(true);
     await fetch('/api/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accion: 'actualizar_promociones', promos }),
+      body: JSON.stringify({ accion: 'actualizar_combos', combos }),
     }).catch(() => {});
     setGuardando(false);
   };
@@ -39,12 +78,12 @@ export default function PromocionesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold">📢 Promociones</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Descuentos y ofertas activas</p>
+          <h2 className="text-2xl font-bold">🎁 Combos</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Promociones con múltiples servicios</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={agregar} className="px-4 py-2 rounded-lg font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition-colors">
-            + Nueva
+          <button onClick={agregarCombo} className="px-4 py-2 rounded-lg font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition-colors">
+            + Nuevo Combo
           </button>
           <button onClick={guardar} disabled={guardando} className="px-5 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors">
             {guardando ? 'Guardando...' : '💾 Guardar'}
@@ -52,36 +91,124 @@ export default function PromocionesPage() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        {promos.map((p) => (
-          <div key={p.id} className="flex flex-wrap gap-4 items-center p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="flex-1 min-w-40">
-              <label className="text-xs text-slate-400 block mb-1">Nombre</label>
-              <input value={p.nombre} onChange={(e) => actualizar(p.id, 'nombre', e.target.value)}
-                placeholder="Ej: Combo Verano"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" />
+      <div className="space-y-4">
+        {combos.map((combo) => (
+          <div key={combo.numero} className="p-6 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-4">
+            {/* Header */}
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-bold text-sm">
+                  Promo Combo {combo.numero}
+                </span>
+              </div>
+              <button onClick={() => eliminarCombo(combo.numero)} className="px-3 py-2 rounded-lg text-sm font-medium text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors">
+                🗑️
+              </button>
             </div>
-            <div className="w-28">
-              <label className="text-xs text-slate-400 block mb-1">Descuento %</label>
-              <input type="number" value={p.descuento_pct} onChange={(e) => actualizar(p.id, 'descuento_pct', parseInt(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" />
+
+            {/* Nombre y Descripción */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Nombre del combo</label>
+                <input
+                  value={combo.nombre}
+                  onChange={(e) => actualizarCombo(combo.numero, 'nombre', e.target.value)}
+                  placeholder="Ej: Combo Depilación + Uñas"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Precio</label>
+                <input
+                  type="number"
+                  value={combo.precio || ''}
+                  onChange={(e) => actualizarCombo(combo.numero, 'precio', parseInt(e.target.value) || 0)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  placeholder="0"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"
+                />
+              </div>
             </div>
-            <div className="w-36">
-              <label className="text-xs text-slate-400 block mb-1">Válido hasta</label>
-              <input type="date" value={p.valido_hasta} onChange={(e) => actualizar(p.id, 'valido_hasta', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" />
+
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Descripción</label>
+              <textarea
+                value={combo.descripcion}
+                onChange={(e) => actualizarCombo(combo.numero, 'descripcion', e.target.value)}
+                placeholder="Ej: Depilación completa + manicura"
+                rows={2}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 resize-none"
+              />
             </div>
-            <button onClick={() => actualizar(p.id, 'activo', !p.activo)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${p.activo ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
-              {p.activo ? '✓ Activa' : '✗ Inactiva'}
-            </button>
-            <button onClick={() => eliminar(p.id)} className="px-3 py-2 rounded-lg text-sm font-medium text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors">
-              🗑️
-            </button>
+
+            {/* Servicios */}
+            <div>
+              <label className="text-xs text-slate-400 block mb-3 font-semibold">Servicios incluidos</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Depilación */}
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={combo.servicios.depilacion}
+                    onChange={(e) => actualizarServicio(combo.numero, 'depilacion', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium">✨ Depilación</span>
+                </label>
+
+                {/* Uñas */}
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={combo.servicios.unas}
+                    onChange={(e) => actualizarServicio(combo.numero, 'unas', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium">💅 Uñas</span>
+                </label>
+
+                {/* Estética */}
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={combo.servicios.estetica}
+                    onChange={(e) => actualizarServicio(combo.numero, 'estetica', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium">🌟 Estética</span>
+                </label>
+
+                {/* Pestañas */}
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={combo.servicios.pestanas}
+                    onChange={(e) => actualizarServicio(combo.numero, 'pestanas', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium">👁️ Pestañas</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => actualizarCombo(combo.numero, 'activo', !combo.activo)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  combo.activo
+                    ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                }`}
+              >
+                {combo.activo ? '✓ Activo' : '✗ Inactivo'}
+              </button>
+            </div>
           </div>
         ))}
-        {promos.length === 0 && (
-          <div className="text-center py-12 text-slate-400">No hay promociones. Creá una nueva.</div>
+
+        {combos.length === 0 && (
+          <div className="text-center py-12 text-slate-400">No hay combos. Creá uno nuevo.</div>
         )}
       </div>
     </div>
