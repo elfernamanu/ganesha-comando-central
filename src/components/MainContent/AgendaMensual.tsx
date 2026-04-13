@@ -240,7 +240,7 @@ export function AgendaMensual() {
 
   // ── Servicios del día seleccionado ────────────────────────────────────────
   const serviciosDiaSeleccionado = diaSeleccionado
-    ? serviciosPorDia(diaSeleccionado.getDate())
+    ? serviciosPorDia(diaSeleccionado)
     : [];
 
   // ─────────────────────────────────────────────────────────────────────────
