@@ -383,7 +383,7 @@ export function AgendaMensual() {
           {/* Encabezado del panel */}
           <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
             <div>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
                 {etiquetaDia(diaSeleccionado)}
               </p>
               {serviciosDiaSeleccionado.length > 0 ? (

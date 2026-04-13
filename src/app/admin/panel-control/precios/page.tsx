@@ -118,7 +118,8 @@ const LS_VERSION = 'ganesha_config_v3';      // Bump al cambiar INICIAL
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatFechaLabel(f: string): string {
   const d = new Date(f + 'T12:00:00');
-  return d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    .replace(/^\w/, c => c.toUpperCase());
 }
 
 function formatPrecio(n: number): string {

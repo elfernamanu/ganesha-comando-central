@@ -14,7 +14,7 @@ export default function TurnosPage() {
         <div>
           <h1 className="text-2xl font-bold">📅 Turnos del Día</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {new Date(hoy).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date(hoy + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
           </p>
         </div>
         <Link
