@@ -109,7 +109,14 @@ export function leerCatalogo(): CatalogoPromos {
     catalogo[item.nombre] = { ...item, categoria: 'combo' };
   });
 
-  // 6) Otro (manual siempre)
+  // 6) Nombres genéricos de compatibilidad hacia atrás
+  // (turnos guardados antes con 'Uñas', 'Estética', 'Pestañas')
+  // → precio 0: la secretaria lo carga a mano
+  if (!catalogo['Uñas'])    catalogo['Uñas']    = { nombre: 'Uñas',    nombreDisplay: '💅 Uñas (general)',    detalle: '', precio: 0, categoria: 'unas'     };
+  if (!catalogo['Estética']) catalogo['Estética'] = { nombre: 'Estética', nombreDisplay: '⚡ Estética (general)', detalle: '', precio: 0, categoria: 'estetica' };
+  if (!catalogo['Pestañas']) catalogo['Pestañas'] = { nombre: 'Pestañas', nombreDisplay: '👁️ Pestañas (general)', detalle: '', precio: 0, categoria: 'pestanas' };
+
+  // 7) Otro (manual siempre)
   catalogo['Otro'] = { nombre: 'Otro', nombreDisplay: 'Otro', detalle: '', precio: 0, categoria: 'otro' };
 
   return catalogo;
