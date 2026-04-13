@@ -66,16 +66,16 @@ export default function TurnosTable({
   const opcionesPestanas = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
   const opcionesCombos   = Object.values(catalogo).filter(item => item.categoria === 'combo');
 
-  // Cuando la secretaria cambia el tratamiento → auto-completar detalle + monto
+  // Cuando la secretaria cambia el tratamiento:
+  //   → SIEMPRE limpia el detalle viejo (para que no quede "Tira de cola" si elige Uñas)
+  //   → SIEMPRE actualiza el precio (0 si no está configurado → la secretaria lo carga a mano)
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
     const item = catalogo[nuevoTrat] ?? buscarEnCatalogo(nuevoTrat);
-    const cambios: Record<string, unknown> = { tratamiento: nuevoTrat };
-
-    if (item) {
-      if (item.detalle) cambios.detalle = item.detalle;
-      if (item.precio > 0) cambios.monto_total = item.precio;
-    }
-
+    const cambios: Record<string, unknown> = {
+      tratamiento:  nuevoTrat,
+      detalle:      item?.detalle || '',   // limpia si el nuevo servicio no tiene detalle
+      monto_total:  item?.precio  ?? 0,    // precio del catálogo, o 0 para cargar a mano
+    };
     onActualizar(turnoId, cambios as any);
   };
 
@@ -155,6 +155,12 @@ export default function TurnosTable({
                 {/* Placeholder — desaparece al seleccionar */}
                 {!turno.tratamiento && (
                   <option value="">— Elegir servicio —</option>
+                )}
+                {/* Si el tratamiento guardado no existe en el catálogo actual
+                    (datos viejos: 'Uñas', 'Estética', etc.) → lo mostramos igual
+                    para que la secretaria lo vea y pueda cambiarlo */}
+                {turno.tratamiento && !catalogo[turno.tratamiento] && (
+                  <option value={turno.tratamiento}>⚠️ {turno.tratamiento}</option>
                 )}
                 {/* Grupo Depilación */}
                 {opcionesDepi.length > 0 && (
