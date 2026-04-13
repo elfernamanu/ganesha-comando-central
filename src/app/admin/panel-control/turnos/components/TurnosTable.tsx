@@ -114,7 +114,10 @@ export default function TurnosTable({
             {/* Hora */}
             <div>
               <input
-                type="time"
+                type="text"
+                inputMode="numeric"
+                placeholder="09:00"
+                maxLength={5}
                 value={turno.horario}
                 onChange={e => onActualizar(turno.id, { horario: e.target.value })}
                 className="w-full px-1 py-1 rounded text-sm font-mono border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"

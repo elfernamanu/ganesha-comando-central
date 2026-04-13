@@ -202,7 +202,10 @@ function JornadasPanel({
           <div className="flex-1">
             <label className="text-[10px] text-slate-400 block mb-1">Desde</label>
             <input
-              type="time"
+              type="text"
+              inputMode="numeric"
+              placeholder="09:00"
+              maxLength={5}
               value={nuevaInicio}
               onChange={e => setNuevaInicio(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm font-mono"
@@ -211,7 +214,10 @@ function JornadasPanel({
           <div className="flex-1">
             <label className="text-[10px] text-slate-400 block mb-1">Hasta</label>
             <input
-              type="time"
+              type="text"
+              inputMode="numeric"
+              placeholder="19:00"
+              maxLength={5}
               value={nuevaFin}
               onChange={e => setNuevaFin(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm font-mono"
@@ -250,14 +256,20 @@ function JornadasPanel({
                 </p>
                 <div className="flex gap-2 items-center mt-1">
                   <input
-                    type="time"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="09:00"
+                    maxLength={5}
                     value={j.hora_inicio}
                     onChange={e => actualizarHora(j.id, 'hora_inicio', e.target.value)}
                     className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono w-20"
                   />
                   <span className="text-xs text-slate-400">a</span>
                   <input
-                    type="time"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="19:00"
+                    maxLength={5}
                     value={j.hora_fin}
                     onChange={e => actualizarHora(j.id, 'hora_fin', e.target.value)}
                     className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono w-20"
