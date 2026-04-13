@@ -235,7 +235,7 @@ export default function TurnosTable({
                 type="text"
                 value={turno.detalle || ''}
                 onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                placeholder="Se carga al elegir la promo..."
+                placeholder="Detalle adicional..."
                 className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
               />
             </div>

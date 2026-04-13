@@ -46,10 +46,16 @@ export function useTurnos(fecha: string) {
         const parsed = JSON.parse(stored) as Turno[];
         if (Array.isArray(parsed) && parsed.length > 0) {
           const catalogo = leerCatalogo();
-          const migrados = parsed.map(t => ({
-            ...t,
-            tratamiento: migrarTratamiento(t.tratamiento, catalogo),
-          }));
+          const migrados = parsed.map(t => {
+            const tratamiento = migrarTratamiento(t.tratamiento, catalogo);
+            const item = catalogo[tratamiento];
+            // Si el detalle está vacío, cargarlo del catálogo
+            const detalle = t.detalle
+              || item?.detalle
+              || (item?.categoria === 'combo' ? item?.nombreDisplay : '')
+              || '';
+            return { ...t, tratamiento, detalle };
+          });
           setTurnos(migrados);
         }
       }
