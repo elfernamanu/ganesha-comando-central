@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { guardarCombos } from '../_shared/catalogoPromos';
 
 interface Combo {
@@ -17,27 +17,23 @@ interface Combo {
   activo: boolean;
 }
 
-const COMBOS_INICIAL: Combo[] = [
-  {
-    numero: 1,
-    nombre: 'Combo Depilación + Uñas',
-    descripcion: 'Depilación completa + manicura',
-    servicios: { depilacion: true, unas: true, estetica: false, pestanas: false },
-    precio: 12000,
-    activo: true,
-  },
-  {
-    numero: 2,
-    nombre: 'Combo Completo',
-    descripcion: 'Depilación + Uñas + Estética + Pestañas',
-    servicios: { depilacion: true, unas: true, estetica: true, pestanas: true },
-    precio: 25000,
-    activo: true,
-  },
-];
+const LS_COMBOS = 'ganesha_catalog_combos_raw'; // guarda el formato completo Combo[]
 
 export default function PromocionesPage() {
-  const [combos, setCombos] = useState<Combo[]>(COMBOS_INICIAL);
+  const [combos, setCombos] = useState<Combo[]>([]);
+
+  // Cargar combos guardados al montar
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_COMBOS);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Combo[];
+        if (Array.isArray(parsed)) setCombos(parsed);
+      }
+    } catch {
+      // silencioso
+    }
+  }, []);
   const [guardando, setGuardando] = useState(false);
 
   const agregarCombo = () => {
@@ -67,7 +63,9 @@ export default function PromocionesPage() {
 
   const guardar = async () => {
     setGuardando(true);
-    // Sincronizar catálogo en localStorage para que Turnos lo lea al auto-completar
+    // Guardar raw para recuperar en próxima sesión
+    try { localStorage.setItem(LS_COMBOS, JSON.stringify(combos)); } catch {}
+    // Sincronizar catálogo simplificado para que Turnos lo lea
     guardarCombos(combos);
     await fetch('/api/webhook', {
       method: 'POST',
@@ -122,14 +120,18 @@ export default function PromocionesPage() {
               </div>
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Precio</label>
-                <input
-                  type="number"
-                  value={combo.precio || ''}
-                  onChange={(e) => actualizarCombo(combo.numero, 'precio', parseInt(e.target.value) || 0)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  placeholder="0"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"
-                />
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-slate-400">$</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={combo.precio ? combo.precio.toLocaleString('es-AR') : ''}
+                    onChange={(e) => actualizarCombo(combo.numero, 'precio', parseInt(e.target.value.replace(/\D/g, ''), 10) || 0)}
+                    onFocus={(e) => e.currentTarget.select()}
+                    placeholder="0"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-mono"
+                  />
+                </div>
               </div>
             </div>
 

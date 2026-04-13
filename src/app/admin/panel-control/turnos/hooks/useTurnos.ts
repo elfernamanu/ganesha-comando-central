@@ -7,51 +7,26 @@ import { Turno } from '../types';
  * Hook para gestionar turnos del día
  */
 export function useTurnos(fecha: string) {
-  const [turnos, setTurnos] = useState<Turno[]>([
-    // Turnos de ejemplo
-    {
-      id: 'turno_1',
-      horario: '09:00',
-      clienteNombre: 'Mariana López',
-      tratamiento: 'Depilación PROMO 1',
-      detalle: 'Cuerpo completo sin rostro',
-      asistencia: 'presente',
-      monto_total: 33000,
-      seña_pagada: 5000,
-      estado_pago: 'completo',
-      metodo_pago: 'efectivo',
-      createdAt: Date.now(),
-    },
-    {
-      id: 'turno_2',
-      horario: '10:00',
-      clienteNombre: 'Sofía Giménez',
-      tratamiento: 'Estética',
-      detalle: 'Himfu + Criofrecuencia',
-      asistencia: 'presente',
-      monto_total: 15000,
-      seña_pagada: 2500,
-      estado_pago: 'seña',
-      metodo_pago: 'efectivo',
-      createdAt: Date.now(),
-    },
-    {
-      id: 'turno_3',
-      horario: '15:00',
-      clienteNombre: 'Lucía Fernández',
-      tratamiento: 'Uñas',
-      detalle: 'Esculpidas / Soft Gel',
-      asistencia: 'no_vino',
-      monto_total: 12000,
-      seña_pagada: 0,
-      estado_pago: 'sin_pago',
-      metodo_pago: 'efectivo',
-      createdAt: Date.now(),
-    },
-  ]);
+  // Inicia vacío — se carga desde localStorage en el useEffect
+  const [turnos, setTurnos] = useState<Turno[]>([]);
 
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+
+  // Cargar turnos guardados de este día al montar
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Turno[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTurnos(parsed);
+        }
+      }
+    } catch {
+      // silencioso
+    }
+  }, [fecha]);
 
   // Auto-sync a localStorage para que Caja pueda leer los datos
   useEffect(() => {

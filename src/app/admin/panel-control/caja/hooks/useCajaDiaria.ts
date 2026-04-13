@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Gasto } from '../types/index';
-import { calcularTotales } from '../utils/calculosCaja';
 
 // Tipo que refleja exactamente lo que guarda la secretaria en Turnos
 export interface TurnoSecretaria {
