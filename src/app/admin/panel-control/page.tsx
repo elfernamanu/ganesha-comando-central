@@ -21,9 +21,9 @@ const SECCIONES = [
   },
   {
     href: '/admin/panel-control/precios',
-    icon: '🏷️',
-    titulo: 'Precios',
-    descripcion: 'Editar precios y duración de cada servicio',
+    icon: '⚙️',
+    titulo: 'Configuración de Servicios',
+    descripcion: 'Precios · Días del mes · Uñas · Estética · Pestañas',
     color: 'border-amber-400 dark:border-amber-600',
     badge: null,
   },

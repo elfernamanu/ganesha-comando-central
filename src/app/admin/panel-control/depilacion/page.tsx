@@ -21,21 +21,55 @@ interface Promo {
 }
 
 const PRECIOS_INICIAL: Precio[] = [
-  { id: 1, nombre: 'Rostro Completo', categoria: 'femenina', precio: 20500, activo: true },
-  { id: 2, nombre: 'Cavado + Tira de Cola', categoria: 'femenina', precio: 22500, activo: true },
-  { id: 3, nombre: 'Axilas | Pierna Entera | Cavado | Tira de Cola | Bozo', categoria: 'femenina', precio: 24000, activo: true },
-  { id: 4, nombre: 'Cuerpo Completo (No incluye Rostro)', categoria: 'femenina', precio: 33000, activo: true },
-  { id: 5, nombre: 'Rostro Completo', categoria: 'masculina', precio: 24000, activo: true },
-  { id: 6, nombre: 'Pecho y Abdomen', categoria: 'masculina', precio: 26500, activo: true },
-  { id: 7, nombre: 'Pelvis y Tira de Cola', categoria: 'masculina', precio: 27000, activo: true },
-  { id: 8, nombre: 'Cuerpo Completo', categoria: 'masculina', precio: 41000, activo: true },
+  // ── MUJER — zonas individuales ─────────────────────────────────────────
+  { id: 1,  nombre: 'Brazos',        categoria: 'femenina', precio: 20000, activo: true },
+  { id: 2,  nombre: 'Axilas',        categoria: 'femenina', precio: 18000, activo: true },
+  { id: 3,  nombre: 'Espalda baja',  categoria: 'femenina', precio: 16000, activo: true },
+  { id: 4,  nombre: 'Hombros',       categoria: 'femenina', precio: 16000, activo: true },
+  { id: 5,  nombre: 'Glúteos',       categoria: 'femenina', precio: 20000, activo: true },
+  { id: 6,  nombre: 'Tira de cola',  categoria: 'femenina', precio: 14000, activo: true },
+  { id: 7,  nombre: 'Rodillas',      categoria: 'femenina', precio: 14000, activo: true },
+  { id: 8,  nombre: 'Abdomen',       categoria: 'femenina', precio: 15000, activo: true },
+  { id: 9,  nombre: 'Bozo',          categoria: 'femenina', precio: 11000, activo: true },
+  { id: 10, nombre: 'Mentón',        categoria: 'femenina', precio: 11000, activo: true },
+  { id: 11, nombre: 'Patillas',      categoria: 'femenina', precio: 11000, activo: true },
+  { id: 12, nombre: 'Mejillas',      categoria: 'femenina', precio: 11000, activo: true },
+  { id: 13, nombre: 'Línea de alba', categoria: 'femenina', precio: 11000, activo: true },
+  { id: 14, nombre: 'Dedos',         categoria: 'femenina', precio: 10000, activo: true },
+  { id: 15, nombre: 'Empeine',       categoria: 'femenina', precio: 10000, activo: true },
+  // ── HOMBRE — zonas individuales ────────────────────────────────────────
+  { id: 16, nombre: 'Brazos',           categoria: 'masculina', precio: 22000, activo: true },
+  { id: 17, nombre: 'Pierna entera',    categoria: 'masculina', precio: 20000, activo: true },
+  { id: 18, nombre: 'Media pierna',     categoria: 'masculina', precio: 15000, activo: true },
+  { id: 19, nombre: 'Pelvis completa',  categoria: 'masculina', precio: 18000, activo: true },
+  { id: 20, nombre: 'Pecho',            categoria: 'masculina', precio: 17000, activo: true },
+  { id: 21, nombre: 'Abdomen',          categoria: 'masculina', precio: 17000, activo: true },
+  { id: 22, nombre: 'Espalda completa', categoria: 'masculina', precio: 22000, activo: true },
+  { id: 23, nombre: 'Axilas',           categoria: 'masculina', precio: 18000, activo: true },
+  { id: 24, nombre: 'Espalda baja',     categoria: 'masculina', precio: 16000, activo: true },
+  { id: 25, nombre: 'Hombros',          categoria: 'masculina', precio: 16000, activo: true },
+  { id: 26, nombre: 'Glúteos',          categoria: 'masculina', precio: 20000, activo: true },
+  { id: 27, nombre: 'Tira de cola',     categoria: 'masculina', precio: 18000, activo: true },
+  { id: 28, nombre: 'Rodillas',         categoria: 'masculina', precio: 14000, activo: true },
+  { id: 29, nombre: 'Bozo',             categoria: 'masculina', precio: 12000, activo: true },
+  { id: 30, nombre: 'Mentón',           categoria: 'masculina', precio: 13000, activo: true },
+  { id: 31, nombre: 'Patillas',         categoria: 'masculina', precio: 13000, activo: true },
+  { id: 32, nombre: 'Línea de alba',    categoria: 'masculina', precio: 14000, activo: true },
+  { id: 33, nombre: 'Dedos',            categoria: 'masculina', precio: 11000, activo: true },
+  { id: 34, nombre: 'Empeine',          categoria: 'masculina', precio: 12000, activo: true },
 ];
 
 const PROMOS_INICIAL: Promo[] = [
-  { numero: 1, nombre: 'Depilacion PROMO 1', descripcion: 'Cuerpo Completo sin rostro', precio: 33000, categoria: 'femenina', activo: true },
-  { numero: 2, nombre: 'Depilacion PROMO 2', descripcion: 'Rostro completo femenino', precio: 20500, categoria: 'femenina', activo: true },
-  { numero: 3, nombre: 'Depilacion PROMO 3', descripcion: 'Cavado Completo + Tira de cola', precio: 22500, categoria: 'ambas', activo: true },
-  { numero: 4, nombre: 'Depilacion PROMO 4', descripcion: 'Cavado C. + Pierna E. + Axila + Bozo', precio: 24000, categoria: 'femenina', activo: true },
+  // ── MUJER ──────────────────────────────────────────────────────────────
+  { numero: 1, nombre: 'Depilacion PROMO 1', descripcion: 'Rostro completo',            precio: 20500, categoria: 'femenina',  activo: true },
+  { numero: 2, nombre: 'Depilacion PROMO 2', descripcion: 'Cavado + Tira de cola',      precio: 22500, categoria: 'femenina',  activo: true },
+  { numero: 3, nombre: 'Depilacion PROMO 3', descripcion: 'Cuerpo completo sin rostro', precio: 33000, categoria: 'femenina',  activo: true },
+  // ── HOMBRE ─────────────────────────────────────────────────────────────
+  { numero: 4, nombre: 'Depilacion PROMO 4', descripcion: 'Pecho y Abdomen',            precio: 26500, categoria: 'masculina', activo: true },
+  { numero: 5, nombre: 'Depilacion PROMO 5', descripcion: 'Pelvis y Tira de cola',      precio: 27000, categoria: 'masculina', activo: true },
+  { numero: 6, nombre: 'Depilacion PROMO 6', descripcion: 'Rostro completo',            precio: 24000, categoria: 'masculina', activo: true },
+  { numero: 7, nombre: 'Depilacion PROMO 7', descripcion: 'Cuerpo completo',            precio: 41000, categoria: 'masculina', activo: true },
+  { numero: 8, nombre: 'Depilacion PROMO 8', descripcion: 'Brazos y Axilas',            precio: 30000, categoria: 'masculina', activo: true },
 ];
 
 type Tab = 'promos' | 'femenina' | 'masculina';

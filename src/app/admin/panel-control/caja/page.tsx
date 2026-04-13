@@ -35,6 +35,8 @@ export default function CajaPage() {
   const handleCerrarYGuardar = async () => {
     const ok = await cerrarYGuardar();
     if (ok) {
+      // Auto-rellenar la fecha en "Recuperar reporte" con el día que se cerró
+      setFechaRecuperar(hoy);
       // Descarga el .txt automáticamente al cerrar
       const contenido = generarReporteTxt(hoy, turnos, gastos, totales);
       descargarReporte(contenido, hoy);

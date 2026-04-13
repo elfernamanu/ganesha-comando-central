@@ -22,10 +22,16 @@ const KEY_COMBOS     = 'ganesha_catalog_combos';
 
 // ── Datos por defecto (coinciden con lo configurado en /depilacion y /promociones) ─
 const DEFAULT_DEPILACION: ItemCatalogo[] = [
-  { nombre: 'Depilación PROMO 1', detalle: 'Cuerpo Completo sin rostro',             precio: 33000 },
-  { nombre: 'Depilación PROMO 2', detalle: 'Rostro completo femenino',               precio: 20500 },
-  { nombre: 'Depilación PROMO 3', detalle: 'Cavado Completo + Tira de cola',         precio: 22500 },
-  { nombre: 'Depilación PROMO 4', detalle: 'Cavado C. + Pierna E. + Axila + Bozo',  precio: 24000 },
+  // Mujer
+  { nombre: 'Depilación PROMO 1', detalle: 'Rostro completo',            precio: 20500 },
+  { nombre: 'Depilación PROMO 2', detalle: 'Cavado + Tira de cola',      precio: 22500 },
+  { nombre: 'Depilación PROMO 3', detalle: 'Cuerpo completo sin rostro', precio: 33000 },
+  // Hombre
+  { nombre: 'Depilación PROMO 4', detalle: 'Pecho y Abdomen',            precio: 26500 },
+  { nombre: 'Depilación PROMO 5', detalle: 'Pelvis y Tira de cola',      precio: 27000 },
+  { nombre: 'Depilación PROMO 6', detalle: 'Rostro completo',            precio: 24000 },
+  { nombre: 'Depilación PROMO 7', detalle: 'Cuerpo completo',            precio: 41000 },
+  { nombre: 'Depilación PROMO 8', detalle: 'Brazos y Axilas',            precio: 30000 },
 ];
 
 const DEFAULT_COMBOS: ItemCatalogo[] = [

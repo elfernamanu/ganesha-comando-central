@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { label: '✨ Depilación', href: '#' },
   { label: '💅 Uñas', href: '#' },
   { label: '👁️ Pestañas', href: '#' },
-  { label: '⚡ Estética hinfus', href: '#' },
+  { label: '⚡ Estética', href: '#' },
   { label: '📢 Promocionar contactos', href: '#' },
 ];
 
