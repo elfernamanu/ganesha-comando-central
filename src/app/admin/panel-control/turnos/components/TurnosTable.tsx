@@ -14,9 +14,11 @@ function formatPuntos(n: number): string {
 function NumeroInput({
   value,
   onChange,
+  error = false,
 }: {
   value: number;
   onChange: (v: number) => void;
+  error?: boolean;
 }) {
   return (
     <input
@@ -28,19 +30,14 @@ function NumeroInput({
         onChange(num);
       }}
       onFocus={e => e.currentTarget.select()}
-      className="w-full px-2 py-1 rounded text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-mono"
+      className={`w-full px-2 py-1 rounded text-sm border bg-white dark:bg-slate-700 font-mono ${
+        error
+          ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
+          : 'border-slate-300 dark:border-slate-600'
+      }`}
     />
   );
 }
-
-// ── Orden fijo de grupos en el dropdown ───────────────────────────────
-const GRUPOS_ORDEN = [
-  { prefix: 'Depilación PROMO', label: '✨ Depilación' },
-  { prefix: 'Promo Combo',      label: '🎁 Combos' },
-  { prefix: 'otros',            label: '💅 Servicios' },
-];
-
-const SERVICIOS_SIMPLES = ['Uñas', 'Estética', 'Pestañas', 'Otro'];
 
 // ── Componente principal ───────────────────────────────────────────────
 export default function TurnosTable({
@@ -49,18 +46,25 @@ export default function TurnosTable({
   onEliminar,
   onAgregar,
 }: TurnosTableProps) {
-  // Catálogo: se lee una vez al montar (después de que la dueña lo configuró)
+  // Catálogo: se recarga cada vez que la pestaña recibe el foco
+  // → si la dueña acaba de cambiar un precio en Servicios, Turnos lo ve enseguida
   const [catalogo, setCatalogo] = useState<CatalogoPromos>({});
 
   useEffect(() => {
-    setCatalogo(leerCatalogo());
+    const cargar = () => setCatalogo(leerCatalogo());
+    cargar(); // carga inicial
+    window.addEventListener('focus', cargar);
+    return () => window.removeEventListener('focus', cargar);
   }, []);
 
-  // Opciones del dropdown agrupadas por tipo
+  // Opciones del dropdown agrupadas por categoría
   // `nombre` (clave) = texto limpio sin emoji → lo que se guarda y envía al bot
   // `nombreDisplay`  = texto con emoji → lo que ve la secretaria en pantalla
-  const opcionesDepi   = Object.values(catalogo).filter(item => item.nombre.startsWith('PROMO'));
-  const opcionesCombos = Object.values(catalogo).filter(item => item.nombre.startsWith('Combo'));
+  const opcionesDepi     = Object.values(catalogo).filter(item => item.categoria === 'depilacion');
+  const opcionesUnas     = Object.values(catalogo).filter(item => item.categoria === 'unas');
+  const opcionesEstetica = Object.values(catalogo).filter(item => item.categoria === 'estetica');
+  const opcionesPestanas = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
+  const opcionesCombos   = Object.values(catalogo).filter(item => item.categoria === 'combo');
 
   // Cuando la secretaria cambia el tratamiento → auto-completar detalle + monto
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
@@ -163,7 +167,40 @@ export default function TurnosTable({
                   </optgroup>
                 )}
 
-                {/* Grupo Combos */}
+                {/* Uñas */}
+                {opcionesUnas.length > 0 && (
+                  <optgroup label="💅 Uñas">
+                    {opcionesUnas.map(item => (
+                      <option key={item.nombre} value={item.nombre}>
+                        {item.nombreDisplay}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
+                {/* Estética */}
+                {opcionesEstetica.length > 0 && (
+                  <optgroup label="⚡ Estética">
+                    {opcionesEstetica.map(item => (
+                      <option key={item.nombre} value={item.nombre}>
+                        {item.nombreDisplay}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
+                {/* Pestañas */}
+                {opcionesPestanas.length > 0 && (
+                  <optgroup label="👁️ Pestañas">
+                    {opcionesPestanas.map(item => (
+                      <option key={item.nombre} value={item.nombre}>
+                        {item.nombreDisplay}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
+                {/* Combos */}
                 {opcionesCombos.length > 0 && (
                   <optgroup label="🎁 Combos">
                     {opcionesCombos.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
@@ -174,11 +211,9 @@ export default function TurnosTable({
                   </optgroup>
                 )}
 
-                {/* Servicios simples */}
-                <optgroup label="💅 Servicios">
-                  {SERVICIOS_SIMPLES.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
+                {/* Otro */}
+                <optgroup label="—">
+                  <option value="Otro">Otro</option>
                 </optgroup>
 
               </select>
@@ -219,12 +254,30 @@ export default function TurnosTable({
               </button>
             </div>
 
-            {/* Total — se carga automático, editable */}
+            {/* Total — se carga automático, editable
+                ⚠️ Si el precio difiere del catálogo → borde rojo + tooltip de aviso */}
             <div>
-              <NumeroInput
-                value={turno.monto_total}
-                onChange={v => onActualizar(turno.id, { monto_total: v })}
-              />
+              {(() => {
+                const itemCat = turno.tratamiento ? catalogo[turno.tratamiento] : null;
+                const precioEsperado = itemCat?.precio ?? 0;
+                const hayMismatch = precioEsperado > 0 && turno.monto_total !== precioEsperado;
+                return (
+                  <div className="relative">
+                    <NumeroInput
+                      value={turno.monto_total}
+                      onChange={v => onActualizar(turno.id, { monto_total: v })}
+                      error={hayMismatch}
+                    />
+                    {hayMismatch && (
+                      <span
+                        title={`⚠️ El precio configurado es $${precioEsperado.toLocaleString('es-AR')}. Hacé clic para restaurar.`}
+                        onClick={() => onActualizar(turno.id, { monto_total: precioEsperado })}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600"
+                      >!</span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Seña */}

@@ -1,98 +1,126 @@
 /**
- * CATÁLOGO DE PROMOS Y COMBOS — Módulo compartido
+ * CATÁLOGO DE SERVICIOS Y COMBOS — Módulo compartido
  *
- * PRINCIPIO: separación display ↔ datos.
- *   - La UI muestra nombres CON emoji (bonito para la secretaria).
+ * PRINCIPIO: una sola fuente de verdad.
+ *   - Todos los precios vienen de ganesha_config_servicios (lo que configuró la dueña).
  *   - El bot / webhook recibe SIEMPRE texto limpio (sin emoji).
- *   - El campo `nombre` en ItemCatalogo es la clave limpia (sin emoji).
- *   - El campo `nombreDisplay` es el nombre con emoji para la UI.
+ *   - nombreDisplay = con emoji (UI) / nombre = sin emoji (bot/storage).
  *
- * Fuentes de datos:
- *   - Promos depilación → ganesha_config_servicios (Configuración de Servicios)
- *   - Combos           → ganesha_catalog_combos (/promociones)
+ * Fuentes:
+ *   - Promos depilación → ganesha_config_servicios, categoría 'depilacion', subservicios 🎁
+ *   - Uñas              → ganesha_config_servicios, categoría 'unas', todos los subservicios
+ *   - Estética          → ganesha_config_servicios, categoría 'estetica', todos los subservicios
+ *   - Pestañas          → ganesha_config_servicios, categoría 'pestanas', todos los subservicios
+ *   - Combos            → ganesha_catalog_combos (guardados en /promociones)
  */
 
 // ── Tipos ──────────────────────────────────────────────────────────────
 export interface ItemCatalogo {
-  nombre: string;         // clave limpia para bot/webhook: "PROMO 1: Rostro completo (Mujer)"
-  nombreDisplay: string;  // nombre con emoji para UI: "🎁 PROMO 1: Rostro completo (Mujer)"
+  nombre: string;         // clave limpia para bot/webhook: "Semipermanente"
+  nombreDisplay: string;  // con emoji para UI: "💅 Semipermanente"
   detalle: string;
   precio: number;
+  categoria: string;      // 'depilacion' | 'unas' | 'estetica' | 'pestanas' | 'combo' | 'otro'
 }
 
 export type CatalogoPromos = Record<string, ItemCatalogo>;
 
-// ── Utilidad: quitar emojis del inicio de una cadena ──────────────────
-// Aplica en la capa de salida (catálogo → bot/webhook).
+// ── Quita emojis del inicio de una cadena ─────────────────────────────
 export function quitarEmoji(str: string): string {
-  // Elimina emojis Unicode al inicio y el espacio que los sigue
   return str
     .replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]+\s*/u, '')
     .trim();
 }
 
 // ── Claves de localStorage ─────────────────────────────────────────────
-const KEY_CONFIG = 'ganesha_config_servicios'; // fuente de depilación
-const KEY_COMBOS = 'ganesha_catalog_combos';   // fuente de combos
+const KEY_CONFIG = 'ganesha_config_servicios';
+const KEY_COMBOS = 'ganesha_catalog_combos';
 
-// ── Defaults (si localStorage está vacío) ─────────────────────────────
-const DEFAULT_PROMOS_DEPILACION: ItemCatalogo[] = [
-  { nombre: 'PROMO 1: Rostro completo (Mujer)',    nombreDisplay: '🎁 PROMO 1: Rostro completo (Mujer)',    detalle: 'Bozo + Mentón + Patillas + Mejillas',      precio: 20500 },
-  { nombre: 'PROMO 2: Cavado + Tira de cola',      nombreDisplay: '🎁 PROMO 2: Cavado + Tira de cola',      detalle: 'Cavado + Tira de cola',                     precio: 22500 },
-  { nombre: 'PROMO 3: Cuerpo completo sin rostro', nombreDisplay: '🎁 PROMO 3: Cuerpo completo sin rostro', detalle: 'Cuerpo completo sin rostro (Mujer)',          precio: 33000 },
-  { nombre: 'PROMO 4: Pecho y Abdomen (Hombre)',   nombreDisplay: '🎁 PROMO 4: Pecho y Abdomen (Hombre)',   detalle: 'Pecho y Abdomen',                             precio: 26500 },
-  { nombre: 'PROMO 5: Pelvis y Tira (Hombre)',     nombreDisplay: '🎁 PROMO 5: Pelvis y Tira (Hombre)',     detalle: 'Pelvis completa + Tira de cola',               precio: 27000 },
-  { nombre: 'PROMO 6: Rostro completo (Hombre)',   nombreDisplay: '🎁 PROMO 6: Rostro completo (Hombre)',   detalle: 'Bozo + Mentón + Patillas',                    precio: 24000 },
-  { nombre: 'PROMO 7: Cuerpo completo (Hombre)',   nombreDisplay: '🎁 PROMO 7: Cuerpo completo (Hombre)',   detalle: 'Cuerpo completo',                              precio: 41000 },
-  { nombre: 'PROMO 8: Brazos y Axilas (Hombre)',   nombreDisplay: '🎁 PROMO 8: Brazos y Axilas (Hombre)',   detalle: 'Brazos + Axilas',                              precio: 30000 },
+// ── Defaults si no hay nada configurado ───────────────────────────────
+const DEFAULT_PROMOS: ItemCatalogo[] = [
+  { nombre: 'PROMO 1: Rostro completo (Mujer)',    nombreDisplay: '🎁 PROMO 1: Rostro completo (Mujer)',    detalle: '', precio: 20500, categoria: 'depilacion' },
+  { nombre: 'PROMO 2: Cavado + Tira de cola',      nombreDisplay: '🎁 PROMO 2: Cavado + Tira de cola',      detalle: '', precio: 22500, categoria: 'depilacion' },
+  { nombre: 'PROMO 3: Cuerpo completo sin rostro', nombreDisplay: '🎁 PROMO 3: Cuerpo completo sin rostro', detalle: '', precio: 33000, categoria: 'depilacion' },
+  { nombre: 'PROMO 4: Pecho y Abdomen (Hombre)',   nombreDisplay: '🎁 PROMO 4: Pecho y Abdomen (Hombre)',   detalle: '', precio: 26500, categoria: 'depilacion' },
+  { nombre: 'PROMO 5: Pelvis y Tira (Hombre)',     nombreDisplay: '🎁 PROMO 5: Pelvis y Tira (Hombre)',     detalle: '', precio: 27000, categoria: 'depilacion' },
+  { nombre: 'PROMO 6: Rostro completo (Hombre)',   nombreDisplay: '🎁 PROMO 6: Rostro completo (Hombre)',   detalle: '', precio: 24000, categoria: 'depilacion' },
+  { nombre: 'PROMO 7: Cuerpo completo (Hombre)',   nombreDisplay: '🎁 PROMO 7: Cuerpo completo (Hombre)',   detalle: '', precio: 41000, categoria: 'depilacion' },
+  { nombre: 'PROMO 8: Brazos y Axilas (Hombre)',   nombreDisplay: '🎁 PROMO 8: Brazos y Axilas (Hombre)',   detalle: '', precio: 30000, categoria: 'depilacion' },
 ];
 
-const DEFAULT_COMBOS: ItemCatalogo[] = [
-  { nombre: 'Combo 1', nombreDisplay: 'Promo Combo 1', detalle: 'Depilación completa + Uñas',               precio: 12000 },
-  { nombre: 'Combo 2', nombreDisplay: 'Promo Combo 2', detalle: 'Depilación + Uñas + Estética + Pestañas', precio: 25000 },
+const DEFAULT_UNAS: ItemCatalogo[] = [
+  { nombre: 'Belleza de Manos',          nombreDisplay: '💅 Belleza de Manos',          detalle: 'c/o sin Tradicional', precio: 18000, categoria: 'unas' },
+  { nombre: 'Semipermanente',            nombreDisplay: '💅 Semipermanente',             detalle: '',                     precio: 22000, categoria: 'unas' },
+  { nombre: 'Capping (Polygel)',         nombreDisplay: '💅 Capping (Polygel)',          detalle: '',                     precio: 25000, categoria: 'unas' },
+  { nombre: 'Esculpidas en Polygel',     nombreDisplay: '💅 Esculpidas en Polygel',      detalle: '',                     precio: 27000, categoria: 'unas' },
+  { nombre: 'Belleza de Pies con Semi',  nombreDisplay: '💅 Belleza de Pies con Semi',   detalle: '',                     precio: 22000, categoria: 'unas' },
 ];
 
-const SERVICIOS_SIMPLES: ItemCatalogo[] = [
-  { nombre: 'Uñas',     nombreDisplay: 'Uñas',     detalle: '', precio: 0 },
-  { nombre: 'Estética', nombreDisplay: 'Estética', detalle: '', precio: 0 },
-  { nombre: 'Pestañas', nombreDisplay: 'Pestañas', detalle: '', precio: 0 },
-  { nombre: 'Otro',     nombreDisplay: 'Otro',     detalle: '', precio: 0 },
+const DEFAULT_ESTETICA: ItemCatalogo[] = [
+  { nombre: 'Estética Corporal',      nombreDisplay: '⚡ Estética Corporal',      detalle: '', precio: 20000, categoria: 'estetica' },
+  { nombre: 'Himfu / Criofrecuencia', nombreDisplay: '⚡ Himfu / Criofrecuencia', detalle: '', precio: 0,     categoria: 'estetica' },
+];
+
+const DEFAULT_PESTANAS: ItemCatalogo[] = [
+  { nombre: 'Extensiones Volumen', nombreDisplay: '👁️ Extensiones Volumen', detalle: '', precio: 18000, categoria: 'pestanas' },
+  { nombre: 'Lifting + Tinte',     nombreDisplay: '👁️ Lifting + Tinte',     detalle: '', precio: 0,     categoria: 'pestanas' },
+  { nombre: 'Relleno',             nombreDisplay: '👁️ Relleno',             detalle: '', precio: 0,     categoria: 'pestanas' },
 ];
 
 // ── API pública ────────────────────────────────────────────────────────
 
 /**
- * Lee el catálogo completo.
- * La clave del Record es `nombre` (limpio, sin emoji) → lo que recibe el bot.
- * Cada ítem tiene `nombreDisplay` con emoji → lo que ve la secretaria.
+ * Lee el catálogo completo SIEMPRE desde ganesha_config_servicios.
+ * Si no hay datos, usa defaults.
+ * Llamar esto cada vez que se necesite para obtener precios actualizados.
  */
 export function leerCatalogo(): CatalogoPromos {
   const catalogo: CatalogoPromos = {};
 
-  leerPromosDesdeConfig().forEach(item => {
-    catalogo[item.nombre] = item;
+  const config = leerConfig();
+
+  // 1) Promos de depilación (solo 🎁)
+  const itemsDepi = config
+    ? leerSubserviciosCat(config, 'depilacion', item => item.nombre.startsWith('🎁'), 'depilacion')
+    : DEFAULT_PROMOS;
+  itemsDepi.forEach(item => { catalogo[item.nombre] = item; });
+
+  // 2) Uñas (todos los subservicios activos)
+  const itemsUnas = config
+    ? leerSubserviciosCat(config, 'unas', () => true, 'unas')
+    : DEFAULT_UNAS;
+  itemsUnas.forEach(item => { catalogo[item.nombre] = item; });
+
+  // 3) Estética
+  const itemsEstetica = config
+    ? leerSubserviciosCat(config, 'estetica', () => true, 'estetica')
+    : DEFAULT_ESTETICA;
+  itemsEstetica.forEach(item => { catalogo[item.nombre] = item; });
+
+  // 4) Pestañas
+  const itemsPestanas = config
+    ? leerSubserviciosCat(config, 'pestanas', () => true, 'pestanas')
+    : DEFAULT_PESTANAS;
+  itemsPestanas.forEach(item => { catalogo[item.nombre] = item; });
+
+  // 5) Combos (guardados por /promociones)
+  const combosGuardados = leerDesdeStorage<ItemCatalogo[]>(KEY_COMBOS, []);
+  combosGuardados.forEach(item => {
+    catalogo[item.nombre] = { ...item, categoria: 'combo' };
   });
 
-  leerDesdeStorage<ItemCatalogo[]>(KEY_COMBOS, DEFAULT_COMBOS).forEach(item => {
-    catalogo[item.nombre] = item;
-  });
-
-  SERVICIOS_SIMPLES.forEach(item => {
-    catalogo[item.nombre] = item;
-  });
+  // 6) Otro (manual siempre)
+  catalogo['Otro'] = { nombre: 'Otro', nombreDisplay: 'Otro', detalle: '', precio: 0, categoria: 'otro' };
 
   return catalogo;
 }
 
 /**
- * Busca un tratamiento por su nombre limpio o por display.
- * Tolerante: acepta con o sin emoji.
+ * Busca un tratamiento — acepta con o sin emoji, case-insensitive.
  */
 export function buscarEnCatalogo(tratamiento: string): ItemCatalogo | null {
   const catalogo = leerCatalogo();
-  // Busca por clave limpia primero
   if (catalogo[tratamiento]) return catalogo[tratamiento];
-  // Fallback: busca quitando el emoji del input
   const limpio = quitarEmoji(tratamiento);
   return catalogo[limpio] ?? null;
 }
@@ -111,9 +139,8 @@ export function guardarCombos(
   }>
 ) {
   const items: ItemCatalogo[] = combos
-    .filter(c => c.activo !== false)   // solo los activos llegan al catálogo
+    .filter(c => c.activo !== false)
     .map(c => {
-      // Construir detalle combinando descripción + servicios incluidos
       const serviciosIncluidos = c.servicios
         ? [
             c.servicios.depilacion ? 'Depilación' : '',
@@ -123,13 +150,12 @@ export function guardarCombos(
           ].filter(Boolean).join(' + ')
         : '';
 
-      const detalle = c.descripcion || serviciosIncluidos || c.nombre;
-
       return {
         nombre:        `Combo ${c.numero}`,
         nombreDisplay: c.nombre || `Promo Combo ${c.numero}`,
-        detalle,
-        precio: c.precio,
+        detalle:       c.descripcion || serviciosIncluidos || c.nombre,
+        precio:        c.precio,
+        categoria:     'combo' as const,
       };
     });
   guardarEnStorage(KEY_COMBOS, items);
@@ -137,52 +163,54 @@ export function guardarCombos(
 
 // ── Helpers internos ───────────────────────────────────────────────────
 
-/**
- * Lee subservicios 🎁 de la categoría 'depilacion' en ganesha_config_servicios.
- * Usa quitarEmoji() para generar la clave limpia (bot).
- * Guarda el nombre original con emoji como nombreDisplay (UI).
- */
-function leerPromosDesdeConfig(): ItemCatalogo[] {
+type ConfigCat = {
+  id: string;
+  subservicios: Array<{ id: number; nombre: string; precio: number; activo: boolean }>;
+};
+
+/** Lee y parsea ganesha_config_servicios una vez */
+function leerConfig(): ConfigCat[] | null {
   try {
     const raw = localStorage.getItem(KEY_CONFIG);
     if (raw) {
-      const categorias = JSON.parse(raw) as Array<{
-        id: string;
-        subservicios: Array<{ id: number; nombre: string; precio: number; activo: boolean }>;
-      }>;
-      const depi = categorias.find(c => c.id === 'depilacion');
-      if (depi?.subservicios?.length) {
-        const promos = depi.subservicios.filter(s => s.activo && s.nombre.startsWith('🎁'));
-        if (promos.length > 0) {
-          return promos.map(s => ({
-            nombre:        quitarEmoji(s.nombre), // limpio → bot
-            nombreDisplay: s.nombre,              // con emoji → UI
-            detalle:       '',
-            precio:        s.precio,
-          }));
-        }
-      }
+      const parsed = JSON.parse(raw) as ConfigCat[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch {
-    // silencioso
-  }
-  return DEFAULT_PROMOS_DEPILACION;
+  } catch { /* silencioso */ }
+  return null;
+}
+
+/** Extrae subservicios activos de una categoría como ItemCatalogo[] */
+function leerSubserviciosCat(
+  config: ConfigCat[],
+  catId: string,
+  filtro: (s: { nombre: string; precio: number; activo: boolean }) => boolean,
+  categoria: string
+): ItemCatalogo[] {
+  const cat = config.find(c => c.id === catId);
+  if (!cat?.subservicios?.length) return [];
+
+  return cat.subservicios
+    .filter(s => s.activo && filtro(s))
+    .map(s => ({
+      nombre:        quitarEmoji(s.nombre),
+      nombreDisplay: s.nombre,
+      detalle:       '',
+      precio:        s.precio,
+      categoria,
+    }));
 }
 
 function leerDesdeStorage<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw) as T;
-  } catch {
-    // silencioso
-  }
+  } catch { /* silencioso */ }
   return fallback;
 }
 
 function guardarEnStorage(key: string, data: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
-  } catch {
-    // silencioso
-  }
+  } catch { /* silencioso */ }
 }

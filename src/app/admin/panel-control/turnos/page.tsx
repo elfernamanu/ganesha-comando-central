@@ -49,8 +49,18 @@ export default function TurnosPage() {
         </div>
       </div>
 
-      {/* Mensaje */}
-      {mensaje && <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-sm text-blue-800 dark:text-blue-200">{mensaje}</div>}
+      {/* Mensaje — puede ser error de precio (multi-línea) o éxito */}
+      {mensaje && (
+        <div className={`p-3 rounded-lg text-sm whitespace-pre-line font-medium ${
+          mensaje.startsWith('⛔')
+            ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700'
+            : mensaje.startsWith('⚠️')
+            ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
+            : 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+        }`}>
+          {mensaje}
+        </div>
+      )}
 
       {/* Tabla */}
       <TurnosTable

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Turno } from '../types';
+import { leerCatalogo } from '../../_shared/catalogoPromos';
 
 /**
  * Hook para gestionar turnos del día
@@ -113,6 +114,29 @@ export function useTurnos(fecha: string) {
     setGuardando(true);
     setMensaje('');
 
+    // ── Validación de precios contra catálogo ──────────────────────────
+    // Si algún turno tiene precio diferente al configurado en Servicios → bloquear
+    const catalogo = leerCatalogo();
+    const erroresPrecios: string[] = [];
+
+    turnos.forEach(t => {
+      if (!t.tratamiento || t.tratamiento === 'Otro') return;
+      const item = catalogo[t.tratamiento];
+      if (!item || item.precio === 0) return; // sin precio configurado → OK
+      if (t.monto_total !== item.precio) {
+        erroresPrecios.push(
+          `"${t.tratamiento}" → esperado $${item.precio.toLocaleString('es-AR')}, tiene $${t.monto_total.toLocaleString('es-AR')} (${t.clienteNombre || 'sin nombre'})`
+        );
+      }
+    });
+
+    if (erroresPrecios.length > 0) {
+      setMensaje(`⛔ Precio incorrecto:\n${erroresPrecios.join('\n')}`);
+      setGuardando(false);
+      return; // NO enviamos al webhook hasta que estén bien
+    }
+    // ──────────────────────────────────────────────────────────────────
+
     try {
       const res = await fetch('/api/webhook', {
         method: 'POST',
@@ -134,7 +158,7 @@ export function useTurnos(fecha: string) {
       setMensaje('⚠️ Sin conexión');
     } finally {
       setGuardando(false);
-      setTimeout(() => setMensaje(''), 3000);
+      setTimeout(() => setMensaje(''), 5000);
     }
   };
 
