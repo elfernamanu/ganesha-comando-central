@@ -294,12 +294,9 @@ export function AgendaMensual() {
       </div>
 
       {/* ── Grid del mes ── */}
-      <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden">
         {grid.map((semana, si) => (
-          <div
-            key={si}
-            className={`grid grid-cols-7 ${si < grid.length - 1 ? 'border-b border-slate-200 dark:border-slate-700' : ''}`}
-          >
+          <div key={si} className="grid grid-cols-7 gap-1 mb-1">
             {semana.map((dia, di) => {
               const esSel     = keySeleccionado === fechaKey(dia.fecha);
               const srvsDia   = dia.esMesActual ? serviciosPorDia(dia.fecha) : [];
@@ -312,19 +309,18 @@ export function AgendaMensual() {
                   onClick={() => seleccionarDia(dia)}
                   disabled={!dia.esMesActual}
                   className={[
-                    'relative flex flex-col items-start justify-start p-1 sm:p-1.5 min-h-[56px] sm:min-h-[72px] text-left transition-all',
-                    di < 6 ? 'border-r border-slate-200 dark:border-slate-700' : '',
-                    // Días fuera del mes → muy tenues, no clickeables
+                    'relative flex flex-col items-start justify-start p-1 sm:p-1.5 min-h-[56px] sm:min-h-[72px] text-left transition-all rounded-lg',
+                    // Días fuera del mes → invisibles
                     !dia.esMesActual
-                      ? 'bg-slate-50/50 dark:bg-slate-900/30 cursor-default'
+                      ? 'opacity-0 cursor-default pointer-events-none'
                       // Día seleccionado
                       : esSel
-                        ? 'bg-blue-50 dark:bg-blue-950/50 cursor-pointer'
-                        // Día con servicio → fondo levemente cálido, se destaca
+                        ? 'bg-blue-50 dark:bg-blue-950/50 ring-2 ring-blue-400 cursor-pointer'
+                        // Día con servicio → blanco con sombra suave
                         : tieneServicio
-                          ? 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 cursor-pointer'
-                          // Sin servicio → fondo tenue para que "desaparezca"
-                          : 'bg-slate-50/60 dark:bg-slate-900/20 hover:bg-slate-100/60 dark:hover:bg-slate-800/30 cursor-pointer',
+                          ? 'bg-white dark:bg-slate-800 shadow-sm hover:shadow-md cursor-pointer'
+                          // Sin servicio → gris muy suave
+                          : 'bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/60 cursor-pointer',
                   ].join(' ')}
                 >
                   {/* Número del día */}
