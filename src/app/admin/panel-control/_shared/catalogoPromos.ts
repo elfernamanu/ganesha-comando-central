@@ -101,14 +101,37 @@ export function buscarEnCatalogo(tratamiento: string): ItemCatalogo | null {
  * Guarda los combos desde /promociones.
  */
 export function guardarCombos(
-  combos: Array<{ numero: number; nombre: string; descripcion: string; precio: number }>
+  combos: Array<{
+    numero: number;
+    nombre: string;
+    descripcion: string;
+    precio: number;
+    activo?: boolean;
+    servicios?: { depilacion?: boolean; unas?: boolean; estetica?: boolean; pestanas?: boolean };
+  }>
 ) {
-  const items: ItemCatalogo[] = combos.map(c => ({
-    nombre:        `Combo ${c.numero}`,
-    nombreDisplay: `Promo Combo ${c.numero}`,
-    detalle:       c.descripcion || c.nombre,
-    precio:        c.precio,
-  }));
+  const items: ItemCatalogo[] = combos
+    .filter(c => c.activo !== false)   // solo los activos llegan al catálogo
+    .map(c => {
+      // Construir detalle combinando descripción + servicios incluidos
+      const serviciosIncluidos = c.servicios
+        ? [
+            c.servicios.depilacion ? 'Depilación' : '',
+            c.servicios.unas       ? 'Uñas'       : '',
+            c.servicios.estetica   ? 'Estética'   : '',
+            c.servicios.pestanas   ? 'Pestañas'   : '',
+          ].filter(Boolean).join(' + ')
+        : '';
+
+      const detalle = c.descripcion || serviciosIncluidos || c.nombre;
+
+      return {
+        nombre:        `Combo ${c.numero}`,
+        nombreDisplay: c.nombre || `Promo Combo ${c.numero}`,
+        detalle,
+        precio: c.precio,
+      };
+    });
   guardarEnStorage(KEY_COMBOS, items);
 }
 

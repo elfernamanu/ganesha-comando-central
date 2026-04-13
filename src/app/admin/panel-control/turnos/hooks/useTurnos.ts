@@ -45,7 +45,7 @@ export function useTurnos(fecha: string) {
       id: `turno_${Date.now()}`,
       horario: '',
       clienteNombre: '',
-      tratamiento: 'Depilación PROMO 1',
+      tratamiento: '',   // la secretaria elige del dropdown
       detalle: '',
       asistencia: 'presente',
       monto_total: 0,

@@ -142,8 +142,16 @@ export default function TurnosTable({
               <select
                 value={turno.tratamiento}
                 onChange={e => handleTratamientoChange(turno.id, e.target.value)}
-                className="w-full px-1 py-1 rounded text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-semibold"
+                className={`w-full px-1 py-1 rounded text-xs border bg-white dark:bg-slate-700 font-semibold ${
+                  !turno.tratamiento
+                    ? 'border-amber-400 text-slate-400'
+                    : 'border-slate-300 dark:border-slate-600'
+                }`}
               >
+                {/* Placeholder — desaparece al seleccionar */}
+                {!turno.tratamiento && (
+                  <option value="">— Elegir servicio —</option>
+                )}
                 {/* Grupo Depilación */}
                 {opcionesDepi.length > 0 && (
                   <optgroup label="✨ Promos Depilación">

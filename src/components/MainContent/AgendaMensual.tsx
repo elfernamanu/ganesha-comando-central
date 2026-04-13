@@ -154,19 +154,30 @@ export function AgendaMensual() {
   const [turnos,    setTurnos]    = useState<TurnoSecretaria[]>([]);
 
   // ── Leer config de servicios ──────────────────────────────────────────────
-  useEffect(() => {
+  const cargarServicios = useCallback(() => {
     try {
       const raw = localStorage.getItem('ganesha_config_servicios');
       if (raw) {
         const parsed = JSON.parse(raw) as CategoriaServicio[];
         if (Array.isArray(parsed) && parsed.length > 0) {
           setServicios(parsed);
+          return;
         }
       }
     } catch {
       // si falla el parse, usar defaults
     }
+    setServicios(SERVICIOS_DEFAULT);
   }, []);
+
+  useEffect(() => {
+    cargarServicios();
+    // Recargar cuando el usuario vuelve a esta pestaña
+    // (por si la dueña configuró servicios en otra pestaña)
+    const onFocus = () => cargarServicios();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [cargarServicios]);
 
   // ── Leer turnos del día seleccionado ─────────────────────────────────────
   useEffect(() => {

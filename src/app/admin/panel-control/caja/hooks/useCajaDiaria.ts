@@ -2,21 +2,10 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Gasto } from '../types/index';
+import type { Turno } from '../../_shared/turnoType';
 
-// Tipo que refleja exactamente lo que guarda la secretaria en Turnos
-export interface TurnoSecretaria {
-  id: string;
-  horario: string;
-  clienteNombre: string;
-  tratamiento: string;
-  detalle: string;
-  asistencia: 'presente' | 'no_vino';
-  monto_total: number;
-  seña_pagada: number;
-  estado_pago: 'sin_pago' | 'seña' | 'completo';
-  metodo_pago: 'efectivo' | 'transferencia' | 'otro';
-  createdAt: number;
-}
+// Re-exportamos para que reporteGenerator.ts y page.tsx puedan importar desde aquí
+export type { Turno as TurnoSecretaria };  // alias de compatibilidad
 
 export interface TotalesCaja {
   ingresos_totales: number;
@@ -37,7 +26,7 @@ export function useCajaDiaria(fecha: string) {
   // ========================================
   // TURNOS (solo lectura — escritos por secretaria)
   // ========================================
-  const [turnos, setTurnos] = useState<TurnoSecretaria[]>([]);
+  const [turnos, setTurnos] = useState<Turno[]>([]);
 
   // Cargar turnos desde localStorage (secretaria los guarda ahí)
   const cargarTurnos = useCallback(() => {
@@ -157,7 +146,7 @@ export function useCajaDiaria(fecha: string) {
   // ========================================
   const recuperarReporte = async (fechaBuscar: string): Promise<{
     encontrado: boolean;
-    turnos?: TurnoSecretaria[];
+    turnos?: Turno[];
     gastos?: Gasto[];
     totales?: TotalesCaja;
   }> => {
