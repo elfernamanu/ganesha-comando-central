@@ -245,14 +245,29 @@ export function AgendaMensual() {
     }
   }, []);
 
-  const grid = construirGrid(anio, mes);
-
   const keySeleccionado = diaSeleccionado ? fechaKey(diaSeleccionado) : null;
+
+  // ── Solo los días del mes que tienen servicio O turnos cargados ───────────
+  const diasActivos = (() => {
+    const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+    const resultado = [];
+    for (let d = 1; d <= ultimoDia; d++) {
+      const fecha = new Date(anio, mes, d);
+      const srvs = serviciosPorDia(fecha);
+      const nTurnos = contarTurnosDia(fecha);
+      if (srvs.length > 0 || nTurnos > 0) {
+        resultado.push({ fecha, srvs, nTurnos });
+      }
+    }
+    return resultado;
+  })();
 
   // ── Servicios del día seleccionado ────────────────────────────────────────
   const serviciosDiaSeleccionado = diaSeleccionado
     ? serviciosPorDia(diaSeleccionado)
     : [];
+
+  const DIAS_CORTOS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -260,119 +275,79 @@ export function AgendaMensual() {
 
       {/* ── Encabezado del mes ── */}
       <div className="flex items-center justify-between mb-3 px-1">
-        <button
-          onClick={irMesAnterior}
-          aria-label="Mes anterior"
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-lg font-bold"
-        >
+        <button onClick={irMesAnterior} aria-label="Mes anterior"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-lg font-bold">
           ‹
         </button>
-
         <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-wide">
           {MESES_ES[mes]} {anio}
         </h2>
-
-        <button
-          onClick={irMesSiguiente}
-          aria-label="Mes siguiente"
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-lg font-bold"
-        >
+        <button onClick={irMesSiguiente} aria-label="Mes siguiente"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-lg font-bold">
           ›
         </button>
       </div>
 
-      {/* ── Nombres de días ── */}
-      <div className="grid grid-cols-7 mb-1">
-        {DIAS_SEMANA.map((d, i) => (
-          <div
-            key={i}
-            className="text-center text-xs font-semibold text-slate-400 dark:text-slate-500 py-1"
-          >
-            {d}
-          </div>
-        ))}
-      </div>
+      {/* ── Solo días con servicios o turnos — fila horizontal scrolleable ── */}
+      {diasActivos.length === 0 ? (
+        <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-6 italic">
+          Sin servicios cargados este mes
+        </p>
+      ) : (
+        <div className="flex gap-2 overflow-x-auto pb-2 px-1">
+          {diasActivos.map(({ fecha, srvs, nTurnos }) => {
+            const key    = fechaKey(fecha);
+            const esSel  = keySeleccionado === key;
+            const esHoy  = key === fechaKey(new Date());
 
-      {/* ── Grid del mes ── */}
-      <div className="rounded-xl overflow-hidden">
-        {grid.map((semana, si) => (
-          <div key={si} className="grid grid-cols-7 gap-1 mb-1">
-            {semana.map((dia, di) => {
-              const esSel     = keySeleccionado === fechaKey(dia.fecha);
-              const srvsDia   = dia.esMesActual ? serviciosPorDia(dia.fecha) : [];
-              const numTurnos = dia.esMesActual ? contarTurnosDia(dia.fecha) : 0;
-              const tieneServicio = srvsDia.length > 0;
-
-              return (
-                <button
-                  key={di}
-                  onClick={() => seleccionarDia(dia)}
-                  disabled={!dia.esMesActual}
-                  className={[
-                    'relative flex flex-col items-start justify-start p-1 sm:p-1.5 min-h-[56px] sm:min-h-[72px] text-left transition-all rounded-lg',
-                    // Días fuera del mes → completamente invisibles
-                    !dia.esMesActual
-                      ? 'opacity-0 cursor-default pointer-events-none'
-                      // Día seleccionado
-                      : esSel
-                        ? 'bg-blue-50 dark:bg-blue-950/50 ring-2 ring-blue-400 cursor-pointer'
-                        // Día con servicio → blanco con sombra (se destaca)
-                        : tieneServicio
-                          ? 'bg-white dark:bg-slate-800 shadow-sm hover:shadow-md cursor-pointer'
-                          // Sin servicio Y no es hoy → transparente, sin caja
-                          : dia.esDiaHoy
-                            ? 'cursor-pointer'
-                            : 'cursor-pointer',
-                  ].join(' ')}
-                >
-                  {/* Número del día */}
-                  <span
-                    className={[
-                      'text-xs leading-none mb-1 w-5 h-5 flex items-center justify-center rounded-full shrink-0',
-                      !dia.esMesActual
-                        ? 'text-slate-300 dark:text-slate-700 text-[10px]'
-                        : dia.esDiaHoy
-                          ? 'bg-blue-600 text-white font-bold'
-                          : esSel
-                            ? 'text-blue-700 dark:text-blue-300 font-bold'
-                            : tieneServicio
-                              ? 'text-slate-800 dark:text-slate-100 font-bold'
-                              : 'text-slate-400 dark:text-slate-600 font-normal',
-                    ].join(' ')}
-                  >
-                    {dia.fecha.getDate()}
+            return (
+              <button
+                key={key}
+                onClick={() => setDiaSeleccionado(prev =>
+                  prev && fechaKey(prev) === key ? null : fecha
+                )}
+                className={[
+                  'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl border-2 transition-all shrink-0 min-w-[68px]',
+                  esSel
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
+                    : esHoy
+                      ? 'border-blue-300 bg-white dark:bg-slate-800 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-300 shadow-sm',
+                ].join(' ')}
+              >
+                {/* Nombre día */}
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                  {DIAS_CORTOS[fecha.getDay()]}
+                </span>
+                {/* Número */}
+                <span className={`text-lg font-bold leading-none ${
+                  esHoy ? 'text-blue-600' : esSel ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'
+                }`}>
+                  {fecha.getDate()}
+                </span>
+                {/* Chips de servicios */}
+                <div className="flex flex-col gap-0.5 w-full">
+                  {srvs.map(srv => {
+                    const col = COLORES_SERVICIO[srv.id] ?? { chip: 'bg-slate-100 text-slate-600' };
+                    return (
+                      <span key={srv.id}
+                        className={`text-[9px] font-semibold px-1 py-0.5 rounded text-center truncate w-full ${col.chip}`}>
+                        {srv.icon}
+                      </span>
+                    );
+                  })}
+                </div>
+                {/* Badge turnos */}
+                {nTurnos > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {nTurnos}
                   </span>
-
-                  {/* Chips de servicios — solo si hay jornadas activas */}
-                  {tieneServicio && (
-                    <div className="flex flex-col gap-0.5 w-full">
-                      {srvsDia.map(srv => {
-                        const col = COLORES_SERVICIO[srv.id] ?? { chip: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
-                        return (
-                          <span
-                            key={srv.id}
-                            className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold leading-tight whitespace-nowrap w-full truncate ${col.chip}`}
-                          >
-                            <span className="shrink-0">{srv.icon}</span>
-                            <span className="hidden sm:inline truncate">{srv.nombre}</span>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Badge de turnos cargados */}
-                  {numTurnos > 0 && (
-                    <span className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-0.5 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
-                      {numTurnos}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Panel detalle del día seleccionado ── */}
       {diaSeleccionado && (
