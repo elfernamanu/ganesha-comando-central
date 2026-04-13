@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from 'next/link'; // usado en ← Panel
 import { useTurnos } from './hooks/useTurnos';
 import TurnosTable from './components/TurnosTable';
 
@@ -58,22 +58,14 @@ export default function TurnosPage() {
         onAgregar={agregarTurno}
       />
 
-      {/* Botones de acción */}
-      <div className="flex gap-2">
-        <button
-          onClick={guardar}
-          disabled={guardando}
-          className="flex-1 px-4 py-3 rounded-lg bg-blue-600 dark:bg-blue-700 text-white font-bold hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
-        >
-          {guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
-        </button>
-        <Link
-          href="/admin/panel-control/caja"
-          className="flex-1 px-4 py-3 rounded-lg bg-emerald-600 dark:bg-emerald-700 text-white font-bold hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors text-center"
-        >
-          💰 Ir a Caja
-        </Link>
-      </div>
+      {/* Botón guardar — secretaria solo tiene acceso aquí */}
+      <button
+        onClick={guardar}
+        disabled={guardando}
+        className="w-full px-4 py-3 rounded-lg bg-blue-600 dark:bg-blue-700 text-white font-bold hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+      >
+        {guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
+      </button>
     </div>
   );
 }

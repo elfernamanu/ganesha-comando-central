@@ -1,164 +1,289 @@
 'use client';
 
 import Link from 'next/link';
-import { useCaja } from './hooks/useCaja';
-import type { MovimientoCaja } from './types';
-
-function formatDinero(n: number) {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-  }).format(n);
-}
-
-function NumeroInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      value={value}
-      onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
-      onFocus={e => e.currentTarget.select()}
-      placeholder={placeholder || '0'}
-      className="w-full px-2 py-1 rounded text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-mono"
-    />
-  );
-}
+import { useCajaDiaria } from './hooks/useCajaDiaria';
+import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
+import { formatearDinero, formatearFecha, formatearHora } from './utils/formatters';
+import GastosForm from './components/GastosForm';
+import GastosList from './components/GastosList';
 
 export default function CajaPage() {
   const hoy = new Date().toISOString().split('T')[0];
+
   const {
-    resumen,
-    movimientos,
-    gananciaConcepto,
-    gananciaMonto,
+    turnos,
+    gastos,
+    totales,
+    estadoCaja,
     mensaje,
     guardando,
-    setGananciaConcepto,
-    setGananciaMonto,
-    agregarGananciaExtra,
-    eliminarMovimiento,
+    agregarGasto,
+    eliminarGasto,
+    cerrarDia,
+    reabrirDia,
+    cargarTurnos,
     guardar,
-  } = useCaja(hoy);
+  } = useCajaDiaria(hoy);
 
-  // Dividir movimientos en 4 columnas
-  const columnas = [[], [], [], []] as MovimientoCaja[][];
-  movimientos.forEach((mov, idx) => {
-    columnas[idx % 4].push(mov);
-  });
+  const handleDescargar = () => {
+    const contenido = generarReporteTxt(hoy, turnos, gastos, totales);
+    descargarReporte(contenido, hoy);
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+
+      {/* ── Header ── */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold">💰 Caja Diaria</h1>
+          <h1 className="text-xl font-bold">💰 Control de Caja</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {new Date(hoy).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {formatearFecha(new Date(hoy + 'T00:00:00'))}
+            {estadoCaja === 'cerrada' && (
+              <span className="ml-2 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full font-semibold">
+                🔒 Cerrada
+              </span>
+            )}
           </p>
         </div>
-        <Link
-          href="/admin/panel-control"
-          className="text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded"
-        >
-          ← Panel
-        </Link>
-      </div>
-
-      {/* Resumen grande */}
-      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-        <p className="text-sm text-blue-700 dark:text-blue-300">TOTAL INGRESOS</p>
-        <p className="text-4xl font-bold text-blue-900 dark:text-blue-100">{formatDinero(resumen.total_ingresos)}</p>
-      </div>
-
-      {/* Mensaje */}
-      {mensaje && <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/30 text-sm text-green-800 dark:text-green-200">{mensaje}</div>}
-
-      {/* Agregar ganancia extra */}
-      <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
-        <p className="text-sm font-bold">Ganancia Extra</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={gananciaConcepto}
-            onChange={e => setGananciaConcepto(e.target.value)}
-            placeholder="Ej: Uñas extra"
-            className="flex-1 px-2 py-1 rounded text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
-          />
-          <NumeroInput value={gananciaMonto} onChange={setGananciaMonto} placeholder="Monto" />
+        <div className="flex gap-2 items-center">
           <button
-            onClick={agregarGananciaExtra}
-            className="px-3 py-1 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
+            onClick={cargarTurnos}
+            title="Refrescar turnos de la secretaria"
+            className="text-xs px-2 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            ➕
+            🔄 Actualizar
           </button>
+          <Link
+            href="/admin/panel-control"
+            className="text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded"
+          >
+            ← Panel
+          </Link>
         </div>
       </div>
 
-      {/* 4 Columnas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {columnas.map((columna, colIdx) => (
-          <div key={colIdx} className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="bg-slate-100 dark:bg-slate-700 px-2 py-2 text-xs font-bold border-b border-slate-200 dark:border-slate-600">
-              Columna {colIdx + 1} ({columna.length})
+      {/* ── Mensaje feedback ── */}
+      {mensaje && (
+        <div className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-sm text-blue-800 dark:text-blue-200">
+          {mensaje}
+        </div>
+      )}
+
+      {/* ── Tarjetas de estadísticas ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {/* Ingresos */}
+        <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+          <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+            💰 Ingresos
+          </p>
+          <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">
+            {formatearDinero(totales.ingresos_totales)}
+          </p>
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+            {totales.turnos_presentes} clientes cobrados
+          </p>
+        </div>
+
+        {/* Gastos */}
+        <div className="p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+          <p className="text-[11px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+            💸 Gastos
+          </p>
+          <p className="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
+            {formatearDinero(totales.gastos_totales)}
+          </p>
+          <p className="text-[11px] text-red-600 dark:text-red-400 mt-0.5">
+            {gastos.length} {gastos.length === 1 ? 'gasto' : 'gastos'} del día
+          </p>
+        </div>
+
+        {/* Ganancia */}
+        <div className={`p-3 rounded-xl border ${
+          totales.ganancia_neta >= 0
+            ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
+            : 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20'
+        }`}>
+          <p className={`text-[11px] font-bold uppercase tracking-wide ${
+            totales.ganancia_neta >= 0
+              ? 'text-blue-700 dark:text-blue-400'
+              : 'text-orange-700 dark:text-orange-400'
+          }`}>
+            📈 Ganancia
+          </p>
+          <p className={`text-2xl font-bold mt-1 ${
+            totales.ganancia_neta >= 0
+              ? 'text-blue-900 dark:text-blue-100'
+              : 'text-orange-900 dark:text-orange-100'
+          }`}>
+            {formatearDinero(totales.ganancia_neta)}
+          </p>
+          <p className={`text-[11px] mt-0.5 ${
+            totales.ganancia_neta >= 0
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-orange-600 dark:text-orange-400'
+          }`}>
+            {totales.ganancia_neta >= 0 ? '✓ Positivo' : '⚠ Negativo'}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Turnos del día (vista solo lectura — datos de secretaria) ── */}
+      <section>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+            📅 Turnos del día ({totales.turnos_total})
+          </h2>
+          <span className="text-xs text-slate-400">
+            {totales.turnos_presentes} presente · {totales.turnos_ausentes} no vino
+          </span>
+        </div>
+
+        {turnos.length === 0 ? (
+          <div className="p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-center text-sm text-slate-400">
+            La secretaria no cargó turnos todavía.
+            <button
+              onClick={cargarTurnos}
+              className="block mx-auto mt-1 text-blue-600 dark:text-blue-400 hover:underline text-xs"
+            >
+              🔄 Reintentar
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {/* Header columnas */}
+            <div className="grid grid-cols-[56px_1fr_120px_80px_80px_60px] gap-x-2 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <span>Hora</span>
+              <span>Clienta</span>
+              <span>Tratamiento</span>
+              <span className="text-right">Total</span>
+              <span className="text-right">Cobrado</span>
+              <span className="text-center">Estado</span>
             </div>
 
-            {/* Items */}
-            <div className="flex-1 overflow-y-auto space-y-1 p-2 max-h-96">
-              {columna.map(mov => (
+            {turnos
+              .slice()
+              .sort((a, b) => a.horario.localeCompare(b.horario))
+              .map((t, idx) => (
                 <div
-                  key={mov.id}
-                  className={`p-2 rounded text-xs border-l-4 ${
-                    mov.tipo === 'cobro'
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : mov.tipo === 'seña'
-                        ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
-                        : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  key={t.id}
+                  className={`grid grid-cols-[56px_1fr_120px_80px_80px_60px] gap-x-2 items-center px-3 py-2 rounded-lg text-sm ${
+                    t.asistencia === 'no_vino'
+                      ? 'bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 opacity-70'
+                      : idx % 2 === 0
+                        ? 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700'
+                        : 'bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-600'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="font-bold truncate flex-1">{mov.clienteNombre}</p>
-                    <button
-                      onClick={() => eliminarMovimiento(mov.id)}
-                      className="text-red-500 hover:text-red-700 ml-1 flex-shrink-0"
-                    >
-                      ✕
-                    </button>
+                  <span className="font-mono text-xs text-slate-500">{formatearHora(t.horario)}</span>
+                  <div className="min-w-0">
+                    <p className="font-medium text-xs truncate">{t.clienteNombre}</p>
+                    {t.detalle && (
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 italic truncate">{t.detalle}</p>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{mov.descripcion}</p>
-                  <p className="font-bold text-sm mt-1">{formatDinero(mov.monto)}</p>
+                  <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{t.tratamiento}</span>
+                  <span className="text-right font-mono text-xs">{formatearDinero(t.monto_total)}</span>
+                  <span className={`text-right font-mono text-xs font-bold ${
+                    t.asistencia === 'presente'
+                      ? 'text-emerald-700 dark:text-emerald-300'
+                      : 'text-slate-400'
+                  }`}>
+                    {t.asistencia === 'presente' ? formatearDinero(t.seña_pagada) : '—'}
+                  </span>
+                  <div className="flex justify-center">
+                    {t.asistencia === 'no_vino' ? (
+                      <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded-full font-bold">NV</span>
+                    ) : t.estado_pago === 'completo' ? (
+                      <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full font-bold">✓</span>
+                    ) : t.estado_pago === 'seña' ? (
+                      <span className="text-[10px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded-full font-bold">⏳</span>
+                    ) : (
+                      <span className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-full">○</span>
+                    )}
+                  </div>
                 </div>
               ))}
-            </div>
           </div>
-        ))}
-      </div>
+        )}
+      </section>
 
-      {/* Botones */}
-      <div className="flex gap-2">
-        <button
-          onClick={guardar}
-          disabled={guardando}
-          className="flex-1 px-4 py-3 rounded-lg bg-blue-600 dark:bg-blue-700 text-white font-bold hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
-        >
-          {guardando ? '⏳ Guardando...' : '💾 Guardar Caja'}
-        </button>
-        <Link
-          href="/admin/panel-control/turnos"
-          className="flex-1 px-4 py-3 rounded-lg bg-slate-600 dark:bg-slate-700 text-white font-bold hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors text-center"
-        >
-          📅 Ir a Turnos
-        </Link>
-      </div>
+      {/* ── Gastos del día ── */}
+      <section>
+        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">
+          💸 Gastos del día
+        </h2>
+        <GastosForm onAgregar={agregarGasto} />
+        {gastos.length > 0 && (
+          <div className="mt-3">
+            <GastosList gastos={gastos} onEliminar={eliminarGasto} />
+          </div>
+        )}
+      </section>
+
+      {/* ── Cierre de día ── */}
+      <section className="p-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10">
+        <h2 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-3">
+          🔒 Cierre de Caja
+        </h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+          <div>
+            <p className="text-purple-600 dark:text-purple-400">Estado</p>
+            <p className={`font-bold ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
+              {estadoCaja === 'cerrada' ? '🔒 Cerrada' : '🔓 Abierta'}
+            </p>
+          </div>
+          <div>
+            <p className="text-purple-600 dark:text-purple-400">Ingresos</p>
+            <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ingresos_totales)}</p>
+          </div>
+          <div>
+            <p className="text-purple-600 dark:text-purple-400">Gastos</p>
+            <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.gastos_totales)}</p>
+          </div>
+          <div>
+            <p className="text-purple-600 dark:text-purple-400">Ganancia neta</p>
+            <p className="font-bold text-purple-900 dark:text-purple-100 text-base">{formatearDinero(totales.ganancia_neta)}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={handleDescargar}
+            disabled={turnos.length === 0 && gastos.length === 0}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 dark:bg-blue-700 text-white font-bold text-sm hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            📥 Descargar Reporte .txt
+          </button>
+
+          {estadoCaja === 'abierta' ? (
+            <button
+              onClick={cerrarDia}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 dark:bg-red-700 text-white font-bold text-sm hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+            >
+              🔒 Cerrar Caja
+            </button>
+          ) : (
+            <button
+              onClick={reabrirDia}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-slate-500 dark:bg-slate-600 text-white font-bold text-sm hover:bg-slate-600 dark:hover:bg-slate-500 transition-colors"
+            >
+              🔓 Reabrir Caja
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* ── Guardar todo ── */}
+      <button
+        onClick={guardar}
+        disabled={guardando}
+        className="w-full px-4 py-3 rounded-lg bg-blue-600 dark:bg-blue-700 text-white font-bold hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+      >
+        {guardando ? '⏳ Guardando...' : '💾 Guardar Caja'}
+      </button>
+
     </div>
   );
 }

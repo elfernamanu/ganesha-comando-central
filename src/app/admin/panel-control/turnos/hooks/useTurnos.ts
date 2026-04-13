@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Turno } from '../types';
 
 /**
@@ -52,6 +52,15 @@ export function useTurnos(fecha: string) {
 
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+
+  // Auto-sync a localStorage para que Caja pueda leer los datos
+  useEffect(() => {
+    try {
+      localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(turnos));
+    } catch {
+      // silencioso si localStorage no disponible
+    }
+  }, [turnos, fecha]);
 
   // ========================================
   // ACCIONES
