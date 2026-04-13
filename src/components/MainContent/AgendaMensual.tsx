@@ -310,17 +310,19 @@ export function AgendaMensual() {
                   disabled={!dia.esMesActual}
                   className={[
                     'relative flex flex-col items-start justify-start p-1 sm:p-1.5 min-h-[56px] sm:min-h-[72px] text-left transition-all rounded-lg',
-                    // Días fuera del mes → invisibles
+                    // Días fuera del mes → completamente invisibles
                     !dia.esMesActual
                       ? 'opacity-0 cursor-default pointer-events-none'
                       // Día seleccionado
                       : esSel
                         ? 'bg-blue-50 dark:bg-blue-950/50 ring-2 ring-blue-400 cursor-pointer'
-                        // Día con servicio → blanco con sombra suave
+                        // Día con servicio → blanco con sombra (se destaca)
                         : tieneServicio
                           ? 'bg-white dark:bg-slate-800 shadow-sm hover:shadow-md cursor-pointer'
-                          // Sin servicio → gris muy suave
-                          : 'bg-slate-100/70 dark:bg-slate-800/30 hover:bg-slate-200/60 cursor-pointer',
+                          // Sin servicio Y no es hoy → transparente, sin caja
+                          : dia.esDiaHoy
+                            ? 'cursor-pointer'
+                            : 'cursor-pointer',
                   ].join(' ')}
                 >
                   {/* Número del día */}
