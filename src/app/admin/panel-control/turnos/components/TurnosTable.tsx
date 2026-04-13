@@ -69,12 +69,19 @@ export default function TurnosTable({
   // Cuando la secretaria cambia el tratamiento:
   //   → SIEMPRE limpia el detalle viejo (para que no quede "Tira de cola" si elige Uñas)
   //   → SIEMPRE actualiza el precio (0 si no está configurado → la secretaria lo carga a mano)
+  //   → Para combos: si no hay descripción, muestra el nombreDisplay (nombre del combo)
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
     const item = catalogo[nuevoTrat] ?? buscarEnCatalogo(nuevoTrat);
+
+    // Detalle: descripción del catálogo, o para combos el nombre completo, o vacío
+    const detalle = item?.detalle
+      || (item?.categoria === 'combo' ? item?.nombreDisplay : '')
+      || '';
+
     const cambios: Record<string, unknown> = {
       tratamiento:  nuevoTrat,
-      detalle:      item?.detalle || '',   // limpia si el nuevo servicio no tiene detalle
-      monto_total:  item?.precio  ?? 0,    // precio del catálogo, o 0 para cargar a mano
+      detalle,
+      monto_total:  item?.precio ?? 0,
     };
     onActualizar(turnoId, cambios as any);
   };

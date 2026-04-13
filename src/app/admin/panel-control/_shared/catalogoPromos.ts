@@ -160,7 +160,7 @@ export function guardarCombos(
       return {
         nombre:        `Combo ${c.numero}`,
         nombreDisplay: c.nombre || `Promo Combo ${c.numero}`,
-        detalle:       c.descripcion || serviciosIncluidos || c.nombre,
+        detalle:       c.descripcion || serviciosIncluidos || c.nombre || `Combo ${c.numero}`,
         precio:        c.precio,
         categoria:     'combo' as const,
       };
