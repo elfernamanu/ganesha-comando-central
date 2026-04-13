@@ -17,7 +17,9 @@ interface CategoriaServicio {
   nombre: string;
   icon: string;
   activo: boolean;
-  dias_mes: number[];
+  jornadas: { id: string; fecha: string; hora_inicio: string; hora_fin: string; activa: boolean }[];
+  fechas_activas?: string[];  // legacy
+  dias_mes?: number[];        // legacy
   subservicios: Subservicio[];
 }
 
@@ -44,10 +46,10 @@ interface DiaCalendario {
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const SERVICIOS_DEFAULT: CategoriaServicio[] = [
-  { id: 'unas',      nombre: 'Uñas',       icon: '💅', activo: true, dias_mes: [], subservicios: [] },
-  { id: 'depilacion',nombre: 'Depilación', icon: '✨', activo: true, dias_mes: [], subservicios: [] },
-  { id: 'estetica',  nombre: 'Estética',   icon: '⚡', activo: true, dias_mes: [], subservicios: [] },
-  { id: 'pestanas',  nombre: 'Pestañas',   icon: '👁️', activo: true, dias_mes: [], subservicios: [] },
+  { id: 'unas',       nombre: 'Uñas',       icon: '💅', activo: true, jornadas: [], subservicios: [] },
+  { id: 'depilacion', nombre: 'Depilación', icon: '✨', activo: true, jornadas: [], subservicios: [] },
+  { id: 'estetica',   nombre: 'Estética',   icon: '⚡', activo: true, jornadas: [], subservicios: [] },
+  { id: 'pestanas',   nombre: 'Pestañas',   icon: '👁️', activo: true, jornadas: [], subservicios: [] },
 ];
 
 const COLORES_SERVICIO: Record<string, { chip: string; dot: string }> = {
@@ -212,9 +214,12 @@ export function AgendaMensual() {
     });
   }, []);
 
-  // ── Calcular servicios activos por día del mes ────────────────────────────
-  const serviciosPorDia = useCallback((numeroDia: number): CategoriaServicio[] => {
-    return servicios.filter(s => s.activo && s.dias_mes.includes(numeroDia));
+  // ── Servicios con jornada activa para una fecha concreta ─────────────────
+  const serviciosPorDia = useCallback((fecha: Date): CategoriaServicio[] => {
+    const key = fechaKey(fecha);
+    return servicios.filter(s =>
+      s.activo && (s.jornadas ?? []).some(j => j.activa && j.fecha === key)
+    );
   }, [servicios]);
 
   // ── Contar turnos guardados por día (desde localStorage) ─────────────────
@@ -286,7 +291,7 @@ export function AgendaMensual() {
           >
             {semana.map((dia, di) => {
               const esSel      = keySeleccionado === fechaKey(dia.fecha);
-              const srvsDia    = dia.esMesActual ? serviciosPorDia(dia.fecha.getDate()) : [];
+              const srvsDia    = dia.esMesActual ? serviciosPorDia(dia.fecha) : [];
               const numTurnos  = dia.esMesActual ? contarTurnosDia(dia.fecha) : 0;
 
               return (
@@ -374,12 +379,14 @@ export function AgendaMensual() {
                 <div className="flex flex-wrap gap-1 mt-1">
                   {serviciosDiaSeleccionado.map(srv => {
                     const col = COLORES_SERVICIO[srv.id] ?? { chip: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
+                    const jornada = (srv.jornadas ?? []).find(j => j.activa && diaSeleccionado && j.fecha === fechaKey(diaSeleccionado));
                     return (
                       <span
                         key={srv.id}
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${col.chip}`}
                       >
                         {srv.icon} {srv.nombre}
+                        {jornada && <span className="opacity-60 font-normal">{jornada.hora_inicio}–{jornada.hora_fin}</span>}
                       </span>
                     );
                   })}
