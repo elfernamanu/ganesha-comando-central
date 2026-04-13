@@ -4,6 +4,14 @@ import Link from 'next/link';
 
 const SECCIONES = [
   {
+    href: '/admin/panel-control/depilacion',
+    icon: '✨',
+    titulo: 'Depilación Definitiva',
+    descripcion: 'Precios femenina y masculina · Zonas · Promos',
+    color: 'border-rose-400 dark:border-rose-600',
+    badge: null,
+  },
+  {
     href: '/admin/panel-control/precios',
     icon: '💰',
     titulo: 'Precios',

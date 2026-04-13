@@ -51,19 +51,7 @@ export function DrawerMain() {
           <span className="font-medium text-blue-600">🤖 Comunicación IA</span>
           <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">Activa</span>
         </a>
-        <a href="#" className="p-2 rounded cursor-pointer font-medium text-sm leading-relaxed transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
-          👥 Contactos activos / Visitas confirmadas / Pagos señas / Promociones
-        </a>
-        <a href="#" className="p-2 rounded cursor-pointer font-medium text-red-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
-          🚫 Contactos negativos
-        </a>
-        <a href="#" className="p-2 rounded cursor-pointer font-medium text-green-600 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
-          📱 WhatsApp empresa
-        </a>
-        <a href="#" className="p-2 rounded cursor-pointer font-medium text-pink-500 opacity-50 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
-          📸 Instagram chat (Próximamente)
-        </a>
-        <Link href="/admin/panel-control" className="p-2 rounded cursor-pointer font-medium mt-4 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 block">
+        <Link href="/admin/panel-control" className="p-2 rounded cursor-pointer font-medium mt-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 block">
           ⚙️ Panel de Control
         </Link>
       </nav>
