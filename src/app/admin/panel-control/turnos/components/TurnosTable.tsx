@@ -1,7 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { TurnosTableProps } from '../types';
+import { leerCatalogo, buscarEnCatalogo, type CatalogoPromos } from '../../_shared/catalogoPromos';
 
+// ── Input numérico sin flechas ─────────────────────────────────────────
 function NumeroInput({
   value,
   onChange,
@@ -24,24 +27,46 @@ function NumeroInput({
   );
 }
 
-// Abreviaciones para tratamiento en display compacto
-const TRAT_ABREV: Record<string, string> = {
-  'Depilación PROMO 1': 'Dep P1',
-  'Depilación PROMO 2': 'Dep P2',
-  'Depilación PROMO 3': 'Dep P3',
-  'Depilación PROMO 4': 'Dep P4',
-  'Uñas': 'Uñas',
-  'Estética': 'Estét',
-  'Pestañas': 'Pest',
-  'Otro': 'Otro',
-};
+// ── Orden fijo de grupos en el dropdown ───────────────────────────────
+const GRUPOS_ORDEN = [
+  { prefix: 'Depilación PROMO', label: '✨ Depilación' },
+  { prefix: 'Promo Combo',      label: '🎁 Combos' },
+  { prefix: 'otros',            label: '💅 Servicios' },
+];
 
+const SERVICIOS_SIMPLES = ['Uñas', 'Estética', 'Pestañas', 'Otro'];
+
+// ── Componente principal ───────────────────────────────────────────────
 export default function TurnosTable({
   turnos,
   onActualizar,
   onEliminar,
   onAgregar,
 }: TurnosTableProps) {
+  // Catálogo: se lee una vez al montar (después de que la dueña lo configuró)
+  const [catalogo, setCatalogo] = useState<CatalogoPromos>({});
+
+  useEffect(() => {
+    setCatalogo(leerCatalogo());
+  }, []);
+
+  // Opciones del dropdown agrupadas por tipo
+  const opcionesDepi  = Object.keys(catalogo).filter(k => k.startsWith('Depilación PROMO'));
+  const opcionesCombos = Object.keys(catalogo).filter(k => k.startsWith('Promo Combo'));
+
+  // Cuando la secretaria cambia el tratamiento → auto-completar detalle + monto
+  const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
+    const item = catalogo[nuevoTrat] ?? buscarEnCatalogo(nuevoTrat);
+    const cambios: Record<string, unknown> = { tratamiento: nuevoTrat };
+
+    if (item) {
+      if (item.detalle) cambios.detalle = item.detalle;
+      if (item.precio > 0) cambios.monto_total = item.precio;
+    }
+
+    onActualizar(turnoId, cambios as any);
+  };
+
   if (turnos.length === 0) {
     return (
       <div className="text-center py-8 text-slate-400 text-sm space-y-2">
@@ -55,9 +80,8 @@ export default function TurnosTable({
 
   return (
     <div className="space-y-2">
-      {/* Cada turno = una fila tipo card bien aireada */}
       <div className="space-y-1">
-        {/* Header columnas */}
+        {/* ── Header ── */}
         <div className="grid grid-cols-[72px_1fr_170px_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           <span>Hora</span>
           <span>Clienta</span>
@@ -89,7 +113,7 @@ export default function TurnosTable({
               />
             </div>
 
-            {/* Clienta — nombre completo */}
+            {/* Clienta */}
             <div>
               <input
                 type="text"
@@ -100,30 +124,45 @@ export default function TurnosTable({
               />
             </div>
 
-            {/* Tratamiento + Detalle */}
+            {/* Tratamiento + Detalle — auto-completa desde catálogo */}
             <div className="flex flex-col gap-1">
               <select
                 value={turno.tratamiento}
-                onChange={e => onActualizar(turno.id, { tratamiento: e.target.value as any })}
+                onChange={e => handleTratamientoChange(turno.id, e.target.value)}
                 className="w-full px-1 py-1 rounded text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-semibold"
               >
-                <option>Depilación PROMO 1</option>
-                <option>Depilación PROMO 2</option>
-                <option>Depilación PROMO 3</option>
-                <option>Depilación PROMO 4</option>
-                <option>Promo Combo 1</option>
-                <option>Promo Combo 2</option>
-                <option>Uñas</option>
-                <option>Estética</option>
-                <option>Pestañas</option>
-                <option>Otro</option>
+                {/* Grupo Depilación */}
+                {opcionesDepi.length > 0 && (
+                  <optgroup label="✨ Depilación">
+                    {opcionesDepi.sort().map(op => (
+                      <option key={op} value={op}>{op}</option>
+                    ))}
+                  </optgroup>
+                )}
+
+                {/* Grupo Combos */}
+                {opcionesCombos.length > 0 && (
+                  <optgroup label="🎁 Combos">
+                    {opcionesCombos.sort().map(op => (
+                      <option key={op} value={op}>{op}</option>
+                    ))}
+                  </optgroup>
+                )}
+
+                {/* Servicios simples */}
+                <optgroup label="💅 Servicios">
+                  {SERVICIOS_SIMPLES.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </optgroup>
               </select>
-              {/* Detalle del tratamiento — qué se hace exactamente */}
+
+              {/* Detalle — auto-cargado desde catálogo, editable */}
               <input
                 type="text"
                 value={turno.detalle || ''}
                 onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                placeholder="Ej: Cuerpo completo, Esculpidas..."
+                placeholder="Se carga al elegir la promo..."
                 className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
               />
             </div>
@@ -154,7 +193,7 @@ export default function TurnosTable({
               </button>
             </div>
 
-            {/* Total */}
+            {/* Total — se carga automático, editable */}
             <div>
               <NumeroInput
                 value={turno.monto_total}
@@ -170,7 +209,7 @@ export default function TurnosTable({
               />
             </div>
 
-            {/* Estado automático */}
+            {/* Estado de pago (automático) */}
             <div className="flex justify-center">
               <span className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold ${
                 turno.estado_pago === 'completo'

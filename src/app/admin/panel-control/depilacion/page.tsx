@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { guardarPromosDepilacion } from '../_shared/catalogoPromos';
 
 interface Precio {
   id: number;
@@ -120,6 +121,8 @@ export default function DepilacionPage() {
 
   const guardar = async () => {
     setGuardando(true);
+    // Sincronizar catálogo en localStorage para que Turnos lo lea al auto-completar
+    guardarPromosDepilacion(promos);
     try {
       const res = await fetch('/api/webhook', {
         method: 'POST',

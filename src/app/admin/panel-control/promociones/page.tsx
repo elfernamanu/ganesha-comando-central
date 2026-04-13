@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { guardarCombos } from '../_shared/catalogoPromos';
 
 interface Combo {
   numero: number;
@@ -66,6 +67,8 @@ export default function PromocionesPage() {
 
   const guardar = async () => {
     setGuardando(true);
+    // Sincronizar catálogo en localStorage para que Turnos lo lea al auto-completar
+    guardarCombos(combos);
     await fetch('/api/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
