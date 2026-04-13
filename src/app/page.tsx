@@ -85,18 +85,18 @@ export default function Home() {
           <AgendaMensual />
         </main>
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-around py-2 z-20">
-          <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-blue-600 dark:text-blue-400 px-3 py-1">
+          <Link href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-blue-600 dark:text-blue-400 px-3 py-1">
             <span className="text-xl">📅</span>Agenda
-          </a>
-          <Link href="/admin/panel-control/turnos" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 px-3 py-1">
+          </Link>
+          <Link href="/admin/panel-control/turnos" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 dark:text-slate-500 px-3 py-1">
             <span className="text-xl">🕒</span>Turnos
           </Link>
-          <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 px-3 py-1">
-            <span className="text-xl">✨</span>Servicios
-          </a>
-          <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 px-3 py-1">
-            <span className="text-xl">🤖</span>IA
-          </a>
+          <Link href="/admin/panel-control/caja" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 dark:text-slate-500 px-3 py-1">
+            <span className="text-xl">💰</span>Caja
+          </Link>
+          <Link href="/admin/panel-control" className="flex flex-col items-center gap-0.5 text-xs font-medium text-slate-400 dark:text-slate-500 px-3 py-1">
+            <span className="text-xl">⚙️</span>Panel
+          </Link>
         </nav>
       </div>
 
