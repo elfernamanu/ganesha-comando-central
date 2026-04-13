@@ -1,23 +1,20 @@
-const CACHE_NAME = 'ganesha-v1';
-const urlsToCache = [
-  '/',
-  '/manifest.json',
-];
+const CACHE_NAME = 'ganesha-v2';
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
+      return cache.addAll(['/', '/manifest.json']);
     })
   );
 });
 
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    }).catch(() => {
-      return caches.match('/');
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
