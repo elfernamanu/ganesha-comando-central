@@ -186,17 +186,19 @@ function JornadasPanel({
         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           + Nueva jornada de {catIcon} {catNombre}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1">Fecha</label>
-            <input
-              type="date"
-              value={nuevaFecha}
-              onChange={e => setNuevaFecha(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm"
-            />
-          </div>
-          <div>
+        {/* Fila 1: fecha */}
+        <div>
+          <label className="text-[10px] text-slate-400 block mb-1">Fecha</label>
+          <input
+            type="date"
+            value={nuevaFecha}
+            onChange={e => setNuevaFecha(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm"
+          />
+        </div>
+        {/* Fila 2: horarios + botón */}
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
             <label className="text-[10px] text-slate-400 block mb-1">Desde</label>
             <input
               type="time"
@@ -205,7 +207,7 @@ function JornadasPanel({
               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm font-mono"
             />
           </div>
-          <div>
+          <div className="flex-1">
             <label className="text-[10px] text-slate-400 block mb-1">Hasta</label>
             <input
               type="time"
@@ -325,9 +327,10 @@ function ListaPrecios({
       </div>
 
       {mostrar && (
-        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700">
+          <div className="min-w-[420px]">
           {/* Header */}
-          <div className="grid grid-cols-[1fr_100px_80px_32px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+          <div className="grid grid-cols-[1fr_100px_72px_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
             <span>Nombre</span>
             <span className="text-right">Precio</span>
             <span className="text-center">Estado</span>
@@ -336,7 +339,7 @@ function ListaPrecios({
           {subservicios.map((s, idx) => (
             <div
               key={s.id}
-              className={`grid grid-cols-[1fr_100px_80px_32px] gap-x-2 items-center px-3 py-2 ${
+              className={`grid grid-cols-[1fr_100px_72px_28px] gap-x-2 items-center px-3 py-2 ${
                 idx % 2 === 0
                   ? 'bg-white dark:bg-slate-800'
                   : 'bg-slate-50/50 dark:bg-slate-700/30'
@@ -385,6 +388,7 @@ function ListaPrecios({
               </div>
             </div>
           ))}
+          </div>{/* end min-w */}
         </div>
       )}
     </div>
