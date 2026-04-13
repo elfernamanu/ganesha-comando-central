@@ -110,12 +110,9 @@ export function useCajaDiaria(fecha: string) {
   }, [turnos, gastos]);
 
   // ========================================
-  // PERSISTENCIA
+  // PERSISTENCIA — guarda en servidor (interno)
   // ========================================
-  const guardar = async () => {
-    setGuardando(true);
-    setMensaje('');
-
+  const guardarEnServidor = async (): Promise<boolean> => {
     try {
       const res = await fetch('/api/webhook', {
         method: 'POST',
@@ -126,20 +123,68 @@ export function useCajaDiaria(fecha: string) {
           turnos,
           gastos,
           totales,
-          estado: estadoCaja,
+          estado: 'cerrada',
+        }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // ========================================
+  // ACCIÓN PRINCIPAL — Cerrar y guardar (todo en uno)
+  // ========================================
+  const cerrarYGuardar = async (): Promise<boolean> => {
+    setGuardando(true);
+    setMensaje('');
+
+    const ok = await guardarEnServidor();
+
+    if (ok) {
+      setEstadoCaja('cerrada');
+      setMensaje('✅ Caja cerrada y guardada en servidor');
+    } else {
+      setMensaje('⚠️ Error al guardar — verificá la conexión');
+    }
+
+    setGuardando(false);
+    setTimeout(() => setMensaje(''), 5000);
+    return ok;
+  };
+
+  // ========================================
+  // RECUPERAR REPORTE DE POSTGRESQL
+  // ========================================
+  const recuperarReporte = async (fechaBuscar: string): Promise<{
+    encontrado: boolean;
+    turnos?: TurnoSecretaria[];
+    gastos?: Gasto[];
+    totales?: TotalesCaja;
+  }> => {
+    try {
+      const res = await fetch('/api/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accion: 'obtener_caja',
+          fecha: fechaBuscar,
         }),
       });
 
-      if (res.ok) {
-        setMensaje('✅ Caja guardada');
-      } else {
-        setMensaje('⚠️ Error al guardar');
-      }
+      if (!res.ok) return { encontrado: false };
+
+      const data = await res.json();
+      if (!data || !data.turnos) return { encontrado: false };
+
+      return {
+        encontrado: true,
+        turnos: data.turnos,
+        gastos: data.gastos ?? [],
+        totales: data.totales,
+      };
     } catch {
-      setMensaje('⚠️ Sin conexión');
-    } finally {
-      setGuardando(false);
-      setTimeout(() => setMensaje(''), 4000);
+      return { encontrado: false };
     }
   };
 
@@ -157,9 +202,9 @@ export function useCajaDiaria(fecha: string) {
     eliminarGasto,
 
     // Acciones caja
-    cerrarDia,
+    cerrarYGuardar,
     reabrirDia,
     cargarTurnos,
-    guardar,
+    recuperarReporte,
   };
 }
