@@ -4,14 +4,6 @@ import Link from 'next/link';
 
 const SECCIONES = [
   {
-    href: '/admin/panel-control/turnos',
-    icon: '📅',
-    titulo: 'Turnos del Día',
-    descripcion: 'Secretaria: asistencia, pagos y cobros del día',
-    color: 'border-blue-400 dark:border-blue-600',
-    badge: null,
-  },
-  {
     href: '/admin/panel-control/caja',
     icon: '💰',
     titulo: 'Control de Caja',

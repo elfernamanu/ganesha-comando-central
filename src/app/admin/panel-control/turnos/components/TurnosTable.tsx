@@ -86,7 +86,9 @@ export default function TurnosTable({
 
   return (
     <div className="space-y-2">
-      <div className="space-y-1">
+      {/* overflow-x-auto → scroll horizontal en mobile sin romper layout */}
+      <div className="overflow-x-auto rounded-lg">
+      <div className="min-w-[640px] space-y-1">
         {/* ── Header ── */}
         <div className="grid grid-cols-[72px_1fr_170px_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           <span>Hora</span>
@@ -272,6 +274,7 @@ export default function TurnosTable({
             </div>
           </div>
         ))}
+      </div>
       </div>
 
       {/* Botón agregar */}

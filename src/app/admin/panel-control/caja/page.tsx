@@ -70,55 +70,55 @@ export default function CajaPage() {
         </div>
       )}
 
-      {/* ── Tarjetas de estadísticas ── */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* ── Tarjetas de estadísticas — 3 cols siempre, texto chico en mobile ── */}
+      <div className="grid grid-cols-3 gap-2">
         {/* Ingresos */}
-        <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
-          <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+        <div className="p-2 sm:p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+          <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
             💰 Ingresos
           </p>
-          <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">
+          <p className="text-base sm:text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-0.5 leading-tight">
             {formatearDinero(totales.ingresos_totales)}
           </p>
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {totales.turnos_presentes} clientes cobrados
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 hidden sm:block">
+            {totales.turnos_presentes} cobrados
           </p>
         </div>
 
         {/* Gastos */}
-        <div className="p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-          <p className="text-[11px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+        <div className="p-2 sm:p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+          <p className="text-[10px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
             💸 Gastos
           </p>
-          <p className="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
+          <p className="text-base sm:text-2xl font-bold text-red-900 dark:text-red-100 mt-0.5 leading-tight">
             {formatearDinero(totales.gastos_totales)}
           </p>
-          <p className="text-[11px] text-red-600 dark:text-red-400 mt-0.5">
-            {gastos.length} {gastos.length === 1 ? 'gasto' : 'gastos'} del día
+          <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5 hidden sm:block">
+            {gastos.length} {gastos.length === 1 ? 'gasto' : 'gastos'}
           </p>
         </div>
 
         {/* Ganancia */}
-        <div className={`p-3 rounded-xl border ${
+        <div className={`p-2 sm:p-3 rounded-xl border ${
           totales.ganancia_neta >= 0
             ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
             : 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20'
         }`}>
-          <p className={`text-[11px] font-bold uppercase tracking-wide ${
+          <p className={`text-[10px] font-bold uppercase tracking-wide ${
             totales.ganancia_neta >= 0
               ? 'text-blue-700 dark:text-blue-400'
               : 'text-orange-700 dark:text-orange-400'
           }`}>
             📈 Ganancia
           </p>
-          <p className={`text-2xl font-bold mt-1 ${
+          <p className={`text-base sm:text-2xl font-bold mt-0.5 leading-tight ${
             totales.ganancia_neta >= 0
               ? 'text-blue-900 dark:text-blue-100'
               : 'text-orange-900 dark:text-orange-100'
           }`}>
             {formatearDinero(totales.ganancia_neta)}
           </p>
-          <p className={`text-[11px] mt-0.5 ${
+          <p className={`text-[10px] mt-0.5 hidden sm:block ${
             totales.ganancia_neta >= 0
               ? 'text-blue-600 dark:text-blue-400'
               : 'text-orange-600 dark:text-orange-400'
@@ -150,7 +150,8 @@ export default function CajaPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="overflow-x-auto rounded-lg">
+          <div className="min-w-[500px] space-y-1">
             {/* Header columnas */}
             <div className="grid grid-cols-[56px_1fr_120px_80px_80px_60px] gap-x-2 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
               <span>Hora</span>
@@ -204,6 +205,7 @@ export default function CajaPage() {
                   </div>
                 </div>
               ))}
+          </div>
           </div>
         )}
       </section>

@@ -25,24 +25,26 @@ export default function TurnosPage() {
         </Link>
       </div>
 
-      {/* Resumen */}
-      <div className="grid grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+      {/* Resumen — 4 columnas en cualquier ancho */}
+      <div className="grid grid-cols-4 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg">
         <div className="text-center">
-          <p className="text-xs text-slate-500">Total</p>
-          <p className="font-bold">{totales.total_turnos}</p>
+          <p className="text-[10px] text-slate-500 leading-tight">Total</p>
+          <p className="font-bold text-sm">{totales.total_turnos}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-slate-500">Presentes</p>
-          <p className="font-bold text-green-600">{totales.asistencias}</p>
+          <p className="text-[10px] text-slate-500 leading-tight">Presentes</p>
+          <p className="font-bold text-sm text-green-600">{totales.asistencias}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-slate-500">No vino</p>
-          <p className="font-bold text-red-600">{totales.ausentes}</p>
+          <p className="text-[10px] text-slate-500 leading-tight">No vino</p>
+          <p className="font-bold text-sm text-red-600">{totales.ausentes}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-slate-500">Ingresos</p>
-          <p className="font-bold text-blue-600">
-            ${(totales.ingresos_seña / 1000).toFixed(0)}k
+          <p className="text-[10px] text-slate-500 leading-tight">Cobrado</p>
+          <p className="font-bold text-sm text-blue-600">
+            ${totales.ingresos_seña >= 1000
+              ? (totales.ingresos_seña / 1000).toFixed(0) + 'k'
+              : totales.ingresos_seña}
           </p>
         </div>
       </div>
