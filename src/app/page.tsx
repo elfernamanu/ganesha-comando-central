@@ -2,7 +2,7 @@
 
 import { DrawerMain } from '@/components/Drawer/DrawerMain';
 import { Header } from '@/components/MainContent/Header';
-import { ShiftsGrid } from '@/components/MainContent/ShiftsGrid';
+import { AgendaMensual } from '@/components/MainContent/AgendaMensual';
 import { useAccessibility } from '@/context/AccessibilityCtx';
 import Link from 'next/link';
 
@@ -70,7 +70,7 @@ export default function Home() {
             <Header />
           </div>
           <main className="flex-1 p-6">
-            <ShiftsGrid />
+            <AgendaMensual />
           </main>
           <footer className="text-center py-4 text-sm border-t border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-500">
             <p>Ganesha Esthetic © 2026 | Comando Central</p>
@@ -82,7 +82,7 @@ export default function Home() {
       <div className="md:hidden flex flex-col min-h-screen">
         <MobileHeader />
         <main className="flex-1 p-4 pb-20">
-          <ShiftsGrid />
+          <AgendaMensual />
         </main>
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-around py-2 z-20">
           <a href="/" className="flex flex-col items-center gap-0.5 text-xs font-medium text-blue-600 dark:text-blue-400 px-3 py-1">
