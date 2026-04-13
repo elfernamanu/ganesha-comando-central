@@ -305,6 +305,84 @@ function JornadasPanel({
   );
 }
 
+// ── Fila individual de subservicio ────────────────────────────────────────
+function FilaSubServicio({
+  s,
+  catId,
+  idx,
+  onActualizar,
+  onEliminar,
+}: {
+  s: SubServicio;
+  catId: string;
+  idx: number;
+  onActualizar: (catId: string, id: number, campo: keyof SubServicio, valor: string | number | boolean) => void;
+  onEliminar: (catId: string, id: number) => void;
+}) {
+  return (
+    <div
+      className={`grid grid-cols-[1fr_100px_72px_28px] gap-x-2 items-center px-3 py-2 ${
+        idx % 2 === 0
+          ? 'bg-white dark:bg-slate-800'
+          : 'bg-slate-50/50 dark:bg-slate-700/30'
+      } border-t border-slate-100 dark:border-slate-700/50`}
+    >
+      <input
+        value={s.nombre}
+        onFocus={e => e.target.select()}
+        onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
+        className="w-full px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors"
+      />
+      <div className="flex items-center gap-0.5 justify-end">
+        <span className="text-[10px] text-slate-400">$</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={formatPrecio(s.precio)}
+          onFocus={e => e.target.select()}
+          onChange={e => {
+            const num = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0;
+            onActualizar(catId, s.id, 'precio', num);
+          }}
+          placeholder="—"
+          className="w-20 px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs text-right font-mono transition-colors"
+        />
+      </div>
+      <div className="flex justify-center">
+        <button
+          onClick={() => onActualizar(catId, s.id, 'activo', !s.activo)}
+          className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+            s.activo
+              ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+              : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+          }`}
+        >
+          {s.activo ? '✓' : '✗'}
+        </button>
+      </div>
+      <div className="flex justify-center">
+        <button
+          onClick={() => onEliminar(catId, s.id)}
+          className="w-6 h-6 flex items-center justify-center text-red-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors text-xs"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Cabecera de sección dentro de la tabla ────────────────────────────────
+function SeccionHeader({ label }: { label: string }) {
+  return (
+    <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
+      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 // ── Lista de precios compacta ──────────────────────────────────────────────
 function ListaPrecios({
   catId,
@@ -320,6 +398,37 @@ function ListaPrecios({
   onEliminar: (catId: string, id: number) => void;
 }) {
   const [mostrar, setMostrar] = useState(true);
+
+  // Para depilación: agrupa por emoji del nombre
+  const esDepilacion = catId === 'depilacion';
+  const grupos = esDepilacion
+    ? [
+        {
+          label: '🌸 Zonas Mujer',
+          items: subservicios.filter(s => s.nombre.startsWith('🌸')),
+        },
+        {
+          label: '💪 Zonas Hombre',
+          items: subservicios.filter(s => s.nombre.startsWith('💪')),
+        },
+        {
+          label: '🎁 Promos Mujer',
+          items: subservicios.filter(s => s.nombre.startsWith('🎁') && s.nombre.toLowerCase().includes('mujer')),
+        },
+        {
+          label: '🎁 Promos Hombre',
+          items: subservicios.filter(s => s.nombre.startsWith('🎁') && s.nombre.toLowerCase().includes('hombre')),
+        },
+        {
+          label: '🎁 Otras Promos',
+          items: subservicios.filter(
+            s => s.nombre.startsWith('🎁') &&
+              !s.nombre.toLowerCase().includes('mujer') &&
+              !s.nombre.toLowerCase().includes('hombre')
+          ),
+        },
+      ].filter(g => g.items.length > 0)
+    : null;
 
   return (
     <div>
@@ -342,66 +451,45 @@ function ListaPrecios({
       {mostrar && (
         <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700">
           <div className="min-w-[420px]">
-          {/* Header */}
-          <div className="grid grid-cols-[1fr_100px_72px_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-            <span>Nombre</span>
-            <span className="text-right">Precio</span>
-            <span className="text-center">Estado</span>
-            <span></span>
-          </div>
-          {subservicios.map((s, idx) => (
-            <div
-              key={s.id}
-              className={`grid grid-cols-[1fr_100px_72px_28px] gap-x-2 items-center px-3 py-2 ${
-                idx % 2 === 0
-                  ? 'bg-white dark:bg-slate-800'
-                  : 'bg-slate-50/50 dark:bg-slate-700/30'
-              } border-t border-slate-100 dark:border-slate-700/50`}
-            >
-              <input
-                value={s.nombre}
-                onFocus={e => e.target.select()}
-                onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
-                className="w-full px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors"
-              />
-              <div className="flex items-center gap-0.5 justify-end">
-                <span className="text-[10px] text-slate-400">$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatPrecio(s.precio)}
-                  onFocus={e => e.target.select()}
-                  onChange={e => {
-                    const num = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0;
-                    onActualizar(catId, s.id, 'precio', num);
-                  }}
-                  placeholder="—"
-                  className="w-20 px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs text-right font-mono transition-colors"
-                />
-              </div>
-              <div className="flex justify-center">
-                <button
-                  onClick={() => onActualizar(catId, s.id, 'activo', !s.activo)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    s.activo
-                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                  }`}
-                >
-                  {s.activo ? '✓' : '✗'}
-                </button>
-              </div>
-              <div className="flex justify-center">
-                <button
-                  onClick={() => onEliminar(catId, s.id)}
-                  className="w-6 h-6 flex items-center justify-center text-red-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors text-xs"
-                >
-                  ✕
-                </button>
-              </div>
+            {/* Header columnas */}
+            <div className="grid grid-cols-[1fr_100px_72px_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <span>Nombre</span>
+              <span className="text-right">Precio</span>
+              <span className="text-center">Estado</span>
+              <span></span>
             </div>
-          ))}
-          </div>{/* end min-w */}
+
+            {esDepilacion && grupos ? (
+              /* Vista agrupada para depilación */
+              grupos.map(grupo => (
+                <div key={grupo.label}>
+                  <SeccionHeader label={grupo.label} />
+                  {grupo.items.map((s, idx) => (
+                    <FilaSubServicio
+                      key={s.id}
+                      s={s}
+                      catId={catId}
+                      idx={idx}
+                      onActualizar={onActualizar}
+                      onEliminar={onEliminar}
+                    />
+                  ))}
+                </div>
+              ))
+            ) : (
+              /* Vista plana para otras categorías */
+              subservicios.map((s, idx) => (
+                <FilaSubServicio
+                  key={s.id}
+                  s={s}
+                  catId={catId}
+                  idx={idx}
+                  onActualizar={onActualizar}
+                  onEliminar={onEliminar}
+                />
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
