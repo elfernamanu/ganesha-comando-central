@@ -36,45 +36,12 @@ const PROMOS_INICIAL: Promo[] = [
   { numero: 4, nombre: 'Promo Combo Full', descripcion: 'Cavado C. + Pierna E. + Axila + Bozo', precio: 24000, activo: true },
 ];
 
-function PrecioCard({ s, onChange }: { s: Precio; onChange: (id: number, campo: keyof Precio, valor: string | number | boolean) => void }) {
-  return (
-    <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
-      <div>
-        <label className="text-xs text-slate-400 block mb-1">Servicio</label>
-        <input
-          value={s.nombre}
-          onChange={(e) => onChange(s.id, 'nombre', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm"
-        />
-      </div>
-      <div className="flex gap-3 items-end">
-        <div className="flex-1">
-          <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
-          <input
-            type="number"
-            value={s.precio}
-            onChange={(e) => onChange(s.id, 'precio', parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
-          />
-        </div>
-        <button
-          onClick={() => onChange(s.id, 'activo', !s.activo)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            s.activo
-              ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-              : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-          }`}
-        >
-          {s.activo ? '✓ Activo' : '✗ No'}
-        </button>
-      </div>
-    </div>
-  );
-}
+type Tab = 'promos' | 'femenina' | 'masculina';
 
 export default function DepilacionPage() {
   const [precios, setPrecios] = useState<Precio[]>(PRECIOS_INICIAL);
   const [promos, setPromos] = useState<Promo[]>(PROMOS_INICIAL);
+  const [tab, setTab] = useState<Tab>('promos');
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
@@ -82,23 +49,26 @@ export default function DepilacionPage() {
     setPrecios(prev => prev.map(p => p.id === id ? { ...p, [campo]: valor } : p));
   };
 
+  const eliminarPrecio = (id: number) => {
+    setPrecios(prev => prev.filter(p => p.id !== id));
+  };
+
+  const agregarPrecio = (categoria: 'femenina' | 'masculina') => {
+    const nuevoId = precios.length > 0 ? Math.max(...precios.map(p => p.id)) + 1 : 1;
+    setPrecios(prev => [...prev, { id: nuevoId, nombre: 'Nuevo servicio', categoria, precio: 0, activo: true }]);
+  };
+
   const actualizarPromo = (numero: number, campo: keyof Promo, valor: string | number | boolean) => {
     setPromos(prev => prev.map(p => p.numero === numero ? { ...p, [campo]: valor } : p));
   };
 
-  const agregarPromo = () => {
-    const nuevoNumero = promos.length > 0 ? Math.max(...promos.map(p => p.numero)) + 1 : 1;
-    setPromos(prev => [...prev, {
-      numero: nuevoNumero,
-      nombre: `Promo ${nuevoNumero}`,
-      descripcion: '',
-      precio: 0,
-      activo: true,
-    }]);
-  };
-
   const eliminarPromo = (numero: number) => {
     setPromos(prev => prev.filter(p => p.numero !== numero));
+  };
+
+  const agregarPromo = () => {
+    const nuevoNumero = promos.length > 0 ? Math.max(...promos.map(p => p.numero)) + 1 : 1;
+    setPromos(prev => [...prev, { numero: nuevoNumero, nombre: `Promo ${nuevoNumero}`, descripcion: '', precio: 0, activo: true }]);
   };
 
   const guardar = async () => {
@@ -121,8 +91,7 @@ export default function DepilacionPage() {
   const masculina = precios.filter(p => p.categoria === 'masculina');
 
   return (
-    <div className="space-y-8 pb-20">
-
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -141,104 +110,156 @@ export default function DepilacionPage() {
       </div>
 
       {mensaje && (
-        <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-medium">
-          {mensaje}
-        </div>
+        <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-medium">{mensaje}</div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {(['promos', 'femenina', 'masculina'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors capitalize ${
+              tab === t
+                ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            {t === 'promos' ? '🔥 Promos' : t === 'femenina' ? '🌸 Femenina' : '💪 Masculina'}
+          </button>
+        ))}
+      </div>
+
       {/* PROMOS */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-lg font-bold">🔥 Promociones</h3>
+      {tab === 'promos' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Mandá <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">promo 1</span> por Telegram → el bot sabe qué es
             </p>
-          </div>
-          <button
-            onClick={agregarPromo}
-            className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 transition-colors"
-          >
-            + Nueva
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {promos.map((promo) => (
-            <div
-              key={promo.numero}
-              className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3"
+            <button
+              onClick={agregarPromo}
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 transition-colors"
             >
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 font-bold text-sm">
-                  Promo {promo.numero}
-                </span>
-                <div className="flex gap-2">
+              + Nueva promo
+            </button>
+          </div>
+          <div className="space-y-3">
+            {promos.map((promo) => (
+              <div key={promo.numero} className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 font-bold text-sm">
+                    Promo {promo.numero}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => actualizarPromo(promo.numero, 'activo', !promo.activo)}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${promo.activo ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
+                    >
+                      {promo.activo ? '✓ Activa' : '✗ Inactiva'}
+                    </button>
+                    <button onClick={() => eliminarPromo(promo.numero)} className="px-3 py-1 rounded-lg text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Nombre</label>
+                  <input value={promo.nombre} onChange={(e) => actualizarPromo(promo.numero, 'nombre', e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Qué incluye</label>
+                  <input value={promo.descripcion} onChange={(e) => actualizarPromo(promo.numero, 'descripcion', e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm" placeholder="Ej: Cavado + Pierna entera + Axilas" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
+                  <input type="number" value={promo.precio} onChange={(e) => actualizarPromo(promo.numero, 'precio', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* FEMENINA */}
+      {tab === 'femenina' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-rose-500">Precios Femenina</h3>
+            <button
+              onClick={() => agregarPrecio('femenina')}
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300 hover:bg-rose-200 transition-colors"
+            >
+              + Nueva
+            </button>
+          </div>
+          <div className="space-y-3">
+            {femenina.map((s) => (
+              <div key={s.id} className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Servicio</label>
+                  <input value={s.nombre} onChange={(e) => actualizarPrecio(s.id, 'nombre', e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm" />
+                </div>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
+                    <input type="number" value={s.precio} onChange={(e) => actualizarPrecio(s.id, 'precio', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium" />
+                  </div>
                   <button
-                    onClick={() => actualizarPromo(promo.numero, 'activo', !promo.activo)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      promo.activo
-                        ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                    }`}
+                    onClick={() => actualizarPrecio(s.id, 'activo', !s.activo)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${s.activo ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
                   >
-                    {promo.activo ? '✓ Activa' : '✗ Inactiva'}
+                    {s.activo ? '✓' : '✗'}
                   </button>
-                  <button
-                    onClick={() => eliminarPromo(promo.numero)}
-                    className="px-3 py-1 rounded-lg text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                  >
+                  <button onClick={() => eliminarPrecio(s.id)} className="px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
                     Eliminar
                   </button>
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Nombre</label>
-                <input
-                  value={promo.nombre}
-                  onChange={(e) => actualizarPromo(promo.numero, 'nombre', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Qué incluye</label>
-                <input
-                  value={promo.descripcion}
-                  onChange={(e) => actualizarPromo(promo.numero, 'descripcion', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm"
-                  placeholder="Ej: Cavado + Pierna entera + Axilas"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
-                <input
-                  type="number"
-                  value={promo.precio}
-                  onChange={(e) => actualizarPromo(promo.numero, 'precio', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium"
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* FEMENINA */}
-      <div>
-        <h3 className="text-lg font-bold text-rose-500 mb-3">FEMENINA — Precios</h3>
-        <div className="space-y-3">
-          {femenina.map(s => <PrecioCard key={s.id} s={s} onChange={actualizarPrecio} />)}
-        </div>
-      </div>
+      )}
 
       {/* MASCULINA */}
-      <div>
-        <h3 className="text-lg font-bold text-blue-500 mb-3">MASCULINA — Precios</h3>
-        <div className="space-y-3">
-          {masculina.map(s => <PrecioCard key={s.id} s={s} onChange={actualizarPrecio} />)}
+      {tab === 'masculina' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-blue-500">Precios Masculina</h3>
+            <button
+              onClick={() => agregarPrecio('masculina')}
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors"
+            >
+              + Nueva
+            </button>
+          </div>
+          <div className="space-y-3">
+            {masculina.map((s) => (
+              <div key={s.id} className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Servicio</label>
+                  <input value={s.nombre} onChange={(e) => actualizarPrecio(s.id, 'nombre', e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium text-sm" />
+                </div>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label className="text-xs text-slate-400 block mb-1">Precio ($)</label>
+                    <input type="number" value={s.precio} onChange={(e) => actualizarPrecio(s.id, 'precio', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-medium" />
+                  </div>
+                  <button
+                    onClick={() => actualizarPrecio(s.id, 'activo', !s.activo)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${s.activo ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
+                  >
+                    {s.activo ? '✓' : '✗'}
+                  </button>
+                  <button onClick={() => eliminarPrecio(s.id)} className="px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
+      )}
     </div>
   );
 }
