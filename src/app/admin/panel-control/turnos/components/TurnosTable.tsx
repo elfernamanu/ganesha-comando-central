@@ -215,17 +215,36 @@ export default function TurnosTable({
               />
             </div>
 
-            {/* Estado de pago (automático) */}
+            {/* Estado de pago — click para marcar como COBRADO TOTAL */}
             <div className="flex justify-center">
-              <span className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold ${
-                turno.estado_pago === 'completo'
-                  ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
-                  : turno.estado_pago === 'seña'
-                    ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-              }`}>
-                {turno.estado_pago === 'completo' ? '✓' : turno.estado_pago === 'seña' ? '⏳' : '○'}
-              </span>
+              {turno.estado_pago === 'completo' ? (
+                // Ya cobrado: click para deshacer (vuelve a 0)
+                <button
+                  onClick={() => onActualizar(turno.id, { seña_pagada: 0 })}
+                  title="Cobrado — click para deshacer"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold bg-green-500 text-white shadow-sm hover:bg-green-600 transition-colors"
+                >
+                  ✓
+                </button>
+              ) : turno.asistencia === 'presente' && turno.monto_total > 0 ? (
+                // Presente con monto: click para cobrar total
+                <button
+                  onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
+                  title={`Marcar cobrado: $${turno.monto_total.toLocaleString('es-AR')}`}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold border-2 transition-colors ${
+                    turno.estado_pago === 'seña'
+                      ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 hover:bg-yellow-400 hover:text-white'
+                      : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-400 hover:border-green-400 hover:bg-green-50 hover:text-green-600'
+                  }`}
+                >
+                  {turno.estado_pago === 'seña' ? '⏳' : '○'}
+                </button>
+              ) : (
+                // No vino o sin monto: solo visual
+                <span className="w-8 h-8 flex items-center justify-center rounded-full text-sm bg-slate-100 dark:bg-slate-700 text-slate-300">
+                  ○
+                </span>
+              )}
             </div>
 
             {/* Método de pago */}
