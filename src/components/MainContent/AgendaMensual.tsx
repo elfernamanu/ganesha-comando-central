@@ -290,9 +290,10 @@ export function AgendaMensual() {
             className={`grid grid-cols-7 ${si < grid.length - 1 ? 'border-b border-slate-200 dark:border-slate-700' : ''}`}
           >
             {semana.map((dia, di) => {
-              const esSel      = keySeleccionado === fechaKey(dia.fecha);
-              const srvsDia    = dia.esMesActual ? serviciosPorDia(dia.fecha) : [];
-              const numTurnos  = dia.esMesActual ? contarTurnosDia(dia.fecha) : 0;
+              const esSel     = keySeleccionado === fechaKey(dia.fecha);
+              const srvsDia   = dia.esMesActual ? serviciosPorDia(dia.fecha) : [];
+              const numTurnos = dia.esMesActual ? contarTurnosDia(dia.fecha) : 0;
+              const tieneServicio = srvsDia.length > 0;
 
               return (
                 <button
@@ -300,61 +301,60 @@ export function AgendaMensual() {
                   onClick={() => seleccionarDia(dia)}
                   disabled={!dia.esMesActual}
                   className={[
-                    'relative flex flex-col items-start justify-start p-1 sm:p-1.5 min-h-[48px] sm:min-h-[64px] text-left transition-colors',
+                    'relative flex flex-col items-start justify-start p-1 sm:p-1.5 min-h-[56px] sm:min-h-[72px] text-left transition-all',
                     di < 6 ? 'border-r border-slate-200 dark:border-slate-700' : '',
-                    dia.esMesActual
-                      ? 'hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'
-                      : 'cursor-default',
-                    esSel
-                      ? 'bg-blue-50 dark:bg-blue-950'
-                      : '',
+                    // Días fuera del mes → muy tenues, no clickeables
+                    !dia.esMesActual
+                      ? 'bg-slate-50/50 dark:bg-slate-900/30 cursor-default'
+                      // Día seleccionado
+                      : esSel
+                        ? 'bg-blue-50 dark:bg-blue-950/50 cursor-pointer'
+                        // Día con servicio → fondo levemente cálido, se destaca
+                        : tieneServicio
+                          ? 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 cursor-pointer'
+                          // Sin servicio → fondo tenue para que "desaparezca"
+                          : 'bg-slate-50/60 dark:bg-slate-900/20 hover:bg-slate-100/60 dark:hover:bg-slate-800/30 cursor-pointer',
                   ].join(' ')}
                 >
                   {/* Número del día */}
                   <span
                     className={[
-                      'text-xs font-semibold leading-none mb-0.5 w-5 h-5 flex items-center justify-center rounded-full',
+                      'text-xs leading-none mb-1 w-5 h-5 flex items-center justify-center rounded-full shrink-0',
                       !dia.esMesActual
-                        ? 'text-slate-300 dark:text-slate-600 text-[10px]'
+                        ? 'text-slate-300 dark:text-slate-700 text-[10px]'
                         : dia.esDiaHoy
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-600 text-white font-bold'
                           : esSel
                             ? 'text-blue-700 dark:text-blue-300 font-bold'
-                            : 'text-slate-700 dark:text-slate-200',
+                            : tieneServicio
+                              ? 'text-slate-800 dark:text-slate-100 font-bold'
+                              : 'text-slate-400 dark:text-slate-600 font-normal',
                     ].join(' ')}
                   >
                     {dia.fecha.getDate()}
                   </span>
 
-                  {/* Chips / dots de servicios */}
-                  {srvsDia.length > 0 && (
-                    <div className="flex flex-wrap gap-0.5 w-full">
+                  {/* Chips de servicios — solo si hay jornadas activas */}
+                  {tieneServicio && (
+                    <div className="flex flex-col gap-0.5 w-full">
                       {srvsDia.map(srv => {
                         const col = COLORES_SERVICIO[srv.id] ?? { chip: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
                         return (
-                          <span key={srv.id}>
-                            {/* Mobile: solo emoji */}
-                            <span
-                              className="sm:hidden text-[10px] leading-none"
-                              title={srv.nombre}
-                            >
-                              {srv.icon}
-                            </span>
-                            {/* sm+: chip con nombre */}
-                            <span
-                              className={`hidden sm:inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium leading-none whitespace-nowrap ${col.chip}`}
-                            >
-                              {srv.icon} {srv.nombre}
-                            </span>
+                          <span
+                            key={srv.id}
+                            className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold leading-tight whitespace-nowrap w-full truncate ${col.chip}`}
+                          >
+                            <span className="shrink-0">{srv.icon}</span>
+                            <span className="hidden sm:inline truncate">{srv.nombre}</span>
                           </span>
                         );
                       })}
                     </div>
                   )}
 
-                  {/* Badge de turnos */}
+                  {/* Badge de turnos cargados */}
                   {numTurnos > 0 && (
-                    <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-0.5 bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                    <span className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-0.5 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
                       {numTurnos}
                     </span>
                   )}
