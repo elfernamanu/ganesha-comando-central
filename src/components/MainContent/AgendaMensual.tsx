@@ -29,7 +29,7 @@ interface TurnoSecretaria {
   clienteNombre: string;
   tratamiento: string;
   detalle: string;
-  asistencia: 'presente' | 'no_vino';
+  asistencia: 'presente' | 'no_vino' | '';
   monto_total: number;
   seña_pagada: number;
   estado_pago: 'sin_pago' | 'seña' | 'completo';
@@ -285,7 +285,7 @@ export function AgendaMensual() {
     <div className="max-w-2xl mx-auto select-none">
 
       {/* ── Encabezado del mes ── */}
-      <div className="flex items-center justify-between mb-2 px-1">
+      <div className="flex items-center justify-between mb-4 px-1">
         <button onClick={irMesAnterior} aria-label="Mes anterior"
           className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-lg font-bold">
           ‹
@@ -305,7 +305,7 @@ export function AgendaMensual() {
           Sin servicios cargados este mes
         </p>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 px-1 pt-1 scrollbar-hide">
           {diasActivos.map(({ fecha, srvs, nTurnos }) => {
             const key   = fechaKey(fecha);
             const esSel = keySeleccionado === key;

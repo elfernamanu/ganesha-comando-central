@@ -83,9 +83,20 @@ export function useTurnos(fecha: string) {
   useEffect(() => {
     try {
       localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(turnos));
-    } catch {
-      // silencioso si localStorage no disponible
-    }
+    } catch { /* silencioso */ }
+  }, [turnos, fecha]);
+
+  // Auto-sync al servidor (3s después del último cambio) → sincroniza celular ↔ PC
+  useEffect(() => {
+    if (turnos.length === 0) return;
+    const timer = setTimeout(() => {
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha, datos: turnos }),
+      }).catch(() => { /* silencioso si no hay conexión */ });
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [turnos, fecha]);
 
   // ========================================
