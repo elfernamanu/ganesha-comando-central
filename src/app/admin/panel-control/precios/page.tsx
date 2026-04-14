@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/Toast';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -278,8 +278,8 @@ function JornadasPanel({
   );
 }
 
-// ── Celda de subservicio (grilla 3 columnas) ──────────────────────────────
-function FilaSubServicio({
+// ── Celda de subservicio — estado LOCAL para que tipear sea instantáneo ──
+const FilaSubServicio = React.memo(function FilaSubServicio({
   s,
   catId,
   onActualizar,
@@ -291,20 +291,33 @@ function FilaSubServicio({
   onActualizar: (catId: string, id: number, campo: keyof SubServicio, valor: string | number | boolean) => void;
   onEliminar: (catId: string, id: number) => void;
 }) {
+  const [nombre, setNombre] = React.useState(s.nombre);
+  const [precio, setPrecio] = React.useState(formatPrecio(s.precio));
+
+  // Sincronizar si el padre cambia (ej: nueva carga desde localStorage)
+  React.useEffect(() => { setNombre(s.nombre); }, [s.nombre]);
+  React.useEffect(() => { setPrecio(formatPrecio(s.precio)); }, [s.precio]);
+
   return (
     <div className="flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-slate-800 group">
       <input
-        value={s.nombre}
+        value={nombre}
         onFocus={e => e.target.select()}
-        onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
+        onChange={e => setNombre(e.target.value)}
+        onBlur={() => onActualizar(catId, s.id, 'nombre', nombre)}
         className="flex-1 min-w-0 text-[11px] font-medium bg-transparent outline-none focus:bg-slate-50 dark:focus:bg-slate-700 rounded px-0.5 truncate"
       />
       <span className="text-[9px] text-slate-400 shrink-0">$</span>
       <input
         type="text" inputMode="numeric"
-        value={formatPrecio(s.precio)}
-        onFocus={e => e.target.select()}
-        onChange={e => onActualizar(catId, s.id, 'precio', parseInt(e.target.value.replace(/\D/g, ''), 10) || 0)}
+        value={precio}
+        onFocus={e => { setPrecio(s.precio === 0 ? '' : String(s.precio)); e.target.select(); }}
+        onChange={e => setPrecio(e.target.value.replace(/\D/g, ''))}
+        onBlur={() => {
+          const n = parseInt(precio.replace(/\D/g, ''), 10) || 0;
+          onActualizar(catId, s.id, 'precio', n);
+          setPrecio(formatPrecio(n));
+        }}
         placeholder="—"
         className="w-14 text-[11px] text-right font-mono bg-transparent outline-none focus:bg-slate-50 dark:focus:bg-slate-700 rounded px-0.5 shrink-0"
       />
@@ -314,7 +327,7 @@ function FilaSubServicio({
       >✕</button>
     </div>
   );
-}
+});
 
 // ── Cabecera de sección dentro de la tabla ────────────────────────────────
 function SeccionHeader({ label }: { label: string }) {
