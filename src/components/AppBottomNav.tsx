@@ -4,10 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { href: '/',                               icon: '📅', label: 'Agenda'  },
-  { href: '/admin/panel-control/turnos',     icon: '🕒', label: 'Turnos'  },
-  { href: '/admin/panel-control/caja',       icon: '💰', label: 'Caja'    },
-  { href: '/admin/panel-control',            icon: '⚙️', label: 'Panel'   },
+  { href: '/',                           icon: '📅', label: 'Agenda' },
+  { href: '/admin/panel-control/turnos', icon: '🕒', label: 'Turnos' },
 ];
 
 export function AppBottomNav() {

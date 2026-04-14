@@ -285,12 +285,12 @@ export function AgendaMensual() {
     <div className="max-w-2xl mx-auto select-none">
 
       {/* ── Encabezado del mes ── */}
-      <div className="flex items-center justify-between mb-3 px-1">
+      <div className="flex items-center justify-between mb-2 px-1">
         <button onClick={irMesAnterior} aria-label="Mes anterior"
           className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-lg font-bold">
           ‹
         </button>
-        <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-wide">
+        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 tracking-wide">
           {MESES_ES[mes]} {anio}
         </h2>
         <button onClick={irMesSiguiente} aria-label="Mes siguiente"
