@@ -8,16 +8,20 @@ const SECCIONES = [
     href: '/admin/panel-control/caja',
     icon: '💰',
     titulo: 'Control de Caja',
-    descripcion: 'Ingresos · Gastos · Ganancia neta · Reporte .txt',
-    color: 'border-emerald-400 dark:border-emerald-600',
+    descripcion: 'Ingresos · Gastos · Ganancia neta · Reporte',
+    color: 'from-emerald-500 to-green-600',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    border: 'border-emerald-200 dark:border-emerald-800',
     badge: null,
   },
   {
     href: '/admin/panel-control/precios',
     icon: '⚙️',
-    titulo: 'Configuración de Servicios',
-    descripcion: 'Precios · Días del mes · Uñas · Estética · Pestañas',
-    color: 'border-amber-400 dark:border-amber-600',
+    titulo: 'Servicios y Precios',
+    descripcion: 'Precios · Días del mes · Categorías',
+    color: 'from-amber-500 to-orange-500',
+    bg: 'bg-amber-50 dark:bg-amber-950/30',
+    border: 'border-amber-200 dark:border-amber-800',
     badge: null,
   },
   {
@@ -25,7 +29,9 @@ const SECCIONES = [
     icon: '📢',
     titulo: 'Combos y Promociones',
     descripcion: 'Crear y gestionar combos de servicios',
-    color: 'border-rose-400 dark:border-rose-600',
+    color: 'from-rose-500 to-pink-600',
+    bg: 'bg-rose-50 dark:bg-rose-950/30',
+    border: 'border-rose-200 dark:border-rose-800',
     badge: null,
   },
   {
@@ -33,7 +39,9 @@ const SECCIONES = [
     icon: '👥',
     titulo: 'Contactos / CRM',
     descripcion: 'Clientes, visitas, pagos y señas',
-    color: 'border-purple-400 dark:border-purple-600',
+    color: 'from-purple-500 to-violet-600',
+    bg: 'bg-purple-50 dark:bg-purple-950/30',
+    border: 'border-purple-200 dark:border-purple-800',
     badge: null,
   },
   {
@@ -41,7 +49,9 @@ const SECCIONES = [
     icon: '🤖',
     titulo: 'Comunicación IA',
     descripcion: 'Activar IA, configurar prompts y respuestas',
-    color: 'border-blue-400 dark:border-blue-600',
+    color: 'from-blue-500 to-cyan-500',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    border: 'border-blue-200 dark:border-blue-800',
     badge: 'Activa',
   },
   {
@@ -49,7 +59,9 @@ const SECCIONES = [
     icon: '🔗',
     titulo: 'Integraciones',
     descripcion: 'WhatsApp, Instagram, Telegram y webhooks',
-    color: 'border-emerald-400 dark:border-emerald-600',
+    color: 'from-teal-500 to-emerald-500',
+    bg: 'bg-teal-50 dark:bg-teal-950/30',
+    border: 'border-teal-200 dark:border-teal-800',
     badge: null,
   },
   {
@@ -57,51 +69,60 @@ const SECCIONES = [
     icon: '📈',
     titulo: 'Reportes',
     descripcion: 'Gráficos de turnos, ingresos y servicios',
-    color: 'border-purple-400 dark:border-purple-600',
+    color: 'from-violet-500 to-purple-600',
+    bg: 'bg-violet-50 dark:bg-violet-950/30',
+    border: 'border-violet-200 dark:border-violet-800',
     badge: null,
   },
 ];
 
 export default function PanelControlPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-5">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Panel de Control</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {/* Solo desktop — en mobile lo muestra la app bar */}
+          <h2 className="hidden md:block text-2xl font-bold">Panel de Control</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Gestión central del negocio
           </p>
         </div>
-        {/* Botón cerrar sesión — solo visible si el PIN está activado */}
         <button
           onClick={() => {
             cerrarSesionPanel();
             window.location.href = '/admin/panel-control';
           }}
-          title="Cerrar sesión del Panel"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 transition-colors active:scale-95"
         >
           🔒 Cerrar sesión
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Grid de secciones */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {SECCIONES.map((s) => (
           <Link
             key={s.href}
             href={s.href}
-            className={`flex flex-col gap-2 p-5 rounded-xl border-l-4 ${s.color} bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all`}
+            className={`flex flex-col gap-2.5 p-4 rounded-2xl border ${s.border} ${s.bg} shadow-sm hover:shadow-md active:scale-[0.97] transition-all`}
           >
+            {/* Icono con fondo gradiente */}
             <div className="flex items-center justify-between">
-              <span className="text-2xl">{s.icon}</span>
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-xl shadow-sm`}>
+                {s.icon}
+              </div>
               {s.badge && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                   {s.badge}
                 </span>
               )}
             </div>
-            <h3 className="font-bold text-slate-800 dark:text-slate-100">{s.titulo}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{s.descripcion}</p>
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{s.titulo}</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{s.descripcion}</p>
+            </div>
           </Link>
         ))}
       </div>

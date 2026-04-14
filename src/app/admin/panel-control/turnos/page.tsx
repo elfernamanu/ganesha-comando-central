@@ -9,7 +9,6 @@ import TurnosTable from './components/TurnosTable';
 function TurnosContent() {
   const params = useSearchParams();
   const hoy    = new Date().toISOString().split('T')[0];
-  // Si viene ?fecha=2026-04-15 desde la agenda, usa esa fecha; si no, hoy
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
@@ -21,42 +20,45 @@ function TurnosContent() {
 
   return (
     <div className="space-y-4">
+
+      {/* Encabezado */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold">📅 Turnos del Día</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+          {/* Título: solo en desktop */}
+          <h1 className="hidden md:block text-2xl font-bold">📅 Turnos del Día</h1>
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2 flex-wrap">
             {fechaLabel}
             {!esHoy && (
-              <Link href={`/admin/panel-control/turnos`}
-                className="text-xs text-blue-500 hover:underline">
-                (ir a hoy)
+              <Link href="/admin/panel-control/turnos"
+                className="text-xs text-violet-600 dark:text-violet-400 font-bold hover:underline">
+                → Ir a hoy
               </Link>
             )}
           </p>
         </div>
         <Link href="/admin/panel-control"
-          className="text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded">
+          className="hidden md:inline-flex text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded">
           ← Panel
         </Link>
       </div>
 
-      {/* Resumen */}
-      <div className="grid grid-cols-4 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg">
-        <div className="text-center">
-          <p className="text-[10px] text-slate-500 leading-tight">Total</p>
-          <p className="font-bold text-sm">{totales.total_turnos}</p>
+      {/* Stats del día — cards nativas */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+          <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Turnos</p>
+          <p className="font-extrabold text-xl leading-none text-slate-800 dark:text-white">{totales.total_turnos}</p>
         </div>
-        <div className="text-center">
-          <p className="text-[10px] text-slate-500 leading-tight">Presentes</p>
-          <p className="font-bold text-sm text-green-600">{totales.asistencias}</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+          <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Presentes</p>
+          <p className="font-extrabold text-xl leading-none text-green-600">{totales.asistencias}</p>
         </div>
-        <div className="text-center">
-          <p className="text-[10px] text-slate-500 leading-tight">No vino</p>
-          <p className="font-bold text-sm text-red-600">{totales.ausentes}</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+          <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">No vino</p>
+          <p className="font-extrabold text-xl leading-none text-red-500">{totales.ausentes}</p>
         </div>
-        <div className="text-center">
-          <p className="text-[10px] text-slate-500 leading-tight">Cobrado</p>
-          <p className="font-bold text-sm text-blue-600">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+          <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Cobrado</p>
+          <p className="font-extrabold text-xl leading-none text-violet-600">
             ${totales.ingresos_seña >= 1000
               ? (totales.ingresos_seña / 1000).toFixed(0) + 'k'
               : totales.ingresos_seña}
@@ -66,7 +68,7 @@ function TurnosContent() {
 
       {/* Mensaje */}
       {mensaje && (
-        <div className={`p-3 rounded-lg text-sm whitespace-pre-line font-medium ${
+        <div className={`p-3 rounded-xl text-sm whitespace-pre-line font-medium ${
           mensaje.startsWith('⛔')
             ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700'
             : mensaje.startsWith('⚠️')
@@ -87,7 +89,7 @@ function TurnosContent() {
       <button
         onClick={guardar}
         disabled={guardando}
-        className="w-full px-4 py-3 rounded-lg bg-blue-600 dark:bg-blue-700 text-white font-bold hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+        className="w-full px-4 py-4 rounded-2xl bg-violet-600 dark:bg-violet-700 text-white font-bold text-base hover:bg-violet-700 dark:hover:bg-violet-600 disabled:opacity-50 transition-all active:scale-[0.98] shadow-lg shadow-violet-200 dark:shadow-violet-900/30"
       >
         {guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
       </button>
@@ -97,7 +99,12 @@ function TurnosContent() {
 
 export default function TurnosPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-slate-400">Cargando turnos...</div>}>
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+        <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+        <p className="text-sm font-medium">Cargando turnos...</p>
+      </div>
+    }>
       <TurnosContent />
     </Suspense>
   );

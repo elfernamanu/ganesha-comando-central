@@ -18,4 +18,26 @@
 body {
   margin: 0;
   padding: 0;
+  /* Sistema de fuente nativa — igual que iOS/Android */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Elimina el bounce scroll horizontal en mobile */
+html {
+  overflow-x: hidden;
+}
+
+/* Tap highlight transparente (sin el flash azul al tocar en Android) */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area para iPhone con notch/home indicator */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
 }
