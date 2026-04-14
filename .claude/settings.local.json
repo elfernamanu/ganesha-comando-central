@@ -59,7 +59,18 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:57462/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://ganesha-comando-central.vercel.app/)",
       "Bash(gh run:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(taskkill /f /im node.exe)",
+      "Bash([ ! -f .env.local ])",
+      "Bash(npx vercel:*)",
+      "Bash(findstr /i \"error warn success compiled\")",
+      "Bash(findstr /i \"error compiled success\")",
+      "Bash(curl -s http://localhost:3001 -o /dev/null -w \"%{http_code}\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"DONE_$?\")",
+      "Bash(dir \"C:\\\\Users\\\\lucia\\\\Desktop\\\\PROYECTOPRINCESA\\\\src\\\\app\\\\admin\\\\panel-control\\\\precios\" /b /s)",
+      "Bash(PGPASSWORD=\"GaneshaDB_Secure_2026!\" psql -h 209.38.111.153 -U ganesha_web -d ganesha -c \"SELECT fecha, jsonb_array_length\\(datos\\) as cantidad FROM turnos ORDER BY fecha;\")",
+      "Bash(node -e ':*)"
     ]
   }
 }

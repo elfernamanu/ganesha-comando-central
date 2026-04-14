@@ -5,12 +5,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
+// Crea la tabla si no existe (idempotente, seguro llamar siempre)
+async function ensureTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS turnos (
+      fecha         TEXT PRIMARY KEY,
+      datos         JSONB NOT NULL DEFAULT '[]',
+      actualizado_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
 // GET /api/sync?fecha=2026-04-14
 export async function GET(req: NextRequest) {
   const fecha = req.nextUrl.searchParams.get('fecha');
   if (!fecha) return NextResponse.json({ ok: false, datos: [] });
 
   try {
+    await ensureTable();
     const rows = await query<{ datos: unknown }>(
       'SELECT datos FROM turnos WHERE fecha = $1',
       [fecha]
@@ -30,6 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
+    await ensureTable();
     await query(
       `INSERT INTO turnos (fecha, datos, actualizado_at)
        VALUES ($1, $2::jsonb, NOW())
