@@ -76,12 +76,28 @@ export function useTurnos(fecha: string) {
   // ========================================
   // ACCIONES
   // ========================================
+  // Calcula el próximo horario: último turno + 15 minutos
+  const proximoHorario = (): string => {
+    const horarios = turnos
+      .map(t => t.horario)
+      .filter(h => /^\d{1,2}:\d{2}$/.test(h))
+      .sort();
+    if (horarios.length === 0) return '';
+    const ultimo = horarios[horarios.length - 1];
+    const [hStr, mStr] = ultimo.split(':');
+    let h = parseInt(hStr, 10);
+    let m = parseInt(mStr, 10) + 15;
+    if (m >= 60) { m -= 60; h += 1; }
+    if (h >= 24) h = 0;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+
   const agregarTurno = () => {
     const nuevoTurno: Turno = {
       id: `turno_${Date.now()}`,
-      horario: '',
+      horario: proximoHorario(),   // último + 15 min, vacío si es el primero
       clienteNombre: '',
-      tratamiento: '',   // la secretaria elige del dropdown
+      tratamiento: '',
       detalle: '',
       asistencia: 'presente',
       monto_total: 0,
