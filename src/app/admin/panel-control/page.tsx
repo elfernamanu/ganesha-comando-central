@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { cerrarSesionPanel } from '@/lib/panelAuth';
 
 const SECCIONES = [
   {
@@ -64,11 +65,24 @@ const SECCIONES = [
 export default function PanelControlPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Panel de Control</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Gestión central del negocio — conectado a PostgreSQL vía n8n
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Panel de Control</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gestión central del negocio
+          </p>
+        </div>
+        {/* Botón cerrar sesión — solo visible si el PIN está activado */}
+        <button
+          onClick={() => {
+            cerrarSesionPanel();
+            window.location.href = '/admin/panel-control';
+          }}
+          title="Cerrar sesión del Panel"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 transition-colors"
+        >
+          🔒 Cerrar sesión
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
