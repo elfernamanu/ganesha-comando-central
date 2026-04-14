@@ -14,6 +14,10 @@ export interface TotalesCaja {
   turnos_total: number;
   turnos_presentes: number;
   turnos_ausentes: number;
+  // Desglose por método de pago (solo presentes)
+  efectivo: number;
+  transferencia: number;
+  otro: number;
 }
 
 /**
@@ -84,21 +88,29 @@ export function useCajaDiaria(fecha: string) {
   // CÁLCULOS
   // ========================================
   const totales = useMemo<TotalesCaja>(() => {
-    // Ingresos = seña cobrada a quienes vinieron
-    const ingresos_totales = turnos
-      .filter(t => t.asistencia === 'presente')
-      .reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const presentes = turnos.filter(t => t.asistencia === 'presente');
+
+    // Ingresos = lo cobrado a quienes vinieron
+    const ingresos_totales = presentes.reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+
+    // Desglose por método de pago
+    const efectivo      = presentes.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const transferencia = presentes.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const otro          = presentes.filter(t => t.metodo_pago === 'otro').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
 
     const gastos_totales = gastos.reduce((sum, g) => sum + (g.monto || 0), 0);
-    const ganancia_neta = ingresos_totales - gastos_totales;
+    const ganancia_neta  = ingresos_totales - gastos_totales;
 
     return {
       ingresos_totales,
       gastos_totales,
       ganancia_neta,
-      turnos_total: turnos.length,
-      turnos_presentes: turnos.filter(t => t.asistencia === 'presente').length,
-      turnos_ausentes: turnos.filter(t => t.asistencia === 'no_vino').length,
+      turnos_total:     turnos.length,
+      turnos_presentes: presentes.length,
+      turnos_ausentes:  turnos.filter(t => t.asistencia === 'no_vino').length,
+      efectivo,
+      transferencia,
+      otro,
     };
   }, [turnos, gastos]);
 

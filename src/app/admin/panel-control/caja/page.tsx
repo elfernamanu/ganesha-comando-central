@@ -182,14 +182,16 @@ export default function CajaPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg">
-            <div className="min-w-[500px] space-y-1">
-              <div className="grid grid-cols-[56px_1fr_120px_80px_80px_60px] gap-x-2 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+            <div className="min-w-[540px] space-y-1">
+              <div className="grid grid-cols-[52px_1fr_110px_76px_76px_56px_52px] gap-x-2 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                 <span>Hora</span><span>Clienta</span><span>Tratamiento</span>
-                <span className="text-right">Total</span><span className="text-right">Cobrado</span>
-                <span className="text-center">Estado</span>
+                <span className="text-right">Total</span>
+                <span className="text-right">Cobrado</span>
+                <span className="text-center text-orange-500">Forma</span>
+                <span className="text-center">Est.</span>
               </div>
               {turnos.slice().sort((a, b) => a.horario.localeCompare(b.horario)).map((t, idx) => (
-                <div key={t.id} className={`grid grid-cols-[56px_1fr_120px_80px_80px_60px] gap-x-2 items-center px-3 py-2 rounded-lg text-sm ${
+                <div key={t.id} className={`grid grid-cols-[52px_1fr_110px_76px_76px_56px_52px] gap-x-2 items-center px-3 py-2 rounded-lg text-sm ${
                   t.asistencia === 'no_vino'
                     ? 'bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 opacity-70'
                     : idx % 2 === 0
@@ -206,6 +208,23 @@ export default function CajaPage() {
                   <span className={`text-right font-mono text-xs font-bold ${t.asistencia === 'presente' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'}`}>
                     {t.asistencia === 'presente' ? formatearDinero(t.seña_pagada) : '—'}
                   </span>
+                  {/* Método de pago */}
+                  <div className="flex justify-center">
+                    {t.asistencia === 'presente' ? (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                        t.metodo_pago === 'efectivo'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : t.metodo_pago === 'transferencia'
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                      }`}>
+                        {t.metodo_pago === 'efectivo' ? '💵' : t.metodo_pago === 'transferencia' ? '🏦' : '📱'}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300 text-xs">—</span>
+                    )}
+                  </div>
+                  {/* Estado */}
                   <div className="flex justify-center">
                     {t.asistencia === 'no_vino' ? (
                       <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-bold">NV</span>
@@ -238,7 +257,7 @@ export default function CajaPage() {
         <h2 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-3">🔒 Cierre de Caja</h2>
 
         {/* Resumen final */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
           <div>
             <p className="text-purple-600 dark:text-purple-400">Estado</p>
             <p className={`font-bold ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
@@ -258,6 +277,24 @@ export default function CajaPage() {
             <p className="font-bold text-purple-900 dark:text-purple-100 text-base">{formatearDinero(totales.ganancia_neta)}</p>
           </div>
         </div>
+
+        {/* Desglose por método de pago */}
+        {totales.ingresos_totales > 0 && (
+          <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2 border border-green-200 dark:border-green-800">
+              <p className="text-green-700 dark:text-green-400 font-bold">💵 Efectivo</p>
+              <p className="font-extrabold text-green-900 dark:text-green-100 text-sm mt-0.5">{formatearDinero(totales.efectivo)}</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2 border border-blue-200 dark:border-blue-800">
+              <p className="text-blue-700 dark:text-blue-400 font-bold">🏦 Transferencia</p>
+              <p className="font-extrabold text-blue-900 dark:text-blue-100 text-sm mt-0.5">{formatearDinero(totales.transferencia)}</p>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700">
+              <p className="text-slate-600 dark:text-slate-400 font-bold">📱 Otro</p>
+              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{formatearDinero(totales.otro)}</p>
+            </div>
+          </div>
+        )}
 
         {/* Botones cierre */}
         <div className="flex flex-col sm:flex-row gap-2">

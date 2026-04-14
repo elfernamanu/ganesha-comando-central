@@ -278,89 +278,126 @@ export default function TurnosTable({
               </div>
 
               {/* ── Montos + pago ── */}
-              <div className="border-t border-slate-100 dark:border-slate-700 px-4 py-3 grid grid-cols-2 gap-3">
-                {/* Total */}
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                    Total{hayMismatch && ' ⚠️'}
-                  </p>
-                  <div className="relative">
-                    <NumeroInput
-                      value={turno.monto_total}
-                      onChange={v => onActualizar(turno.id, { monto_total: v })}
-                      error={hayMismatch}
-                      className="text-base font-bold"
-                    />
+              <div className="border-t border-slate-100 dark:border-slate-700 px-4 py-3 space-y-3">
+                {/* Fila: Total + Seña */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Total */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                      Total{hayMismatch && ' ⚠️'}
+                    </p>
+                    <div className="relative">
+                      <NumeroInput
+                        value={turno.monto_total}
+                        onChange={v => onActualizar(turno.id, { monto_total: v })}
+                        error={hayMismatch}
+                        className="text-base font-bold"
+                      />
+                      {hayMismatch && (
+                        <button
+                          onClick={() => onActualizar(turno.id, { monto_total: precioEsperado })}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+                        >!</button>
+                      )}
+                    </div>
                     {hayMismatch && (
-                      <button
-                        onClick={() => onActualizar(turno.id, { monto_total: precioEsperado })}
-                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
-                      >
-                        !
-                      </button>
+                      <p className="text-[10px] text-red-500 mt-0.5">
+                        Catálogo: ${precioEsperado.toLocaleString('es-AR')} — tocá ! para fijar
+                      </p>
                     )}
                   </div>
-                  {hayMismatch && (
-                    <p className="text-[10px] text-red-500 mt-0.5">
-                      Catálogo: ${precioEsperado.toLocaleString('es-AR')} — tocá ! para fijar
-                    </p>
-                  )}
+
+                  {/* Seña cobrada */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña ya cobrada</p>
+                    <NumeroInput
+                      value={turno.seña_pagada}
+                      onChange={v => onActualizar(turno.id, { seña_pagada: v })}
+                      className="text-base font-bold"
+                    />
+                  </div>
                 </div>
 
-                {/* Seña */}
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña cobrada</p>
-                  <NumeroInput
-                    value={turno.seña_pagada}
-                    onChange={v => onActualizar(turno.id, { seña_pagada: v })}
-                    className="text-base font-bold"
-                  />
-                </div>
+                {/* COBRAR AHORA — lo que falta cobrar en el momento */}
+                {(() => {
+                  const saldo = Math.max(0, turno.monto_total - turno.seña_pagada);
+                  if (turno.asistencia === 'no_vino') return null;
+                  return (
+                    <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${
+                      saldo === 0 && turno.monto_total > 0
+                        ? 'bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800'
+                        : saldo > 0
+                        ? 'bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-300 dark:border-orange-700'
+                        : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                    }`}>
+                      <div>
+                        <p className={`text-[10px] font-bold uppercase tracking-wide ${
+                          saldo === 0 && turno.monto_total > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                        }`}>
+                          {saldo === 0 && turno.monto_total > 0 ? '✅ Ya pagó todo' : '💳 Cobrar ahora'}
+                        </p>
+                        <p className={`text-2xl font-black leading-tight ${
+                          saldo === 0 && turno.monto_total > 0
+                            ? 'text-green-700 dark:text-green-300'
+                            : 'text-orange-700 dark:text-orange-300'
+                        }`}>
+                          {saldo === 0 && turno.monto_total > 0
+                            ? '✓ Pagado'
+                            : saldo > 0
+                            ? `$${saldo.toLocaleString('es-AR')}`
+                            : '—'}
+                        </p>
+                      </div>
+                      {/* Botón marcar cobrado si hay saldo */}
+                      {saldo > 0 && (
+                        <button
+                          onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
+                          className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold active:scale-95 transition-all shadow-sm"
+                        >
+                          Cobrar ✓
+                        </button>
+                      )}
+                      {saldo === 0 && turno.monto_total > 0 && (
+                        <button
+                          onClick={() => onActualizar(turno.id, { seña_pagada: 0 })}
+                          className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                        >
+                          deshacer
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
-                {/* Estado */}
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Estado</p>
-                  {turno.estado_pago === 'completo' ? (
-                    <button
-                      onClick={() => onActualizar(turno.id, { seña_pagada: 0 })}
-                      className="px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold"
+                {/* Fila: Estado + Método de pago */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Estado */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Estado</p>
+                    {turno.estado_pago === 'completo' ? (
+                      <span className="px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold inline-block">✓ Pagado</span>
+                    ) : turno.estado_pago === 'seña' ? (
+                      <span className="px-3 py-1.5 rounded-full border-2 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-bold inline-block">⏳ Con seña</span>
+                    ) : turno.asistencia === 'no_vino' ? (
+                      <span className="px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold inline-block">✗ No vino</span>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 text-xs inline-block">○ Sin pago</span>
+                    )}
+                  </div>
+
+                  {/* Método de pago */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Forma de pago</p>
+                    <select
+                      value={turno.metodo_pago}
+                      onChange={e => onActualizar(turno.id, { metodo_pago: e.target.value as any })}
+                      className="w-full px-2 py-1.5 rounded-lg text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-medium"
                     >
-                      ✓ Pagado
-                    </button>
-                  ) : turno.asistencia === 'presente' && turno.monto_total > 0 ? (
-                    <button
-                      onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${
-                        turno.estado_pago === 'seña'
-                          ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                          : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-500'
-                      }`}
-                    >
-                      {turno.estado_pago === 'seña' ? '⏳ Con seña' : '○ Sin pago'}
-                    </button>
-                  ) : turno.asistencia === 'no_vino' ? (
-                    <span className="px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold">
-                      ✗ No vino
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 text-xs">
-                      —
-                    </span>
-                  )}
-                </div>
-
-                {/* Método de pago */}
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Forma de pago</p>
-                  <select
-                    value={turno.metodo_pago}
-                    onChange={e => onActualizar(turno.id, { metodo_pago: e.target.value as any })}
-                    className="w-full px-2 py-1.5 rounded-lg text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-medium"
-                  >
-                    <option value="efectivo">💵 Efectivo</option>
-                    <option value="transferencia">🏦 Transferencia</option>
-                    <option value="otro">📱 Otro</option>
-                  </select>
+                      <option value="efectivo">💵 Efectivo</option>
+                      <option value="transferencia">🏦 Transferencia</option>
+                      <option value="otro">📱 Otro</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -375,13 +412,14 @@ export default function TurnosTable({
       <div className="hidden md:block overflow-x-auto rounded-lg">
         <div className="min-w-[820px] space-y-1">
           {/* Header */}
-          <div className="grid grid-cols-[64px_130px_1fr_60px_76px_76px_42px_60px_30px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+          <div className="grid grid-cols-[60px_120px_1fr_58px_72px_72px_80px_40px_58px_28px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             <span>Hora</span>
             <span>Clienta</span>
             <span>Promo / Detalle</span>
             <span className="text-center">Asist.</span>
             <span className="text-right">Total</span>
             <span className="text-right">Seña</span>
+            <span className="text-center text-orange-500">Cobrar</span>
             <span className="text-center">Est.</span>
             <span className="text-center">Pago</span>
             <span></span>
@@ -391,11 +429,12 @@ export default function TurnosTable({
             const itemCat = turno.tratamiento ? catalogo[turno.tratamiento] : null;
             const precioEsperado = itemCat?.precio ?? 0;
             const hayMismatch = precioEsperado > 0 && turno.monto_total !== precioEsperado;
+            const saldoDesk = Math.max(0, turno.monto_total - turno.seña_pagada);
 
             return (
               <div
                 key={turno.id}
-                className={`grid grid-cols-[64px_130px_1fr_60px_76px_76px_42px_60px_30px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
+                className={`grid grid-cols-[60px_120px_1fr_58px_72px_72px_80px_40px_58px_28px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
                   idx % 2 === 0
                     ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                     : 'bg-slate-50 dark:bg-slate-700/40 border-slate-100 dark:border-slate-600'
@@ -474,6 +513,25 @@ export default function TurnosTable({
                     value={turno.seña_pagada}
                     onChange={v => onActualizar(turno.id, { seña_pagada: v })}
                   />
+                </div>
+
+                {/* Cobrar ahora — saldo pendiente */}
+                <div className="flex justify-center">
+                  {turno.asistencia === 'no_vino' ? (
+                    <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                  ) : saldoDesk === 0 && turno.monto_total > 0 ? (
+                    <span className="text-xs font-bold text-green-600 dark:text-green-400">✓ Pagó</span>
+                  ) : saldoDesk > 0 ? (
+                    <button
+                      onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
+                      title="Click para marcar cobrado"
+                      className="px-2 py-0.5 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold hover:bg-orange-200 dark:hover:bg-orange-900/60 transition-colors"
+                    >
+                      ${saldoDesk.toLocaleString('es-AR')}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                  )}
                 </div>
 
                 {/* Estado de pago */}
