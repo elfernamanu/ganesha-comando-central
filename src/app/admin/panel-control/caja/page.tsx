@@ -117,48 +117,21 @@ export default function CajaPage() {
         </div>
       )}
 
-      {/* ── Tarjetas estadísticas ── */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="px-2 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
-          <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">💰 Ingresos</p>
-          <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100 leading-tight">
-            {formatearDinero(totales.ingresos_totales)}
-          </p>
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 hidden sm:block">
-            {totales.turnos_presentes} cobrados
-          </p>
+      {/* ── Estadísticas — franja compacta ── */}
+      <div className="flex divide-x divide-slate-200 dark:divide-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
+        <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase shrink-0">💰 Ingresos</span>
+          <span className="text-xs font-bold font-mono text-emerald-800 dark:text-emerald-200">{formatearDinero(totales.ingresos_totales)}</span>
+          <span className="text-[10px] text-slate-400 ml-auto">{totales.turnos_presentes} cob.</span>
         </div>
-
-        <div className="px-2 py-1.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-          <p className="text-[10px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">💸 Gastos</p>
-          <p className="text-sm font-bold text-red-900 dark:text-red-100 leading-tight">
-            {formatearDinero(totales.gastos_totales)}
-          </p>
-          <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5 hidden sm:block">
-            {gastos.length} {gastos.length === 1 ? 'gasto' : 'gastos'}
-          </p>
+        <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
+          <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase shrink-0">💸 Gastos</span>
+          <span className="text-xs font-bold font-mono text-red-800 dark:text-red-200">{formatearDinero(totales.gastos_totales)}</span>
+          <span className="text-[10px] text-slate-400 ml-auto">{gastos.length} gs.</span>
         </div>
-
-        <div className={`px-2 py-1.5 rounded-xl border ${
-          totales.ganancia_neta >= 0
-            ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20'
-        }`}>
-          <p className={`text-[10px] font-bold uppercase tracking-wide ${
-            totales.ganancia_neta >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'
-          }`}>
-            📈 Ganancia
-          </p>
-          <p className={`text-sm font-bold leading-tight ${
-            totales.ganancia_neta >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'
-          }`}>
-            {formatearDinero(totales.ganancia_neta)}
-          </p>
-          <p className={`text-[10px] mt-0.5 hidden sm:block ${
-            totales.ganancia_neta >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
-          }`}>
-            {totales.ganancia_neta >= 0 ? '✓ Positivo' : '⚠ Negativo'}
-          </p>
+        <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
+          <span className={`text-[10px] font-bold uppercase shrink-0 ${totales.ganancia_neta >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
+          <span className={`text-xs font-bold font-mono ${totales.ganancia_neta >= 0 ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(totales.ganancia_neta)}</span>
         </div>
       </div>
 
@@ -245,9 +218,6 @@ export default function CajaPage() {
 
       {/* ── Gastos del día ── */}
       <section>
-        <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-          💸 Gastos del día
-        </h2>
         <GastosForm onAgregar={agregarGasto} />
         {gastos.length > 0 && <div className="mt-1.5"><GastosList gastos={gastos} onEliminar={eliminarGasto} /></div>}
       </section>
