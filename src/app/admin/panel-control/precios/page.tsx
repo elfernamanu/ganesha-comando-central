@@ -423,43 +423,47 @@ function ListaPrecios({
       </div>
 
       {mostrar && (
-        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden max-w-3xl">
-          {(esDepilacion && grupos ? grupos : esUnas && gruposUnas ? gruposUnas : null)
-            ? (esDepilacion && grupos ? grupos : gruposUnas!).map(grupo => (
-                <div key={grupo.label}>
-                  {/* Header de grupo — ancho completo */}
-                  <div className="flex items-center justify-between px-3 py-0.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          {/* ── Con grupos: 3 columnas paralelas ── */}
+          {(esDepilacion && grupos) || (esUnas && gruposUnas) ? (
+            <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 ${
+              (esDepilacion ? grupos! : gruposUnas!).length === 3
+                ? 'grid-cols-3'
+                : (esDepilacion ? grupos! : gruposUnas!).length === 2
+                  ? 'grid-cols-2'
+                  : 'grid-cols-1'
+            }`}>
+              {(esDepilacion ? grupos! : gruposUnas!).map(grupo => (
+                <div key={grupo.label} className="flex flex-col">
+                  {/* Header de columna */}
+                  <div className="flex items-center justify-between px-2 py-1 bg-slate-100 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 sticky top-0">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide truncate">
                       {grupo.label}
                     </span>
                     <button
-                      onClick={() => grupo.prefijo
-                        ? onAgregarConPrefijo(catId, grupo.prefijo)
-                        : onAgregar(catId)
-                      }
-                      className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-1.5 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
-                    >
-                      + Agregar aquí
-                    </button>
+                      onClick={() => grupo.prefijo ? onAgregarConPrefijo(catId, grupo.prefijo) : onAgregar(catId)}
+                      className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-1 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors shrink-0 ml-1"
+                    >+ Agregar</button>
                   </div>
-                  {/* Grilla 3 columnas */}
-                  <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700">
+                  {/* Items de esta columna — lista vertical */}
+                  <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
                     {grupo.items.map((s, idx) => (
                       <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
                         onActualizar={onActualizar} onEliminar={onEliminar} />
                     ))}
                   </div>
                 </div>
-              ))
-            : (
-              <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700">
-                {subservicios.map((s, idx) => (
-                  <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
-                    onActualizar={onActualizar} onEliminar={onEliminar} />
-                ))}
-              </div>
-            )
-          }
+              ))}
+            </div>
+          ) : (
+            /* ── Sin grupos: grilla 3 columnas de ítems ── */
+            <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700">
+              {subservicios.map((s, idx) => (
+                <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                  onActualizar={onActualizar} onEliminar={onEliminar} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
