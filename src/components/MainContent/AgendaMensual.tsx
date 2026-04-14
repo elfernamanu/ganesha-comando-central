@@ -273,7 +273,7 @@ export function AgendaMensual() {
       const fecha = new Date(anio, mes, d);
       const srvs = serviciosPorDia(fecha);
       const nTurnos = contarTurnosDia(fecha);
-      if (srvs.length > 0 || nTurnos > 0) {
+      if (srvs.length > 0) {
         resultado.push({ fecha, srvs, nTurnos });
       }
     }

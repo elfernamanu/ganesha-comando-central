@@ -39,6 +39,10 @@ export function useTurnos(fecha: string) {
 
   // Carga turnos: primero localStorage (rápido), luego servidor (sync entre dispositivos)
   useEffect(() => {
+    // Limpiar estado del día anterior ANTES de cargar el nuevo
+    // (evita que el auto-sync escriba datos viejos con la nueva fecha)
+    setTurnos([]);
+
     const catalogo = leerCatalogo();
 
     function aplicarMigracion(parsed: Turno[]): Turno[] {

@@ -325,42 +325,16 @@ function FilaSubServicio({
     <div className={`border-t border-slate-100 dark:border-slate-700/50 ${
       idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-700/30'
     }`}>
-      {/* ── MOBILE: tarjeta apilada ── */}
-      <div className="flex sm:hidden items-center gap-2 px-3 py-2.5">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{s.nombre}</p>
-          <p className="text-base font-bold text-emerald-600 mt-0.5">
-            {s.precio > 0 ? `$${s.precio.toLocaleString('es-AR')}` : '—'}
-          </p>
-        </div>
-        <button
-          onClick={() => onActualizar(catId, s.id, 'activo', !s.activo)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 ${
-            s.activo
-              ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-          }`}
-        >
-          {s.activo ? '✓ Activo' : 'Inactivo'}
-        </button>
-        <button
-          onClick={() => onEliminar(catId, s.id)}
-          className="w-8 h-8 flex items-center justify-center text-red-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors text-sm shrink-0"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* ── PC: grilla horizontal ── */}
-      <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_90px_60px_28px] gap-x-2 items-center px-3 py-2">
+      {/* ── Fila única (mobile + PC) ── */}
+      <div className="grid grid-cols-[1fr_auto_28px] items-center gap-x-2 px-3 py-1.5">
         <input
           value={s.nombre}
           onFocus={e => e.target.select()}
           onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
-          className="w-full px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors"
+          className="w-full px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors truncate"
         />
         <div className="flex items-center gap-0.5 justify-end">
-          <span className="text-[10px] text-slate-400">$</span>
+          <span className="text-[10px] text-slate-400 shrink-0">$</span>
           <input
             type="text" inputMode="numeric"
             value={formatPrecio(s.precio)}
@@ -369,16 +343,6 @@ function FilaSubServicio({
             placeholder="—"
             className="w-20 px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs text-right font-mono transition-colors"
           />
-        </div>
-        <div className="flex justify-center">
-          <button
-            onClick={() => onActualizar(catId, s.id, 'activo', !s.activo)}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-              s.activo ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-            }`}
-          >
-            {s.activo ? '✓' : '✗'}
-          </button>
         </div>
         <div className="flex justify-center">
           <button
@@ -504,11 +468,10 @@ function ListaPrecios({
 
       {mostrar && (
         <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden max-w-3xl">
-          {/* Header — solo visible en pantallas medianas+ */}
-          <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_90px_60px_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+          {/* Header */}
+          <div className="grid grid-cols-[1fr_auto_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
             <span>Nombre</span>
-            <span className="text-right">Precio</span>
-            <span className="text-center">Estado</span>
+            <span className="text-right pr-2">Precio</span>
             <span></span>
           </div>
           <div>
