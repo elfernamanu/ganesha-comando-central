@@ -39,7 +39,7 @@ function MobileAppBar() {
         {/* Botón atrás — solo en sub-páginas */}
         {!isRoot ? (
           <Link
-            href="/admin/panel-control"
+            href="/"
             className="flex items-center justify-center w-10 h-10 rounded-xl text-violet-600 dark:text-violet-400 active:bg-slate-100 dark:active:bg-slate-800 transition-colors"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

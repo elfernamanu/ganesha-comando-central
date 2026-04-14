@@ -58,23 +58,23 @@ function BotonesAsistencia({
   return (
     <div className={`flex gap-2 ${size === 'lg' ? 'w-full' : ''}`}>
       <button
-        onClick={() => onChange('presente')}
-        title="Presente"
+        onClick={() => onChange(asistencia === 'presente' ? '' : 'presente')}
+        title="Marcar presente"
         className={`${base} ${
           asistencia === 'presente'
             ? 'bg-green-600 text-white shadow-sm'
-            : 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-green-100'
+            : 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-green-100 dark:hover:bg-green-900/40'
         }`}
       >
         {size === 'lg' ? '✅ Presente' : 'P'}
       </button>
       <button
-        onClick={() => onChange('no_vino')}
-        title="No vino"
+        onClick={() => onChange(asistencia === 'no_vino' ? '' : 'no_vino')}
+        title="Marcar que no vino"
         className={`${base} ${
           asistencia === 'no_vino'
             ? 'bg-red-600 text-white shadow-sm'
-            : 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-red-100'
+            : 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-red-100 dark:hover:bg-red-900/40'
         }`}
       >
         {size === 'lg' ? '❌ No vino' : 'NV'}
@@ -208,23 +208,38 @@ export default function TurnosTable({
       ══════════════════════════════════════════════════ */}
       <div className="md:hidden space-y-3">
         {turnos.map((turno, idx) => {
-          const itemCat = turno.tratamiento ? catalogo[turno.tratamiento] : null;
+          const itemCat       = turno.tratamiento ? catalogo[turno.tratamiento] : null;
           const precioEsperado = itemCat?.precio ?? 0;
-          const hayMismatch = precioEsperado > 0 && turno.monto_total !== precioEsperado;
+          const hayMismatch   = precioEsperado > 0 && turno.monto_total !== precioEsperado;
+          const lista         = turno.asistencia === 'presente' && turno.estado_pago === 'completo';
+          const noVino        = turno.asistencia === 'no_vino';
+          const saldo         = Math.max(0, turno.monto_total - turno.seña_pagada);
 
           return (
             <div
               key={turno.id}
               className={`rounded-2xl border-2 overflow-hidden shadow-sm ${
-                turno.asistencia === 'no_vino'
+                noVino
                   ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30'
-                  : turno.estado_pago === 'completo'
-                  ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30'
+                  : lista
+                  ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-950/30'
                   : turno.estado_pago === 'seña'
                   ? 'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950/30'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
               }`}
             >
+              {/* ── Banda de estado superior ── */}
+              {lista && (
+                <div className="bg-green-500 dark:bg-green-600 px-4 py-1.5 flex items-center gap-2">
+                  <span className="text-white text-sm font-extrabold tracking-wide">✓ Atendida y pagada</span>
+                </div>
+              )}
+              {noVino && (
+                <div className="bg-red-400 dark:bg-red-700 px-4 py-1.5 flex items-center gap-2">
+                  <span className="text-white text-sm font-extrabold tracking-wide">✗ No vino</span>
+                </div>
+              )}
+
               {/* ── Cabecera: hora + nombre + numero + eliminar ── */}
               <div className="flex items-center gap-2 px-4 pt-3 pb-2">
                 <input
@@ -319,55 +334,50 @@ export default function TurnosTable({
                 </div>
 
                 {/* COBRAR AHORA — lo que falta cobrar en el momento */}
-                {(() => {
-                  const saldo = Math.max(0, turno.monto_total - turno.seña_pagada);
-                  if (turno.asistencia === 'no_vino') return null;
-                  return (
-                    <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${
-                      saldo === 0 && turno.monto_total > 0
-                        ? 'bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800'
-                        : saldo > 0
-                        ? 'bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-300 dark:border-orange-700'
-                        : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                    }`}>
-                      <div>
-                        <p className={`text-[10px] font-bold uppercase tracking-wide ${
-                          saldo === 0 && turno.monto_total > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
-                        }`}>
-                          {saldo === 0 && turno.monto_total > 0 ? '✅ Ya pagó todo' : '💳 Cobrar ahora'}
-                        </p>
-                        <p className={`text-2xl font-black leading-tight ${
-                          saldo === 0 && turno.monto_total > 0
-                            ? 'text-green-700 dark:text-green-300'
-                            : 'text-orange-700 dark:text-orange-300'
-                        }`}>
-                          {saldo === 0 && turno.monto_total > 0
-                            ? '✓ Pagado'
-                            : saldo > 0
-                            ? `$${saldo.toLocaleString('es-AR')}`
-                            : '—'}
-                        </p>
-                      </div>
-                      {/* Botón marcar cobrado si hay saldo */}
-                      {saldo > 0 && (
-                        <button
-                          onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
-                          className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold active:scale-95 transition-all shadow-sm"
-                        >
-                          Cobrar ✓
-                        </button>
-                      )}
-                      {saldo === 0 && turno.monto_total > 0 && (
-                        <button
-                          onClick={() => onActualizar(turno.id, { seña_pagada: 0 })}
-                          className="text-xs text-green-600 dark:text-green-400 hover:underline"
-                        >
-                          deshacer
-                        </button>
-                      )}
+                {!noVino && (
+                  <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${
+                    saldo === 0 && turno.monto_total > 0
+                      ? 'bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800'
+                      : saldo > 0
+                      ? 'bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-300 dark:border-orange-700'
+                      : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                  }`}>
+                    <div>
+                      <p className={`text-[10px] font-bold uppercase tracking-wide ${
+                        saldo === 0 && turno.monto_total > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                      }`}>
+                        {saldo === 0 && turno.monto_total > 0 ? '✅ Ya pagó todo' : '💳 Cobrar ahora'}
+                      </p>
+                      <p className={`text-2xl font-black leading-tight ${
+                        saldo === 0 && turno.monto_total > 0
+                          ? 'text-green-700 dark:text-green-300'
+                          : 'text-orange-700 dark:text-orange-300'
+                      }`}>
+                        {saldo === 0 && turno.monto_total > 0
+                          ? '✓ Pagado'
+                          : saldo > 0
+                          ? `$${saldo.toLocaleString('es-AR')}`
+                          : '—'}
+                      </p>
                     </div>
-                  );
-                })()}
+                    {saldo > 0 && (
+                      <button
+                        onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
+                        className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold active:scale-95 transition-all shadow-sm"
+                      >
+                        Cobrar ✓
+                      </button>
+                    )}
+                    {saldo === 0 && turno.monto_total > 0 && (
+                      <button
+                        onClick={() => onActualizar(turno.id, { seña_pagada: 0 })}
+                        className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                      >
+                        deshacer
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Fila: Estado + Método de pago */}
                 <div className="grid grid-cols-2 gap-3">
@@ -378,7 +388,7 @@ export default function TurnosTable({
                       <span className="px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold inline-block">✓ Pagado</span>
                     ) : turno.estado_pago === 'seña' ? (
                       <span className="px-3 py-1.5 rounded-full border-2 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-bold inline-block">⏳ Con seña</span>
-                    ) : turno.asistencia === 'no_vino' ? (
+                    ) : noVino ? (
                       <span className="px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold inline-block">✗ No vino</span>
                     ) : (
                       <span className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 text-xs inline-block">○ Sin pago</span>
@@ -426,19 +436,25 @@ export default function TurnosTable({
           </div>
 
           {turnos.map((turno, idx) => {
-            const itemCat = turno.tratamiento ? catalogo[turno.tratamiento] : null;
+            const itemCat        = turno.tratamiento ? catalogo[turno.tratamiento] : null;
             const precioEsperado = itemCat?.precio ?? 0;
-            const hayMismatch = precioEsperado > 0 && turno.monto_total !== precioEsperado;
-            const saldoDesk = Math.max(0, turno.monto_total - turno.seña_pagada);
+            const hayMismatch    = precioEsperado > 0 && turno.monto_total !== precioEsperado;
+            const saldoDesk      = Math.max(0, turno.monto_total - turno.seña_pagada);
+            const listaDesk      = turno.asistencia === 'presente' && turno.estado_pago === 'completo';
+            const noVinoDesk     = turno.asistencia === 'no_vino';
 
             return (
               <div
                 key={turno.id}
-                className={`grid grid-cols-[60px_120px_1fr_58px_72px_72px_80px_40px_58px_28px] gap-x-2 items-center px-3 py-2 rounded-lg border ${
-                  idx % 2 === 0
-                    ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
-                    : 'bg-slate-50 dark:bg-slate-700/40 border-slate-100 dark:border-slate-600'
-                } hover:border-blue-300 dark:hover:border-blue-600 transition-colors`}
+                className={`grid grid-cols-[60px_120px_1fr_58px_72px_72px_80px_40px_58px_28px] gap-x-2 items-center px-3 py-2 rounded-lg border transition-colors ${
+                  noVinoDesk
+                    ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 opacity-70'
+                    : listaDesk
+                    ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700'
+                    : idx % 2 === 0
+                    ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
+                    : 'bg-slate-50 dark:bg-slate-700/40 border-slate-100 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-600'
+                }`}
               >
                 {/* Hora */}
                 <div>

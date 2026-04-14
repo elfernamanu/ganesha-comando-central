@@ -90,13 +90,18 @@ export function useCajaDiaria(fecha: string) {
   const totales = useMemo<TotalesCaja>(() => {
     const presentes = turnos.filter(t => t.asistencia === 'presente');
 
-    // Ingresos = lo cobrado a quienes vinieron
-    const ingresos_totales = presentes.reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    // Ingresos = presentes + ausentes con seña (la pierden → es ganancia del negocio)
+    const conIngreso = turnos.filter(t =>
+      t.asistencia === 'presente' ||
+      (t.asistencia === 'no_vino' && (t.seña_pagada || 0) > 0)
+    );
 
-    // Desglose por método de pago
-    const efectivo      = presentes.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const transferencia = presentes.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const otro          = presentes.filter(t => t.metodo_pago === 'otro').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const ingresos_totales = conIngreso.reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+
+    // Desglose por método de pago (incluye seña perdida de ausentes)
+    const efectivo      = conIngreso.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const transferencia = conIngreso.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const otro          = conIngreso.filter(t => t.metodo_pago === 'otro').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
 
     const gastos_totales = gastos.reduce((sum, g) => sum + (g.monto || 0), 0);
     const ganancia_neta  = ingresos_totales - gastos_totales;

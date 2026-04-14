@@ -99,7 +99,7 @@ export function useTurnos(fecha: string) {
       clienteNombre: '',
       tratamiento: '',
       detalle: '',
-      asistencia: 'presente',
+      asistencia: '',
       monto_total: 0,
       seña_pagada: 0,
       estado_pago: 'sin_pago',
@@ -147,8 +147,9 @@ export function useTurnos(fecha: string) {
   // CÁLCULOS
   // ========================================
   const totales = useMemo(() => {
+    // Ingresos = presentes cobrados + ausentes que dejaron seña (la pierden)
     const ingresos = turnos
-      .filter(t => t.asistencia === 'presente')
+      .filter(t => t.asistencia === 'presente' || (t.asistencia === 'no_vino' && t.seña_pagada > 0))
       .reduce((sum, t) => sum + t.seña_pagada, 0);
 
     const ausentes = turnos.filter(t => t.asistencia === 'no_vino').length;

@@ -9,7 +9,7 @@
  * Regla: si necesitás cambiar la estructura del turno, cambiá SOLO este archivo.
  */
 
-export type Asistencia  = 'presente' | 'no_vino';
+export type Asistencia  = 'presente' | 'no_vino' | '';
 export type EstadoPago  = 'sin_pago' | 'seña' | 'completo';
 export type MetodoPago  = 'efectivo' | 'transferencia' | 'otro';
 
