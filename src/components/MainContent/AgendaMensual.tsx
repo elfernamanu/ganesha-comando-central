@@ -179,29 +179,36 @@ export function AgendaMensual() {
     return () => window.removeEventListener('focus', onFocus);
   }, [cargarServicios]);
 
-  // ── Leer turnos del día seleccionado ─────────────────────────────────────
+  // ── Leer turnos del día seleccionado (localStorage + servidor) ───────────
   useEffect(() => {
     if (!diaSeleccionado) {
       setTurnos([]);
       return;
     }
+    const fechaStr = fechaKey(diaSeleccionado);
+    const lsKey    = `ganesha_turnos_${fechaStr}`;
+
+    // 1. localStorage inmediato
     try {
-      const key = `ganesha_turnos_${fechaKey(diaSeleccionado)}`;
-      const raw = localStorage.getItem(key);
+      const raw = localStorage.getItem(lsKey);
       if (raw) {
         const parsed = JSON.parse(raw) as TurnoSecretaria[];
-        if (Array.isArray(parsed)) {
-          const ordenados = [...parsed].sort((a, b) =>
-            a.horario.localeCompare(b.horario)
-          );
-          setTurnos(ordenados);
-          return;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTurnos([...parsed].sort((a, b) => a.horario.localeCompare(b.horario)));
         }
       }
-    } catch {
-      // silencioso
-    }
-    setTurnos([]);
+    } catch { /* silencioso */ }
+
+    // 2. Servidor en background (sincroniza entre celular y PC)
+    fetch(`/api/sync?fecha=${fechaStr}`)
+      .then(r => r.json())
+      .then(({ ok, datos }: { ok: boolean; datos: TurnoSecretaria[] }) => {
+        if (!ok || !Array.isArray(datos) || datos.length === 0) return;
+        const ordenados = [...datos].sort((a, b) => a.horario.localeCompare(b.horario));
+        setTurnos(ordenados);
+        try { localStorage.setItem(lsKey, JSON.stringify(datos)); } catch { /* silencioso */ }
+      })
+      .catch(() => { /* sin conexión */ });
   }, [diaSeleccionado]);
 
   // ── Navegación de meses ───────────────────────────────────────────────────
@@ -307,9 +314,11 @@ export function AgendaMensual() {
       ) : (
         <div className="flex gap-2 overflow-x-auto pb-2 px-1 pt-1 scrollbar-hide">
           {diasActivos.map(({ fecha, srvs, nTurnos }) => {
-            const key   = fechaKey(fecha);
-            const esSel = keySeleccionado === key;
-            const esHoy = key === fechaKey(new Date());
+            const key      = fechaKey(fecha);
+            const esSel    = keySeleccionado === key;
+            const esHoy    = key === fechaKey(new Date());
+            const hoyMid   = new Date(new Date().setHours(0, 0, 0, 0));
+            const esPasado = !esHoy && fecha < hoyMid;
 
             return (
               <button
@@ -319,27 +328,35 @@ export function AgendaMensual() {
                 )}
                 className={[
                   'relative flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border-2 transition-all shrink-0 min-w-[76px] active:scale-95',
-                  esSel
-                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/50 shadow-sm'
-                    : esHoy
-                      ? 'border-violet-300 bg-white dark:bg-slate-800 shadow-sm'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-violet-300 shadow-sm',
+                  esPasado
+                    ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 opacity-50'
+                    : esSel
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/50 shadow-sm'
+                      : esHoy
+                        ? 'border-violet-300 bg-white dark:bg-slate-800 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-violet-300 shadow-sm',
                 ].join(' ')}
               >
-                {/* Nombre día */}
+                {/* Nombre día o "Cumplida" */}
                 <span className={`text-[10px] font-bold uppercase tracking-wide ${
-                  esSel ? 'text-violet-500 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500'
+                  esPasado
+                    ? 'text-slate-300 dark:text-slate-600'
+                    : esSel
+                      ? 'text-violet-500 dark:text-violet-400'
+                      : 'text-slate-400 dark:text-slate-500'
                 }`}>
-                  {DIAS_CORTOS[fecha.getDay()]}
+                  {esPasado ? 'Cumplida' : DIAS_CORTOS[fecha.getDay()]}
                 </span>
 
                 {/* Número */}
                 <span className={`text-xl font-black leading-none ${
-                  esSel
-                    ? 'text-violet-700 dark:text-violet-300'
-                    : esHoy
-                      ? 'text-violet-600 dark:text-violet-400'
-                      : 'text-slate-800 dark:text-slate-100'
+                  esPasado
+                    ? 'text-slate-400 dark:text-slate-600'
+                    : esSel
+                      ? 'text-violet-700 dark:text-violet-300'
+                      : esHoy
+                        ? 'text-violet-600 dark:text-violet-400'
+                        : 'text-slate-800 dark:text-slate-100'
                 }`}>
                   {fecha.getDate()}
                 </span>
