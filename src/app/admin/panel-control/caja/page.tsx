@@ -313,34 +313,17 @@ export default function CajaPage() {
         )}
       </div>
 
-      {/* ── Recuperar reporte pasado ── */}
-      <section className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300">
-          🗄️ Recuperar reporte pasado
-        </h2>
-        <p className="text-[10px] text-slate-400 mb-1.5">
-          Elegí una fecha y descargás el .txt guardado en el servidor
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="date"
-            value={fechaRecuperar}
-            onChange={e => setFechaRecuperar(e.target.value)}
-            max={hoy}
-            className="flex-1 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs"
-          />
-          <button
-            onClick={handleRecuperar}
-            disabled={!fechaRecuperar || recuperando}
-            className="px-3 py-1 rounded-lg bg-slate-700 dark:bg-slate-600 text-white font-bold text-xs hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-40 transition-colors whitespace-nowrap"
-          >
-            {recuperando ? '⏳...' : '📋 Descargar'}
-          </button>
-        </div>
-        {mensajeRecuperar && (
-          <p className="text-[10px] mt-1 text-slate-600 dark:text-slate-400">{mensajeRecuperar}</p>
-        )}
-      </section>
+      {/* ── Recuperar reporte pasado — una línea ── */}
+      <div className="flex items-center gap-2">
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide shrink-0">🗄️ Reporte anterior</span>
+        <input type="date" value={fechaRecuperar} onChange={e => setFechaRecuperar(e.target.value)} max={hoy}
+          className="flex-1 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs" />
+        <button onClick={handleRecuperar} disabled={!fechaRecuperar || recuperando}
+          className="px-2.5 py-0.5 rounded-lg bg-slate-600 dark:bg-slate-500 text-white font-bold text-xs hover:bg-slate-700 disabled:opacity-40 transition-colors whitespace-nowrap shrink-0">
+          {recuperando ? '⏳' : '📋 Descargar'}
+        </button>
+        {mensajeRecuperar && <span className="text-[10px] text-slate-500">{mensajeRecuperar}</span>}
+      </div>
 
     </div>
   );

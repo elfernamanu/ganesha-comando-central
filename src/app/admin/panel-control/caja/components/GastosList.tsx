@@ -6,62 +6,34 @@ import { desglosarGastos } from '../utils/calculosCaja';
 
 export default function GastosList({ gastos, onEliminar }: GastosListProps) {
   const desglose = desglosarGastos(gastos);
-  const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
+  const total = gastos.reduce((s, g) => s + g.monto, 0);
 
-  if (gastos.length === 0) {
-    return (
-      <div className="p-6 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center text-slate-400 dark:text-slate-500">
-        Sin gastos registrados
-      </div>
-    );
-  }
+  if (gastos.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      {/* Lista de gastos */}
-      <div className="space-y-1">
-        {gastos.map(gasto => (
-          <div
-            key={gasto.id}
-            className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-xs truncate">{formatearConcepto(gasto.concepto)}</p>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
-                {gasto.categoria}{gasto.notas && ` · ${gasto.notas}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="font-bold text-xs">{formatearDinero(gasto.monto)}</span>
-              <button
-                onClick={() => onEliminar(gasto.id)}
-                className="w-5 h-5 flex items-center justify-center rounded text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 text-[10px]"
-              >✕</button>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="space-y-0.5">
+      {/* Items */}
+      {gastos.map(g => (
+        <div key={g.id}
+          className="flex items-center justify-between px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+          <span className="text-xs font-medium truncate flex-1">{formatearConcepto(g.concepto)}</span>
+          <span className="text-[10px] text-slate-400 mx-2 shrink-0">{g.categoria}</span>
+          <span className="text-xs font-bold font-mono shrink-0">{formatearDinero(g.monto)}</span>
+          <button onClick={() => onEliminar(g.id)}
+            className="ml-1.5 w-4 h-4 flex items-center justify-center text-red-300 hover:text-red-600 text-[9px] rounded shrink-0">✕</button>
+        </div>
+      ))}
 
-      {/* Desglose */}
-      <div className="grid grid-cols-3 gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/30">
-        <div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Alquiler</p>
-          <p className="font-bold text-sm">{formatearDinero(desglose.alquiler)}</p>
+      {/* Total + desglose en una línea */}
+      <div className="flex items-center justify-between px-2 py-1 rounded bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
+        <div className="flex gap-2 text-[10px] text-slate-400">
+          {desglose.alquiler > 0 && <span>🏪 {formatearDinero(desglose.alquiler)}</span>}
+          {desglose.servicios > 0 && <span>⚡ {formatearDinero(desglose.servicios)}</span>}
+          {desglose.otros > 0 && <span>📦 {formatearDinero(desglose.otros)}</span>}
         </div>
-        <div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Servicios</p>
-          <p className="font-bold text-sm">{formatearDinero(desglose.servicios)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Otros</p>
-          <p className="font-bold text-sm">{formatearDinero(desglose.otros)}</p>
-        </div>
-      </div>
-
-      {/* Total */}
-      <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex justify-between items-center">
-        <span className="font-bold">TOTAL GASTOS:</span>
-        <span className="font-bold text-lg text-red-600 dark:text-red-400">{formatearDinero(totalGastos)}</span>
+        <span className="text-xs font-extrabold text-red-600 dark:text-red-400">
+          Total {formatearDinero(total)}
+        </span>
       </div>
     </div>
   );
