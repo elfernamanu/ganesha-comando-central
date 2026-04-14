@@ -305,11 +305,11 @@ export function AgendaMensual() {
           Sin servicios cargados este mes
         </p>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-2 px-1">
+        <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 scrollbar-hide">
           {diasActivos.map(({ fecha, srvs, nTurnos }) => {
-            const key    = fechaKey(fecha);
-            const esSel  = keySeleccionado === key;
-            const esHoy  = key === fechaKey(new Date());
+            const key   = fechaKey(fecha);
+            const esSel = keySeleccionado === key;
+            const esHoy = key === fechaKey(new Date());
 
             return (
               <button
@@ -318,39 +318,55 @@ export function AgendaMensual() {
                   prev && fechaKey(prev) === key ? null : fecha
                 )}
                 className={[
-                  'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl border-2 transition-all shrink-0 min-w-[68px]',
+                  'relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-2xl transition-all shrink-0 min-w-[62px] active:scale-95',
                   esSel
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
+                    ? 'bg-violet-600 shadow-lg shadow-violet-200 dark:shadow-violet-900/40'
                     : esHoy
-                      ? 'border-blue-300 bg-white dark:bg-slate-800 shadow-sm'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-300 shadow-sm',
+                      ? 'bg-white dark:bg-slate-800 shadow-md shadow-slate-200/80 dark:shadow-slate-900/60 ring-2 ring-violet-400 ring-offset-1'
+                      : 'bg-white dark:bg-slate-800 shadow-sm shadow-slate-200/60 dark:shadow-slate-900/40',
                 ].join(' ')}
               >
                 {/* Nombre día */}
-                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                  esSel ? 'text-violet-200' : 'text-slate-400 dark:text-slate-500'
+                }`}>
                   {DIAS_CORTOS[fecha.getDay()]}
                 </span>
+
                 {/* Número */}
-                <span className={`text-lg font-bold leading-none ${
-                  esHoy ? 'text-blue-600' : esSel ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'
+                <span className={`text-xl font-black leading-none ${
+                  esSel
+                    ? 'text-white'
+                    : esHoy
+                      ? 'text-violet-600 dark:text-violet-400'
+                      : 'text-slate-800 dark:text-slate-100'
                 }`}>
                   {fecha.getDate()}
                 </span>
-                {/* Chips de servicios */}
-                <div className="flex flex-col gap-0.5 w-full">
-                  {srvs.map(srv => {
-                    const col = COLORES_SERVICIO[srv.id] ?? { chip: 'bg-slate-100 text-slate-600' };
-                    return (
-                      <span key={srv.id}
-                        className={`text-[9px] font-semibold px-1 py-0.5 rounded text-center truncate w-full ${col.chip}`}>
-                        {srv.icon}
-                      </span>
-                    );
-                  })}
-                </div>
+
+                {/* Puntos de servicios */}
+                {srvs.length > 0 && (
+                  <div className="flex gap-0.5 justify-center">
+                    {srvs.slice(0, 3).map(srv => {
+                      const col = COLORES_SERVICIO[srv.id] ?? { dot: 'bg-slate-400' };
+                      return (
+                        <span key={srv.id}
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            esSel ? 'bg-violet-200' : col.dot
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Badge turnos */}
                 {nTurnos > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-[9px] font-black rounded-full flex items-center justify-center ${
+                    esSel
+                      ? 'bg-white text-violet-600'
+                      : 'bg-violet-600 text-white'
+                  }`}>
                     {nTurnos}
                   </span>
                 )}
