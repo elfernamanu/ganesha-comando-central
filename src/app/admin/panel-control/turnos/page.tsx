@@ -1,31 +1,46 @@
 'use client';
 
-import Link from 'next/link'; // usado en ← Panel
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { useTurnos } from './hooks/useTurnos';
 import TurnosTable from './components/TurnosTable';
 
-export default function TurnosPage() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const { turnos, totales, mensaje, guardando, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(hoy);
+function TurnosContent() {
+  const params = useSearchParams();
+  const hoy    = new Date().toISOString().split('T')[0];
+  // Si viene ?fecha=2026-04-15 desde la agenda, usa esa fecha; si no, hoy
+  const fecha  = params.get('fecha') ?? hoy;
+  const esHoy  = fecha === hoy;
+
+  const { turnos, totales, mensaje, guardando, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(fecha);
+
+  const fechaLabel = new Date(fecha + 'T12:00:00')
+    .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+    .replace(/^\w/, c => c.toUpperCase());
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold">📅 Turnos del Día</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {new Date(hoy + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+          <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            {fechaLabel}
+            {!esHoy && (
+              <Link href={`/admin/panel-control/turnos`}
+                className="text-xs text-blue-500 hover:underline">
+                (ir a hoy)
+              </Link>
+            )}
           </p>
         </div>
-        <Link
-          href="/admin/panel-control"
-          className="text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded"
-        >
+        <Link href="/admin/panel-control"
+          className="text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 rounded">
           ← Panel
         </Link>
       </div>
 
-      {/* Resumen — 4 columnas en cualquier ancho */}
+      {/* Resumen */}
       <div className="grid grid-cols-4 gap-1.5 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg">
         <div className="text-center">
           <p className="text-[10px] text-slate-500 leading-tight">Total</p>
@@ -49,7 +64,7 @@ export default function TurnosPage() {
         </div>
       </div>
 
-      {/* Mensaje — puede ser error de precio (multi-línea) o éxito */}
+      {/* Mensaje */}
       {mensaje && (
         <div className={`p-3 rounded-lg text-sm whitespace-pre-line font-medium ${
           mensaje.startsWith('⛔')
@@ -62,7 +77,6 @@ export default function TurnosPage() {
         </div>
       )}
 
-      {/* Tabla */}
       <TurnosTable
         turnos={turnos}
         onActualizar={actualizarTurno}
@@ -70,7 +84,6 @@ export default function TurnosPage() {
         onAgregar={agregarTurno}
       />
 
-      {/* Botón guardar — secretaria solo tiene acceso aquí */}
       <button
         onClick={guardar}
         disabled={guardando}
@@ -79,5 +92,13 @@ export default function TurnosPage() {
         {guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
       </button>
     </div>
+  );
+}
+
+export default function TurnosPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Cargando turnos...</div>}>
+      <TurnosContent />
+    </Suspense>
   );
 }

@@ -233,17 +233,28 @@ export function AgendaMensual() {
     );
   }, [servicios]);
 
-  // ── Contar turnos guardados por día (desde localStorage) ─────────────────
-  const contarTurnosDia = useCallback((fecha: Date): number => {
+  // ── Conteo de turnos por día — leemos TODO el localStorage UNA sola vez ────
+  // (en vez de 30 lecturas individuales al renderizar)
+  const turnosPorDia = useMemo<Record<string, number>>(() => {
+    const mapa: Record<string, number> = {};
+    const prefix = 'ganesha_turnos_';
     try {
-      const raw = localStorage.getItem(`ganesha_turnos_${fechaKey(fecha)}`);
-      if (!raw) return 0;
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.length : 0;
-    } catch {
-      return 0;
-    }
-  }, []);
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith(prefix)) continue;
+        const fecha = key.slice(prefix.length); // 'YYYY-MM-DD'
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        mapa[fecha] = Array.isArray(parsed) ? parsed.length : 0;
+      }
+    } catch { /* silencioso */ }
+    return mapa;
+  }, []);  // solo recalcula si cambia el mes/año (ver abajo)
+
+  const contarTurnosDia = useCallback((fecha: Date): number => {
+    return turnosPorDia[fechaKey(fecha)] ?? 0;
+  }, [turnosPorDia]);
 
   const keySeleccionado = diaSeleccionado ? fechaKey(diaSeleccionado) : null;
 
