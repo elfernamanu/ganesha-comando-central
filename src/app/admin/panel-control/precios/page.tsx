@@ -185,24 +185,24 @@ function JornadasPanel({
       )}
 
       {/* Form agregar jornada */}
-      <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 space-y-2">
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+      <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 space-y-1.5">
+        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
           + Nueva jornada de {catIcon} {catNombre}
         </p>
         {/* Fila 1: fecha */}
         <div>
-          <label className="text-[10px] text-slate-400 block mb-1">Fecha</label>
+          <label className="text-[9px] text-slate-400 block">Fecha</label>
           <input
             type="date"
             value={nuevaFecha}
             onChange={e => setNuevaFecha(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm"
+            className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs"
           />
         </div>
         {/* Fila 2: horarios + botón */}
         <div className="flex gap-2 items-end">
           <div className="flex-1">
-            <label className="text-[10px] text-slate-400 block mb-1">Desde</label>
+            <label className="text-[9px] text-slate-400 block">Desde</label>
             <input
               type="text"
               inputMode="numeric"
@@ -210,11 +210,11 @@ function JornadasPanel({
               maxLength={5}
               value={nuevaInicio}
               onChange={e => setNuevaInicio(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm font-mono"
+              className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono"
             />
           </div>
           <div className="flex-1">
-            <label className="text-[10px] text-slate-400 block mb-1">Hasta</label>
+            <label className="text-[9px] text-slate-400 block">Hasta</label>
             <input
               type="text"
               inputMode="numeric"
@@ -222,13 +222,13 @@ function JornadasPanel({
               maxLength={5}
               value={nuevaFin}
               onChange={e => setNuevaFin(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm font-mono"
+              className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono"
             />
           </div>
           <button
             onClick={agregar}
             disabled={!nuevaFecha}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-40 transition-colors whitespace-nowrap"
+            className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-40 transition-colors whitespace-nowrap"
           >
             + Agregar
           </button>
@@ -241,11 +241,11 @@ function JornadasPanel({
           Sin jornadas cargadas — la agenda y el bot dirán "consultar disponibilidad"
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {jornadas.map(j => (
             <div
               key={j.id}
-              className={`flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-xl border transition-colors ${
+              className={`flex flex-col sm:flex-row sm:items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
                 j.activa
                   ? 'bg-white dark:bg-slate-800 border-green-200 dark:border-green-800'
                   : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60'
@@ -253,10 +253,10 @@ function JornadasPanel({
             >
               {/* Fecha label */}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold capitalize ${j.activa ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400'}`}>
+                <p className={`text-xs font-semibold capitalize ${j.activa ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400'}`}>
                   🗓️ {formatFechaLabel(j.fecha)}
                 </p>
-                <div className="flex gap-2 items-center mt-1">
+                <div className="flex gap-1.5 items-center mt-0.5">
                   <input
                     type="text"
                     inputMode="numeric"
