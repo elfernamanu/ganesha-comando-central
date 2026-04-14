@@ -11,69 +11,54 @@ function formatMonto(val: string): string {
 }
 
 export default function GastosForm({ onAgregar }: GastosFormProps) {
-  const [concepto, setConcepto] = useState('');
-  const [monto, setMonto] = useState('');
+  const [concepto, setConcepto]   = useState('');
+  const [monto,    setMonto]      = useState('');
   const [categoria, setCategoria] = useState<'alquiler' | 'servicios' | 'otros'>('otros');
-  const [notas, setNotas] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!concepto.trim() || !monto) return;
     const montoNum = parseInt(monto.replace(/\D/g, ''), 10);
     if (montoNum <= 0) return;
-    onAgregar({ concepto: concepto.trim(), monto: montoNum, categoria, notas: notas.trim() || undefined });
-    setConcepto(''); setMonto(''); setNotas(''); setCategoria('otros');
+    onAgregar({ concepto: concepto.trim(), monto: montoNum, categoria });
+    setConcepto(''); setMonto(''); setCategoria('otros');
   };
 
-  const inputCls = "w-full px-2 py-1 rounded border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs";
-  const labelCls = "text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide block";
+  const inp = "px-2 py-1 rounded border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs";
 
   return (
-    <form onSubmit={handleSubmit} className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 space-y-1.5">
-      <div className="grid grid-cols-2 gap-2">
-        {/* Categoría */}
-        <div>
-          <label className={labelCls}>Categoría</label>
-          <select value={categoria} onChange={e => setCategoria(e.target.value as 'alquiler' | 'servicios' | 'otros')}
-            className={inputCls}>
-            {CATEGORIAS_GASTO.map(cat => (
-              <option key={cat.value} value={cat.value}>{cat.label}</option>
-            ))}
-          </select>
-        </div>
+    <form onSubmit={handleSubmit}
+      className="flex flex-wrap gap-1.5 items-center px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
 
-        {/* Concepto */}
-        <div>
-          <label className={labelCls}>Concepto</label>
-          <input type="text" value={concepto} onChange={e => setConcepto(e.target.value)}
-            placeholder="Ej: Alquiler, Luz, Agua..." className={inputCls} />
-        </div>
+      {/* Categoría */}
+      <select value={categoria} onChange={e => setCategoria(e.target.value as 'alquiler' | 'servicios' | 'otros')}
+        className={`${inp} w-36 shrink-0`}>
+        {CATEGORIAS_GASTO.map(cat => (
+          <option key={cat.value} value={cat.value}>{cat.label}</option>
+        ))}
+      </select>
 
-        {/* Monto */}
-        <div>
-          <label className={labelCls}>Monto ($)</label>
-          <input
-            type="text" inputMode="numeric"
-            value={monto}
-            onChange={e => setMonto(formatMonto(e.target.value))}
-            onFocus={e => e.target.select()}
-            placeholder="0"
-            className={`${inputCls} font-mono`}
-          />
-        </div>
+      {/* Concepto */}
+      <input type="text" value={concepto} onChange={e => setConcepto(e.target.value)}
+        placeholder="Concepto (Luz, Alquiler...)"
+        className={`${inp} flex-1 min-w-[120px]`} />
 
-        {/* Botón */}
-        <div className="flex items-end">
-          <button type="submit"
-            className="w-full px-3 py-1 rounded-lg bg-emerald-600 dark:bg-emerald-700 text-white font-bold hover:bg-emerald-700 transition-colors text-xs">
-            + Agregar Gasto
-          </button>
-        </div>
+      {/* Monto */}
+      <div className="flex items-center gap-0.5">
+        <span className="text-[10px] text-slate-400">$</span>
+        <input type="text" inputMode="numeric"
+          value={monto}
+          onChange={e => setMonto(formatMonto(e.target.value))}
+          onFocus={e => e.target.select()}
+          placeholder="0"
+          className={`${inp} w-24 font-mono text-right`} />
       </div>
 
-      {/* Notas */}
-      <input type="text" value={notas} onChange={e => setNotas(e.target.value)}
-        placeholder="Notas (opcional)" className={inputCls} />
+      {/* Botón */}
+      <button type="submit"
+        className="px-3 py-1 rounded-lg bg-emerald-600 dark:bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-700 transition-colors whitespace-nowrap shrink-0">
+        + Agregar
+      </button>
     </form>
   );
 }
