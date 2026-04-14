@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarToken } from '@/lib/auth';
 
 // GET /api/config → devuelve la configuración de servicios
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const err = verificarToken(req);
+  if (err) return err;
   try {
     const rows = await query<{ datos: unknown }>(
       'SELECT datos FROM config_servicios ORDER BY id DESC LIMIT 1'
@@ -17,6 +20,8 @@ export async function GET() {
 
 // POST /api/config → guarda la configuración de servicios
 export async function POST(req: NextRequest) {
+  const err = verificarToken(req);
+  if (err) return err;
   try {
     const body = await req.json();
     const { datos } = body;

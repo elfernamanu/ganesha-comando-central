@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarToken } from '@/lib/auth';
 
 // GET /api/turnos?fecha=2026-04-15
 export async function GET(req: NextRequest) {
+  const err = verificarToken(req);
+  if (err) return err;
   const fecha = req.nextUrl.searchParams.get('fecha');
   if (!fecha) return NextResponse.json({ ok: false, datos: [] }, { status: 400 });
 
@@ -20,6 +23,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/turnos → { fecha, datos }
 export async function POST(req: NextRequest) {
+  const err = verificarToken(req);
+  if (err) return err;
   try {
     const body = await req.json();
     const { fecha, datos } = body;
