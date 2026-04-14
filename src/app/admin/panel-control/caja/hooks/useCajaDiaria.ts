@@ -32,23 +32,38 @@ export function useCajaDiaria(fecha: string) {
   // ========================================
   const [turnos, setTurnos] = useState<Turno[]>([]);
 
-  // Cargar turnos desde localStorage (secretaria los guarda ahí)
-  const cargarTurnos = useCallback(() => {
+  // Cargar turnos: localStorage primero, luego servidor (sincroniza entre dispositivos)
+  const cargarTurnos = useCallback(async () => {
+    // 1. Primero localStorage (inmediato)
     try {
       const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
       if (stored) {
-        setTurnos(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTurnos(parsed);
+        }
       }
-    } catch {
-      // silencioso
-    }
+    } catch { /* silencioso */ }
+
+    // 2. Luego servidor (fuente de verdad — tiene lo que guardó la secretaria)
+    try {
+      const res = await fetch(`/api/sync?fecha=${fecha}`);
+      const { ok, datos } = await res.json();
+      if (ok && Array.isArray(datos) && datos.length > 0) {
+        setTurnos(datos as Turno[]);
+        // Actualizar localStorage con los datos del servidor
+        try {
+          localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos));
+        } catch { /* silencioso */ }
+      }
+    } catch { /* sin conexión — quedamos con localStorage */ }
   }, [fecha]);
 
   useEffect(() => {
     cargarTurnos();
-    // Refrescar al volver a la pestaña (secretaria puede haber actualizado turnos)
+    // Refrescar al volver a la pestaña
     window.addEventListener('focus', cargarTurnos);
-    // También cada 30 segundos por si están en la misma pestaña
+    // También cada 30 segundos
     const interval = setInterval(cargarTurnos, 30000);
     return () => {
       window.removeEventListener('focus', cargarTurnos);

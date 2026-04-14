@@ -37,31 +37,46 @@ export function useTurnos(fecha: string) {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
-  // Cargar turnos guardados de este día al montar
-  // → también migra nombres viejos al formato actual del catálogo
+  // Carga turnos: primero localStorage (rápido), luego servidor (sync entre dispositivos)
   useEffect(() => {
+    const catalogo = leerCatalogo();
+
+    function aplicarMigracion(parsed: Turno[]): Turno[] {
+      return parsed.map(t => {
+        const tratamiento = migrarTratamiento(t.tratamiento, catalogo);
+        const item = catalogo[tratamiento];
+        const detalle = t.detalle
+          || item?.detalle
+          || (item?.categoria === 'combo' ? item?.nombreDisplay : '')
+          || '';
+        return { ...t, tratamiento, detalle };
+      });
+    }
+
+    // 1. Cargar localStorage primero (inmediato, sin esperar red)
     try {
       const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
       if (stored) {
         const parsed = JSON.parse(stored) as Turno[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const catalogo = leerCatalogo();
-          const migrados = parsed.map(t => {
-            const tratamiento = migrarTratamiento(t.tratamiento, catalogo);
-            const item = catalogo[tratamiento];
-            // Si el detalle está vacío, cargarlo del catálogo
-            const detalle = t.detalle
-              || item?.detalle
-              || (item?.categoria === 'combo' ? item?.nombreDisplay : '')
-              || '';
-            return { ...t, tratamiento, detalle };
-          });
-          setTurnos(migrados);
+          setTurnos(aplicarMigracion(parsed));
         }
       }
-    } catch {
-      // silencioso
-    }
+    } catch { /* silencioso */ }
+
+    // 2. En background, cargar del servidor (sincroniza entre celular y PC)
+    fetch(`/api/sync?fecha=${fecha}`)
+      .then(r => r.json())
+      .then(({ ok, datos }) => {
+        if (!ok || !Array.isArray(datos) || datos.length === 0) return;
+        const migrados = aplicarMigracion(datos as Turno[]);
+        // El servidor es fuente de verdad: reemplaza localStorage
+        setTurnos(migrados);
+        try {
+          localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(migrados));
+        } catch { /* silencioso */ }
+      })
+      .catch(() => { /* sin conexión — quedamos con localStorage */ });
   }, [fecha]);
 
   // Auto-sync a localStorage para que Caja pueda leer los datos
@@ -193,18 +208,14 @@ export function useTurnos(fecha: string) {
     // ──────────────────────────────────────────────────────────────────
 
     try {
-      const res = await fetch('/api/webhook', {
+      const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accion: 'actualizar_turnos',
-          fecha,
-          turnos,
-        }),
+        body: JSON.stringify({ fecha, datos: turnos }),
       });
 
       if (res.ok) {
-        setMensaje('✅ Turnos guardados en servidor');
+        setMensaje('✅ Turnos guardados — visibles en todos los dispositivos');
       } else {
         setMensaje('⚠️ Error al guardar en servidor');
       }
