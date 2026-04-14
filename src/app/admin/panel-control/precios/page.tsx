@@ -184,55 +184,26 @@ function JornadasPanel({
         </div>
       )}
 
-      {/* Form agregar jornada */}
-      <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 space-y-1.5">
-        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-          + Nueva jornada de {catIcon} {catNombre}
-        </p>
-        {/* Fila 1: fecha */}
-        <div>
-          <label className="text-[9px] text-slate-400 block">Fecha</label>
-          <input
-            type="date"
-            value={nuevaFecha}
-            onChange={e => setNuevaFecha(e.target.value)}
-            className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs"
-          />
-        </div>
-        {/* Fila 2: horarios + botón */}
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <label className="text-[9px] text-slate-400 block">Desde</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="09:00"
-              maxLength={5}
-              value={nuevaInicio}
-              onChange={e => setNuevaInicio(e.target.value)}
-              className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="text-[9px] text-slate-400 block">Hasta</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="19:00"
-              maxLength={5}
-              value={nuevaFin}
-              onChange={e => setNuevaFin(e.target.value)}
-              className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono"
-            />
-          </div>
-          <button
-            onClick={agregar}
-            disabled={!nuevaFecha}
-            className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-40 transition-colors whitespace-nowrap"
-          >
-            + Agregar
-          </button>
-        </div>
+      {/* Form agregar jornada — una sola línea */}
+      <div className="flex gap-1.5 items-center px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide shrink-0">+ Jornada</span>
+        <input
+          type="date"
+          value={nuevaFecha}
+          onChange={e => setNuevaFecha(e.target.value)}
+          className="flex-1 min-w-0 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs"
+        />
+        <input type="text" inputMode="numeric" placeholder="08:00" maxLength={5}
+          value={nuevaInicio} onChange={e => setNuevaInicio(e.target.value)}
+          className="w-16 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono" />
+        <span className="text-[9px] text-slate-400">→</span>
+        <input type="text" inputMode="numeric" placeholder="20:00" maxLength={5}
+          value={nuevaFin} onChange={e => setNuevaFin(e.target.value)}
+          className="w-16 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono" />
+        <button onClick={agregar} disabled={!nuevaFecha}
+          className="px-2.5 py-0.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-40 transition-colors whitespace-nowrap shrink-0">
+          + Agregar
+        </button>
       </div>
 
       {/* Lista de jornadas */}
@@ -377,30 +348,12 @@ function ListaPrecios({
   const esDepilacion = catId === 'depilacion';
   const esUnas       = catId === 'unas';
 
-  // Grupos para depilación
+  // Grupos para depilación — 3 secciones: Mujer, Hombre, Promos
   const grupos = esDepilacion
     ? [
-        { label: '🌸 ZONAS MUJER',   prefijo: '🌸', items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
-        { label: '💪 ZONAS HOMBRE',  prefijo: '💪', items: subservicios.filter(s => s.nombre.startsWith('💪')) },
-        {
-          label: '🎁 PROMOS MUJER',  prefijo: '🎁',
-          subPrefijo: 'mujer',
-          items: subservicios.filter(s => s.nombre.startsWith('🎁') && s.nombre.toLowerCase().includes('mujer')),
-        },
-        {
-          label: '🎁 PROMOS HOMBRE', prefijo: '🎁',
-          subPrefijo: 'hombre',
-          items: subservicios.filter(s => s.nombre.startsWith('🎁') && s.nombre.toLowerCase().includes('hombre')),
-        },
-        {
-          label: '🎁 OTRAS PROMOS',  prefijo: '🎁',
-          subPrefijo: 'otra',
-          items: subservicios.filter(
-            s => s.nombre.startsWith('🎁') &&
-              !s.nombre.toLowerCase().includes('mujer') &&
-              !s.nombre.toLowerCase().includes('hombre')
-          ),
-        },
+        { label: '🌸 ZONAS MUJER',  prefijo: '🌸', items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
+        { label: '💪 ZONAS HOMBRE', prefijo: '💪', items: subservicios.filter(s => s.nombre.startsWith('💪')) },
+        { label: '🎁 PROMOS',       prefijo: '🎁', items: subservicios.filter(s => s.nombre.startsWith('🎁')) },
       ].filter(g => g.items.length > 0)
     : null;
 
