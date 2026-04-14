@@ -191,7 +191,7 @@ export default function CajaPage() {
                 <span className="text-center">Est.</span>
               </div>
               {turnos.slice().sort((a, b) => a.horario.localeCompare(b.horario)).map((t, idx) => (
-                <div key={t.id} className={`grid grid-cols-[50px_120px_1fr_68px_68px_44px_40px] gap-x-2 items-center px-3 py-2 rounded-lg text-sm ${
+                <div key={t.id} className={`grid grid-cols-[50px_120px_1fr_68px_68px_44px_40px] gap-x-2 items-center px-3 py-1 rounded-lg text-sm ${
                   t.asistencia === 'no_vino'
                     ? 'bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 opacity-70'
                     : idx % 2 === 0
