@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AccessibilityProvider } from '@/context/AccessibilityCtx';
+import { ToastProvider } from '@/components/Toast';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         <AccessibilityProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AccessibilityProvider>
         <script
           dangerouslySetInnerHTML={{

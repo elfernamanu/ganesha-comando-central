@@ -184,13 +184,13 @@ export function useTurnos(fecha: string) {
       });
 
       if (res.ok) {
-        setMensaje('✅ Turnos guardados');
+        setMensaje('✅ Turnos guardados en servidor');
       } else {
-        setMensaje('⚠️ Error al guardar');
+        setMensaje('⚠️ Error al guardar en servidor');
       }
     } catch (error) {
       console.error('Error:', error);
-      setMensaje('⚠️ Sin conexión');
+      setMensaje('⚠️ Sin conexión — guardado solo en este dispositivo');
     } finally {
       setGuardando(false);
       setTimeout(() => setMensaje(''), 5000);

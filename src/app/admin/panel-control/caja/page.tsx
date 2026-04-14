@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
+import { useToast } from '@/components/Toast';
 import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
 import { formatearDinero, formatearFecha, formatearHora } from './utils/formatters';
 import GastosForm from './components/GastosForm';
@@ -10,6 +11,7 @@ import GastosList from './components/GastosList';
 
 export default function CajaPage() {
   const hoy = new Date().toISOString().split('T')[0];
+  const { mostrar } = useToast();
 
   const {
     turnos,
@@ -35,11 +37,12 @@ export default function CajaPage() {
   const handleCerrarYGuardar = async () => {
     const ok = await cerrarYGuardar();
     if (ok) {
-      // Auto-rellenar la fecha en "Recuperar reporte" con el día que se cerró
+      mostrar('Caja cerrada y guardada', 'exito', 'El resumen del día llegó al servidor ✓');
       setFechaRecuperar(hoy);
-      // Descarga el .txt automáticamente al cerrar
       const contenido = generarReporteTxt(hoy, turnos, gastos, totales);
       descargarReporte(contenido, hoy);
+    } else {
+      mostrar('Error al guardar caja', 'error', 'Verificá la conexión con el servidor');
     }
   };
 

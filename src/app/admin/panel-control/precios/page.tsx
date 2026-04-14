@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/components/Toast';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface Jornada {
@@ -520,6 +521,7 @@ export default function ConfiguracionServiciosPage() {
   const [tabActiva, setTabActiva]   = useState('unas');
   const [guardando, setGuardando]   = useState(false);
   const [mensaje, setMensaje]       = useState('');
+  const { mostrar } = useToast();
 
   useEffect(() => {
     try {
@@ -584,12 +586,15 @@ export default function ConfiguracionServiciosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: 'actualizar_servicios', categorias }),
       });
-      setMensaje(res.ok ? '✅ Guardado en servidor' : '✅ Guardado localmente');
+      if (res.ok) {
+        mostrar('Servicios guardados', 'exito', 'Los precios y jornadas llegaron al servidor ✓');
+      } else {
+        mostrar('Guardado localmente', 'info', 'El servidor no respondió, quedó en este dispositivo');
+      }
     } catch {
-      setMensaje('✅ Guardado localmente');
+      mostrar('Guardado localmente', 'info', 'Sin conexión al servidor, quedó en este dispositivo');
     }
     setGuardando(false);
-    setTimeout(() => setMensaje(''), 4000);
   };
 
   const cat = categorias.find(c => c.id === tabActiva)!;
@@ -614,9 +619,6 @@ export default function ConfiguracionServiciosPage() {
         </button>
       </div>
 
-      {mensaje && (
-        <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-medium">{mensaje}</div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
