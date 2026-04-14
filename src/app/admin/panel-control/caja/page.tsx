@@ -252,74 +252,66 @@ export default function CajaPage() {
         {gastos.length > 0 && <div className="mt-1.5"><GastosList gastos={gastos} onEliminar={eliminarGasto} /></div>}
       </section>
 
-      {/* ── Cierre de día ── */}
-      <section className="px-3 py-2 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10">
-        <h2 className="text-xs font-bold text-purple-800 dark:text-purple-300 mb-2">🔒 Cierre de Caja</h2>
-
-        {/* Resumen final — fila compacta */}
-        <div className="grid grid-cols-4 gap-2 text-xs mb-2">
-          <div>
-            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Estado</p>
-            <p className={`font-bold text-xs ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
-              {estadoCaja === 'cerrada' ? '🔒 Cerrada' : '🔓 Abierta'}
-            </p>
+      {/* ── Cierre de día — solo datos ── */}
+      <section className="px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10">
+        <div className="flex items-center gap-4">
+          <span className="text-[9px] font-bold text-purple-500 uppercase tracking-wide shrink-0">🔒 Cierre</span>
+          <div className="flex gap-4 text-xs flex-1">
+            <div>
+              <p className="text-[9px] text-purple-400 uppercase">Estado</p>
+              <p className={`font-bold text-xs ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
+                {estadoCaja === 'cerrada' ? '🔒 Cerrada' : '🔓 Abierta'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] text-purple-400 uppercase">Ingresos</p>
+              <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ingresos_totales)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] text-purple-400 uppercase">Gastos</p>
+              <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.gastos_totales)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] text-purple-400 uppercase">Ganancia</p>
+              <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ganancia_neta)}</p>
+            </div>
+            {totales.ingresos_totales > 0 && (
+              <div className="flex gap-1 items-center ml-2">
+                <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[9px] font-bold">💵 {formatearDinero(totales.efectivo)}</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold">🏦 {formatearDinero(totales.transferencia)}</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] font-bold">📱 {formatearDinero(totales.otro)}</span>
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Ingresos</p>
-            <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ingresos_totales)}</p>
-          </div>
-          <div>
-            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Gastos</p>
-            <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.gastos_totales)}</p>
-          </div>
-          <div>
-            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Ganancia</p>
-            <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ganancia_neta)}</p>
-          </div>
-        </div>
-
-        {/* Desglose por método — inline compacto */}
-        {totales.ingresos_totales > 0 && (
-          <div className="flex gap-2 mb-2 text-[10px]">
-            <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold">
-              💵 {formatearDinero(totales.efectivo)}
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold">
-              🏦 {formatearDinero(totales.transferencia)}
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
-              📱 {formatearDinero(totales.otro)}
-            </span>
-          </div>
-        )}
-
-        {/* Botones cierre */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleDescargarHoy}
-            disabled={turnos.length === 0 && gastos.length === 0}
-            className="flex-1 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            📥 Descargar .txt
-          </button>
-          {estadoCaja === 'abierta' ? (
-            <button
-              onClick={handleCerrarYGuardar}
-              disabled={guardando}
-              className="flex-1 px-3 py-1.5 rounded-lg bg-red-600 dark:bg-red-700 text-white font-bold text-xs hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 transition-colors"
-            >
-              {guardando ? '⏳ Guardando...' : '🔒 Cerrar Caja — Guardar y Descargar'}
-            </button>
-          ) : (
-            <button
-              onClick={reabrirDia}
-              className="flex-1 px-3 py-1.5 rounded-lg bg-slate-500 dark:bg-slate-600 text-white font-bold text-xs hover:bg-slate-600 transition-colors"
-            >
-              🔓 Reabrir Caja
-            </button>
-          )}
         </div>
       </section>
+
+      {/* ── Botones de acción — fuera del recuadro ── */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleDescargarHoy}
+          disabled={turnos.length === 0 && gastos.length === 0}
+          className="flex-1 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          📥 Descargar .txt
+        </button>
+        {estadoCaja === 'abierta' ? (
+          <button
+            onClick={handleCerrarYGuardar}
+            disabled={guardando}
+            className="flex-1 px-3 py-1.5 rounded-lg bg-red-600 dark:bg-red-700 text-white font-bold text-xs hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 transition-colors"
+          >
+            {guardando ? '⏳ Guardando...' : '🔒 Cerrar Caja — Guardar y Descargar'}
+          </button>
+        ) : (
+          <button
+            onClick={reabrirDia}
+            className="flex-1 px-3 py-1.5 rounded-lg bg-slate-500 dark:bg-slate-600 text-white font-bold text-xs hover:bg-slate-600 transition-colors"
+          >
+            🔓 Reabrir Caja
+          </button>
+        )}
+      </div>
 
       {/* ── Recuperar reporte pasado ── */}
       <section className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
