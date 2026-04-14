@@ -326,12 +326,12 @@ function FilaSubServicio({
       idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-700/30'
     }`}>
       {/* ── Fila única (mobile + PC) ── */}
-      <div className="grid grid-cols-[1fr_auto_28px] items-center gap-x-2 px-3 py-1.5">
+      <div className="grid grid-cols-[1fr_auto_28px] items-center gap-x-2 px-3 py-0.5">
         <input
           value={s.nombre}
           onFocus={e => e.target.select()}
           onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
-          className="w-full px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors truncate"
+          className="w-full px-1 py-0.5 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors truncate"
         />
         <div className="flex items-center gap-0.5 justify-end">
           <span className="text-[10px] text-slate-400 shrink-0">$</span>
@@ -341,7 +341,7 @@ function FilaSubServicio({
             onFocus={e => e.target.select()}
             onChange={e => onActualizar(catId, s.id, 'precio', parseInt(e.target.value.replace(/\D/g, ''), 10) || 0)}
             placeholder="—"
-            className="w-20 px-1.5 py-1 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs text-right font-mono transition-colors"
+            className="w-20 px-1 py-0.5 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs text-right font-mono transition-colors"
           />
         </div>
         <div className="flex justify-center">
