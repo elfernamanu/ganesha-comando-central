@@ -5,6 +5,7 @@ import { Header } from '@/components/MainContent/Header';
 import { AgendaMensual } from '@/components/MainContent/AgendaMensual';
 import { useAccessibility } from '@/context/AccessibilityCtx';
 import Link from 'next/link';
+import { EstadoSistema } from '@/components/EstadoSistema';
 
 function MobileHeader() {
   const { isDarkMode, toggleTheme, zoomIn, zoomOut, zoomLevel } = useAccessibility();
@@ -14,10 +15,7 @@ function MobileHeader() {
       {/* Fila superior: logo + controles */}
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-            Sistema Estable
-          </div>
+          <EstadoSistema />
           <h1 className="text-base font-bold text-slate-900 dark:text-slate-100">Ganesha esthetic</h1>
         </div>
         {/* Controles accesibilidad */}

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ThemeZoomControls } from '@/components/Controls/ThemeZoomControls';
+import { EstadoSistema } from '@/components/EstadoSistema';
 
 const NAV_ITEMS = [
   { label: '📅 Agenda', href: '#' },
@@ -19,9 +20,8 @@ export function DrawerMain() {
 
       {/* Logo y Status */}
       <div className="mb-6">
-        <div className="flex items-center text-xs font-mono text-green-600 mb-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-          (Sistema Estable)
+        <div className="mb-2">
+          <EstadoSistema />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Ganesha esthetic</h1>
       </div>
