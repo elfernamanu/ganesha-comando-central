@@ -307,11 +307,10 @@ function JornadasPanel({
   );
 }
 
-// ── Fila individual de subservicio ────────────────────────────────────────
+// ── Celda de subservicio (grilla 3 columnas) ──────────────────────────────
 function FilaSubServicio({
   s,
   catId,
-  idx,
   onActualizar,
   onEliminar,
 }: {
@@ -322,35 +321,26 @@ function FilaSubServicio({
   onEliminar: (catId: string, id: number) => void;
 }) {
   return (
-    <div className={`border-t border-slate-100 dark:border-slate-700/50 ${
-      idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-700/30'
-    }`}>
-      {/* ── Fila única (mobile + PC) ── */}
-      <div className="grid grid-cols-[1fr_auto_28px] items-center gap-x-2 px-3 py-0.5">
-        <input
-          value={s.nombre}
-          onFocus={e => e.target.select()}
-          onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
-          className="w-full px-1 py-0.5 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs font-medium transition-colors truncate"
-        />
-        <div className="flex items-center gap-0.5 justify-end">
-          <span className="text-[10px] text-slate-400 shrink-0">$</span>
-          <input
-            type="text" inputMode="numeric"
-            value={formatPrecio(s.precio)}
-            onFocus={e => e.target.select()}
-            onChange={e => onActualizar(catId, s.id, 'precio', parseInt(e.target.value.replace(/\D/g, ''), 10) || 0)}
-            placeholder="—"
-            className="w-20 px-1 py-0.5 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600 bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:border-slate-300 text-xs text-right font-mono transition-colors"
-          />
-        </div>
-        <div className="flex justify-center">
-          <button
-            onClick={() => onEliminar(catId, s.id)}
-            className="w-6 h-6 flex items-center justify-center text-red-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors text-xs"
-          >✕</button>
-        </div>
-      </div>
+    <div className="flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-slate-800 group">
+      <input
+        value={s.nombre}
+        onFocus={e => e.target.select()}
+        onChange={e => onActualizar(catId, s.id, 'nombre', e.target.value)}
+        className="flex-1 min-w-0 text-[11px] font-medium bg-transparent outline-none focus:bg-slate-50 dark:focus:bg-slate-700 rounded px-0.5 truncate"
+      />
+      <span className="text-[9px] text-slate-400 shrink-0">$</span>
+      <input
+        type="text" inputMode="numeric"
+        value={formatPrecio(s.precio)}
+        onFocus={e => e.target.select()}
+        onChange={e => onActualizar(catId, s.id, 'precio', parseInt(e.target.value.replace(/\D/g, ''), 10) || 0)}
+        placeholder="—"
+        className="w-14 text-[11px] text-right font-mono bg-transparent outline-none focus:bg-slate-50 dark:focus:bg-slate-700 rounded px-0.5 shrink-0"
+      />
+      <button
+        onClick={() => onEliminar(catId, s.id)}
+        className="shrink-0 w-4 h-4 flex items-center justify-center text-red-200 hover:text-red-500 rounded text-[9px] opacity-0 group-hover:opacity-100 transition-opacity"
+      >✕</button>
     </div>
   );
 }
@@ -468,39 +458,12 @@ function ListaPrecios({
 
       {mostrar && (
         <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden max-w-3xl">
-          {/* Header */}
-          <div className="grid grid-cols-[1fr_auto_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-            <span>Nombre</span>
-            <span className="text-right pr-2">Precio</span>
-            <span></span>
-          </div>
-          <div>
-            {esDepilacion && grupos ? (
-              grupos.map(grupo => (
+          {(esDepilacion && grupos ? grupos : esUnas && gruposUnas ? gruposUnas : null)
+            ? (esDepilacion && grupos ? grupos : gruposUnas!).map(grupo => (
                 <div key={grupo.label}>
-                  {/* Header de sección con botón de agregar */}
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
-                      {grupo.label}
-                    </span>
-                    <button
-                      onClick={() => onAgregarConPrefijo(catId, grupo.prefijo)}
-                      className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-2 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
-                    >
-                      + Agregar aquí
-                    </button>
-                  </div>
-                  {grupo.items.map((s, idx) => (
-                    <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
-                      onActualizar={onActualizar} onEliminar={onEliminar} />
-                  ))}
-                </div>
-              ))
-            ) : esUnas && gruposUnas ? (
-              gruposUnas.map(grupo => (
-                <div key={grupo.label}>
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
+                  {/* Header de grupo — ancho completo */}
+                  <div className="flex items-center justify-between px-3 py-0.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
                       {grupo.label}
                     </span>
                     <button
@@ -508,24 +471,29 @@ function ListaPrecios({
                         ? onAgregarConPrefijo(catId, grupo.prefijo)
                         : onAgregar(catId)
                       }
-                      className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-2 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+                      className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-1.5 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
                     >
                       + Agregar aquí
                     </button>
                   </div>
-                  {grupo.items.map((s, idx) => (
-                    <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
-                      onActualizar={onActualizar} onEliminar={onEliminar} />
-                  ))}
+                  {/* Grilla 3 columnas */}
+                  <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700">
+                    {grupo.items.map((s, idx) => (
+                      <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                        onActualizar={onActualizar} onEliminar={onEliminar} />
+                    ))}
+                  </div>
                 </div>
               ))
-            ) : (
-              subservicios.map((s, idx) => (
-                <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
-                  onActualizar={onActualizar} onEliminar={onEliminar} />
-              ))
-            )}
-          </div>
+            : (
+              <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700">
+                {subservicios.map((s, idx) => (
+                  <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                    onActualizar={onActualizar} onEliminar={onEliminar} />
+                ))}
+              </div>
+            )
+          }
         </div>
       )}
     </div>
