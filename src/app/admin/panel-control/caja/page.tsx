@@ -78,7 +78,7 @@ export default function CajaPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
 
       {/* ── Header ── */}
       <div className="flex justify-between items-start">
@@ -119,9 +119,9 @@ export default function CajaPage() {
 
       {/* ── Tarjetas estadísticas ── */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="p-2 sm:p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+        <div className="px-2 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
           <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">💰 Ingresos</p>
-          <p className="text-base sm:text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-0.5 leading-tight">
+          <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100 leading-tight">
             {formatearDinero(totales.ingresos_totales)}
           </p>
           <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 hidden sm:block">
@@ -129,9 +129,9 @@ export default function CajaPage() {
           </p>
         </div>
 
-        <div className="p-2 sm:p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+        <div className="px-2 py-1.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
           <p className="text-[10px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">💸 Gastos</p>
-          <p className="text-base sm:text-2xl font-bold text-red-900 dark:text-red-100 mt-0.5 leading-tight">
+          <p className="text-sm font-bold text-red-900 dark:text-red-100 leading-tight">
             {formatearDinero(totales.gastos_totales)}
           </p>
           <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5 hidden sm:block">
@@ -139,7 +139,7 @@ export default function CajaPage() {
           </p>
         </div>
 
-        <div className={`p-2 sm:p-3 rounded-xl border ${
+        <div className={`px-2 py-1.5 rounded-xl border ${
           totales.ganancia_neta >= 0
             ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
             : 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20'
@@ -149,7 +149,7 @@ export default function CajaPage() {
           }`}>
             📈 Ganancia
           </p>
-          <p className={`text-base sm:text-2xl font-bold mt-0.5 leading-tight ${
+          <p className={`text-sm font-bold leading-tight ${
             totales.ganancia_neta >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'
           }`}>
             {formatearDinero(totales.ganancia_neta)}
@@ -164,11 +164,11 @@ export default function CajaPage() {
 
       {/* ── Turnos del día (solo lectura) ── */}
       <section>
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+        <div className="flex justify-between items-center mb-1.5">
+          <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
             📅 Turnos del día ({totales.turnos_total})
           </h2>
-          <span className="text-xs text-slate-400">
+          <span className="text-[10px] text-slate-400">
             {totales.turnos_presentes} presente · {totales.turnos_ausentes} no vino
           </span>
         </div>
@@ -245,81 +245,75 @@ export default function CajaPage() {
 
       {/* ── Gastos del día ── */}
       <section>
-        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">
+        <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
           💸 Gastos del día
         </h2>
         <GastosForm onAgregar={agregarGasto} />
-        {gastos.length > 0 && <div className="mt-3"><GastosList gastos={gastos} onEliminar={eliminarGasto} /></div>}
+        {gastos.length > 0 && <div className="mt-1.5"><GastosList gastos={gastos} onEliminar={eliminarGasto} /></div>}
       </section>
 
       {/* ── Cierre de día ── */}
-      <section className="p-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10">
-        <h2 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-3">🔒 Cierre de Caja</h2>
+      <section className="px-3 py-2 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10">
+        <h2 className="text-xs font-bold text-purple-800 dark:text-purple-300 mb-2">🔒 Cierre de Caja</h2>
 
-        {/* Resumen final */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
+        {/* Resumen final — fila compacta */}
+        <div className="grid grid-cols-4 gap-2 text-xs mb-2">
           <div>
-            <p className="text-purple-600 dark:text-purple-400">Estado</p>
-            <p className={`font-bold ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
+            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Estado</p>
+            <p className={`font-bold text-xs ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
               {estadoCaja === 'cerrada' ? '🔒 Cerrada' : '🔓 Abierta'}
             </p>
           </div>
           <div>
-            <p className="text-purple-600 dark:text-purple-400">Ingresos</p>
+            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Ingresos</p>
             <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ingresos_totales)}</p>
           </div>
           <div>
-            <p className="text-purple-600 dark:text-purple-400">Gastos</p>
+            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Gastos</p>
             <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.gastos_totales)}</p>
           </div>
           <div>
-            <p className="text-purple-600 dark:text-purple-400">Ganancia neta</p>
-            <p className="font-bold text-purple-900 dark:text-purple-100 text-base">{formatearDinero(totales.ganancia_neta)}</p>
+            <p className="text-[9px] text-purple-500 uppercase tracking-wide">Ganancia</p>
+            <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ganancia_neta)}</p>
           </div>
         </div>
 
-        {/* Desglose por método de pago */}
+        {/* Desglose por método — inline compacto */}
         {totales.ingresos_totales > 0 && (
-          <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2 border border-green-200 dark:border-green-800">
-              <p className="text-green-700 dark:text-green-400 font-bold">💵 Efectivo</p>
-              <p className="font-extrabold text-green-900 dark:text-green-100 text-sm mt-0.5">{formatearDinero(totales.efectivo)}</p>
-            </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2 border border-blue-200 dark:border-blue-800">
-              <p className="text-blue-700 dark:text-blue-400 font-bold">🏦 Transferencia</p>
-              <p className="font-extrabold text-blue-900 dark:text-blue-100 text-sm mt-0.5">{formatearDinero(totales.transferencia)}</p>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700">
-              <p className="text-slate-600 dark:text-slate-400 font-bold">📱 Otro</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{formatearDinero(totales.otro)}</p>
-            </div>
+          <div className="flex gap-2 mb-2 text-[10px]">
+            <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold">
+              💵 {formatearDinero(totales.efectivo)}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold">
+              🏦 {formatearDinero(totales.transferencia)}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
+              📱 {formatearDinero(totales.otro)}
+            </span>
           </div>
         )}
 
         {/* Botones cierre */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          {/* Descargar sin cerrar */}
+        <div className="flex gap-2">
           <button
             onClick={handleDescargarHoy}
             disabled={turnos.length === 0 && gastos.length === 0}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-bold text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             📥 Descargar .txt
           </button>
-
-          {/* BOTÓN PRINCIPAL: Cerrar + Guardar + Descargar */}
           {estadoCaja === 'abierta' ? (
             <button
               onClick={handleCerrarYGuardar}
               disabled={guardando}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 dark:bg-red-700 text-white font-bold text-sm hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 transition-colors"
+              className="flex-1 px-3 py-1.5 rounded-lg bg-red-600 dark:bg-red-700 text-white font-bold text-xs hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 transition-colors"
             >
               {guardando ? '⏳ Guardando...' : '🔒 Cerrar Caja — Guardar y Descargar'}
             </button>
           ) : (
             <button
               onClick={reabrirDia}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-slate-500 dark:bg-slate-600 text-white font-bold text-sm hover:bg-slate-600 transition-colors"
+              className="flex-1 px-3 py-1.5 rounded-lg bg-slate-500 dark:bg-slate-600 text-white font-bold text-xs hover:bg-slate-600 transition-colors"
             >
               🔓 Reabrir Caja
             </button>
@@ -327,34 +321,32 @@ export default function CajaPage() {
         </div>
       </section>
 
-      {/* ── Recuperar reporte pasado desde PostgreSQL ── */}
-      <section className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+      {/* ── Recuperar reporte pasado ── */}
+      <section className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300">
           🗄️ Recuperar reporte pasado
         </h2>
-        <p className="text-xs text-slate-400 mb-3">
+        <p className="text-[10px] text-slate-400 mb-1.5">
           Elegí una fecha y descargás el .txt guardado en el servidor
         </p>
-
         <div className="flex gap-2">
           <input
             type="date"
             value={fechaRecuperar}
             onChange={e => setFechaRecuperar(e.target.value)}
             max={hoy}
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm"
+            className="flex-1 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs"
           />
           <button
             onClick={handleRecuperar}
             disabled={!fechaRecuperar || recuperando}
-            className="px-4 py-2 rounded-lg bg-slate-700 dark:bg-slate-600 text-white font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-40 transition-colors whitespace-nowrap"
+            className="px-3 py-1 rounded-lg bg-slate-700 dark:bg-slate-600 text-white font-bold text-xs hover:bg-slate-800 dark:hover:bg-slate-500 disabled:opacity-40 transition-colors whitespace-nowrap"
           >
             {recuperando ? '⏳...' : '📋 Descargar'}
           </button>
         </div>
-
         {mensajeRecuperar && (
-          <p className="text-xs mt-2 text-slate-600 dark:text-slate-400">{mensajeRecuperar}</p>
+          <p className="text-[10px] mt-1 text-slate-600 dark:text-slate-400">{mensajeRecuperar}</p>
         )}
       </section>
 
