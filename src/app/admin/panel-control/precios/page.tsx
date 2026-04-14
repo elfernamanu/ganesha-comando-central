@@ -191,7 +191,7 @@ function JornadasPanel({
           type="date"
           value={nuevaFecha}
           onChange={e => setNuevaFecha(e.target.value)}
-          className="flex-1 min-w-0 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs"
+          className="w-36 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs"
         />
         <input type="text" inputMode="numeric" placeholder="08:00" maxLength={5}
           value={nuevaInicio} onChange={e => setNuevaInicio(e.target.value)}
@@ -557,18 +557,18 @@ export default function ConfiguracionServiciosPage() {
   const guardar = async () => {
     setGuardando(true);
     try {
-      const res = await fetch('/api/webhook', {
+      const res = await fetch('/api/admin/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'actualizar_servicios', categorias }),
+        body: JSON.stringify({ datos: categorias }),
       });
       if (res.ok) {
         mostrar('Servicios guardados', 'exito', 'Los precios y jornadas llegaron al servidor ✓');
       } else {
-        mostrar('Guardado localmente', 'info', 'El servidor no respondió, quedó en este dispositivo');
+        mostrar('Error al guardar', 'error', 'El servidor respondió con error, revisá la conexión');
       }
     } catch {
-      mostrar('Guardado localmente', 'info', 'Sin conexión al servidor, quedó en este dispositivo');
+      mostrar('Sin conexión', 'error', 'No se pudo llegar al servidor');
     }
     setGuardando(false);
   };
