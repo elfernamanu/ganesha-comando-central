@@ -352,7 +352,7 @@ function FilaSubServicio({
       </div>
 
       {/* ── PC: grilla horizontal ── */}
-      <div className="hidden sm:grid grid-cols-[1fr_100px_72px_28px] gap-x-2 items-center px-3 py-2">
+      <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_90px_60px_28px] gap-x-2 items-center px-3 py-2">
         <input
           value={s.nombre}
           onFocus={e => e.target.select()}
@@ -408,38 +408,39 @@ function ListaPrecios({
   subservicios,
   onActualizar,
   onAgregar,
+  onAgregarConPrefijo,
   onEliminar,
 }: {
   catId: string;
   subservicios: SubServicio[];
   onActualizar: (catId: string, id: number, campo: keyof SubServicio, valor: string | number | boolean) => void;
   onAgregar: (catId: string) => void;
+  onAgregarConPrefijo: (catId: string, prefijo: string) => void;
   onEliminar: (catId: string, id: number) => void;
 }) {
   const [mostrar, setMostrar] = useState(true);
 
-  // Para depilación: agrupa por emoji del nombre
   const esDepilacion = catId === 'depilacion';
+  const esUnas       = catId === 'unas';
+
+  // Grupos para depilación
   const grupos = esDepilacion
     ? [
+        { label: '🌸 ZONAS MUJER',   prefijo: '🌸', items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
+        { label: '💪 ZONAS HOMBRE',  prefijo: '💪', items: subservicios.filter(s => s.nombre.startsWith('💪')) },
         {
-          label: '🌸 Zonas Mujer',
-          items: subservicios.filter(s => s.nombre.startsWith('🌸')),
-        },
-        {
-          label: '💪 Zonas Hombre',
-          items: subservicios.filter(s => s.nombre.startsWith('💪')),
-        },
-        {
-          label: '🎁 Promos Mujer',
+          label: '🎁 PROMOS MUJER',  prefijo: '🎁',
+          subPrefijo: 'mujer',
           items: subservicios.filter(s => s.nombre.startsWith('🎁') && s.nombre.toLowerCase().includes('mujer')),
         },
         {
-          label: '🎁 Promos Hombre',
+          label: '🎁 PROMOS HOMBRE', prefijo: '🎁',
+          subPrefijo: 'hombre',
           items: subservicios.filter(s => s.nombre.startsWith('🎁') && s.nombre.toLowerCase().includes('hombre')),
         },
         {
-          label: '🎁 Otras Promos',
+          label: '🎁 OTRAS PROMOS',  prefijo: '🎁',
+          subPrefijo: 'otra',
           items: subservicios.filter(
             s => s.nombre.startsWith('🎁') &&
               !s.nombre.toLowerCase().includes('mujer') &&
@@ -449,9 +450,15 @@ function ListaPrecios({
       ].filter(g => g.items.length > 0)
     : null;
 
+  // Grupos para uñas (servicios base + promos)
+  const gruposUnas = esUnas ? [
+    { label: 'Servicios', prefijo: '',  items: subservicios.filter(s => !s.nombre.startsWith('🎁')) },
+    { label: '🎁 Promos', prefijo: '🎁', items: subservicios.filter(s => s.nombre.startsWith('🎁')) },
+  ].filter(g => g.items.length > 0) : null;
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
         <button
           onClick={() => setMostrar(m => !m)}
           className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide"
@@ -459,53 +466,100 @@ function ListaPrecios({
           <span>{mostrar ? '▾' : '▸'}</span>
           💰 Servicios y precios ({subservicios.length})
         </button>
-        <button
-          onClick={() => onAgregar(catId)}
-          className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors"
-        >
-          + Agregar
-        </button>
+
+        {/* Botones de agregar — distintos según la categoría */}
+        {esDepilacion ? (
+          <div className="flex gap-1.5 flex-wrap">
+            <button onClick={() => onAgregarConPrefijo(catId, '🌸')}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 hover:bg-pink-200 transition-colors">
+              + 🌸 Mujer
+            </button>
+            <button onClick={() => onAgregarConPrefijo(catId, '💪')}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors">
+              + 💪 Hombre
+            </button>
+            <button onClick={() => onAgregarConPrefijo(catId, '🎁')}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors">
+              + 🎁 Promo
+            </button>
+          </div>
+        ) : esUnas ? (
+          <div className="flex gap-1.5">
+            <button onClick={() => onAgregar(catId)}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors">
+              + Servicio
+            </button>
+            <button onClick={() => onAgregarConPrefijo(catId, '🎁')}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors">
+              + 🎁 Promo
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => onAgregar(catId)}
+            className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors">
+            + Agregar
+          </button>
+        )}
       </div>
 
       {mostrar && (
-        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden max-w-3xl">
           {/* Header — solo visible en pantallas medianas+ */}
-          <div className="hidden sm:grid grid-cols-[1fr_100px_72px_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+          <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_90px_60px_28px] gap-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
             <span>Nombre</span>
             <span className="text-right">Precio</span>
             <span className="text-center">Estado</span>
             <span></span>
           </div>
           <div>
-
             {esDepilacion && grupos ? (
-              /* Vista agrupada para depilación */
               grupos.map(grupo => (
                 <div key={grupo.label}>
-                  <SeccionHeader label={grupo.label} />
+                  {/* Header de sección con botón de agregar */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
+                      {grupo.label}
+                    </span>
+                    <button
+                      onClick={() => onAgregarConPrefijo(catId, grupo.prefijo)}
+                      className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-2 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+                    >
+                      + Agregar aquí
+                    </button>
+                  </div>
                   {grupo.items.map((s, idx) => (
-                    <FilaSubServicio
-                      key={s.id}
-                      s={s}
-                      catId={catId}
-                      idx={idx}
-                      onActualizar={onActualizar}
-                      onEliminar={onEliminar}
-                    />
+                    <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                      onActualizar={onActualizar} onEliminar={onEliminar} />
+                  ))}
+                </div>
+              ))
+            ) : esUnas && gruposUnas ? (
+              gruposUnas.map(grupo => (
+                <div key={grupo.label}>
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wide">
+                      {grupo.label}
+                    </span>
+                    <button
+                      onClick={() => grupo.prefijo
+                        ? onAgregarConPrefijo(catId, grupo.prefijo)
+                        : onAgregar(catId)
+                      }
+                      className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 px-2 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+                    >
+                      + Agregar aquí
+                    </button>
+                  </div>
+                  {grupo.items.map((s, idx) => (
+                    <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                      onActualizar={onActualizar} onEliminar={onEliminar} />
                   ))}
                 </div>
               ))
             ) : (
-              /* Vista plana para otras categorías */
               subservicios.map((s, idx) => (
-                <FilaSubServicio
-                  key={s.id}
-                  s={s}
-                  catId={catId}
-                  idx={idx}
-                  onActualizar={onActualizar}
-                  onEliminar={onEliminar}
-                />
+                <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                  onActualizar={onActualizar} onEliminar={onEliminar} />
               ))
             )}
           </div>
@@ -562,16 +616,37 @@ export default function ConfiguracionServiciosPage() {
       c.id === catId ? { ...c, subservicios: c.subservicios.map(s => s.id === subId ? { ...s, [campo]: valor } : s) } : c
     ));
 
+  // Agrega al TOPE de la lista general
   const agregarSub = (catId: string) =>
     setCategorias(prev => prev.map(c =>
       c.id === catId ? {
         ...c,
-        subservicios: [...c.subservicios, {
+        subservicios: [{
           id: Math.max(0, ...c.subservicios.map(s => s.id)) + 1,
           nombre: 'Nuevo servicio', precio: 0, activo: true,
-        }],
+        }, ...c.subservicios],
       } : c
     ));
+
+  // Agrega al TOPE del grupo correspondiente (por emoji prefijo: 🌸 💪 🎁)
+  const agregarSubConPrefijo = (catId: string, prefijo: string) =>
+    setCategorias(prev => prev.map(c => {
+      if (c.id !== catId) return c;
+      const nuevo: SubServicio = {
+        id: Math.max(0, ...c.subservicios.map(s => s.id)) + 1,
+        nombre: `${prefijo} Nuevo`,
+        precio: 0,
+        activo: true,
+      };
+      const subs = [...c.subservicios];
+      const primerIdx = subs.findIndex(s => s.nombre.startsWith(prefijo));
+      if (primerIdx >= 0) {
+        subs.splice(primerIdx, 0, nuevo); // al tope del grupo
+      } else {
+        subs.unshift(nuevo); // si no hay ninguno aún, al tope de todo
+      }
+      return { ...c, subservicios: subs };
+    }));
 
   const eliminarSub = (catId: string, subId: number) =>
     setCategorias(prev => prev.map(c =>
@@ -666,6 +741,7 @@ export default function ConfiguracionServiciosPage() {
             subservicios={cat.subservicios}
             onActualizar={actualizarSub}
             onAgregar={agregarSub}
+            onAgregarConPrefijo={agregarSubConPrefijo}
             onEliminar={eliminarSub}
           />
         </div>
