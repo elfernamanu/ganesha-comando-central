@@ -86,7 +86,7 @@ export function useTurnos(fecha: string) {
     const ultimo = horarios[horarios.length - 1];
     const [hStr, mStr] = ultimo.split(':');
     let h = parseInt(hStr, 10);
-    let m = parseInt(mStr, 10) + 15;
+    let m = parseInt(mStr, 10) + 10;
     if (m >= 60) { m -= 60; h += 1; }
     if (h >= 24) h = 0;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -110,30 +110,33 @@ export function useTurnos(fecha: string) {
   };
 
   const actualizarTurno = (id: string, cambios: Partial<Turno>) => {
-    setTurnos(prev =>
-      prev.map(t => {
-        if (t.id === id) {
-          const updated = { ...t, ...cambios };
+    setTurnos(prev => {
+      const actualizado = prev.map(t => {
+        if (t.id !== id) return t;
+        const updated = { ...t, ...cambios };
 
-          // Si cambian los montos, actualizar estado_pago automáticamente
-          if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined) {
-            const seña = cambios.seña_pagada !== undefined ? cambios.seña_pagada : t.seña_pagada;
-            const total = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
-
-            if (seña === 0) {
-              updated.estado_pago = 'sin_pago';
-            } else if (seña >= total) {
-              updated.estado_pago = 'completo';
-            } else {
-              updated.estado_pago = 'seña';
-            }
-          }
-
-          return updated;
+        // Recalcular estado_pago si cambian los montos
+        if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined) {
+          const seña  = cambios.seña_pagada !== undefined ? cambios.seña_pagada : t.seña_pagada;
+          const total = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
+          updated.estado_pago = seña === 0 ? 'sin_pago' : seña >= total ? 'completo' : 'seña';
         }
-        return t;
-      })
-    );
+
+        return updated;
+      });
+
+      // Si cambió el horario → reordenar la lista automáticamente
+      if (cambios.horario !== undefined) {
+        return [...actualizado].sort((a, b) => {
+          // Horarios vacíos van al final
+          if (!a.horario) return 1;
+          if (!b.horario) return -1;
+          return a.horario.localeCompare(b.horario);
+        });
+      }
+
+      return actualizado;
+    });
   };
 
   const eliminarTurno = (id: string) => {
