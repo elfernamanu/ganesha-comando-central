@@ -161,13 +161,26 @@ function GastoFijoRow({
         {/* Botones acción */}
         <div className="flex gap-0.5 shrink-0">
           {!pagado && (
-            <button
-              onClick={() => setPagando(p => !p)}
-              className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
-              title="Registrar pago"
-            >
-              + Pagar
-            </button>
+            <>
+              {/* Pago parcial — abre input */}
+              <button
+                onClick={() => setPagando(p => !p)}
+                className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                title="Registrar pago parcial"
+              >
+                + Pagar
+              </button>
+              {/* Pago total — un toque, sin input */}
+              {gasto.montoTotal > 0 && pendiente > 0 && (
+                <button
+                  onClick={() => onPagar(pendiente)}
+                  className="px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors"
+                  title={`Marcar como pagado completo (${fmt(pendiente)})`}
+                >
+                  ✓ Total
+                </button>
+              )}
+            </>
           )}
           <button
             onClick={onReset}
