@@ -2,18 +2,48 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useTurnos } from './hooks/useTurnos';
 import TurnosTable from './components/TurnosTable';
 
+// Fechas habilitadas desde config de servicios
+function useFechasHabilitadas() {
+  const [fechas, setFechas] = useState<{ fecha: string; servicios: string[] }[]>([]);
+  useEffect(() => {
+    fetch('/api/admin/config', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok || !Array.isArray(data.datos)) return;
+        const mapa: Record<string, string[]> = {};
+        for (const cat of data.datos) {
+          for (const j of (cat.jornadas ?? [])) {
+            if (j.activa) {
+              if (!mapa[j.fecha]) mapa[j.fecha] = [];
+              mapa[j.fecha].push(cat.nombre);
+            }
+          }
+        }
+        const resultado = Object.entries(mapa)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([fecha, servicios]) => ({ fecha, servicios }));
+        setFechas(resultado);
+      })
+      .catch(() => {});
+  }, []);
+  return fechas;
+}
+
 function TurnosContent() {
   const params = useSearchParams();
-  const hoy    = new Date().toISOString().split('T')[0];
+  // Fecha LOCAL — no UTC (evita mostrar el día siguiente pasada las 21hs en Argentina)
+  const d = new Date();
+  const hoy = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
   const { turnos, totales, mensaje, guardando, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(fecha);
 
+  const fechasHabilitadas = useFechasHabilitadas();
   const fechaLabel = new Date(fecha + 'T12:00:00')
     .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());
@@ -45,6 +75,27 @@ function TurnosContent() {
         </div>
         {/* Sin link al Panel — Turnos es solo para la secretaria */}
       </div>
+
+      {/* ── Fechas habilitadas — acceso rápido ── */}
+      {fechasHabilitadas.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {fechasHabilitadas.map(({ fecha: f, servicios }) => {
+            const esSeleccionada = f === fecha;
+            const label = new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+            return (
+              <Link key={f} href={`/admin/panel-control/turnos?fecha=${f}`}
+                className={`flex flex-col items-center px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                  esSeleccionada
+                    ? 'bg-violet-600 text-white border-violet-600 shadow'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-violet-400'
+                }`}>
+                <span className="text-[11px] font-extrabold">{label}</span>
+                <span className="text-[9px] font-medium opacity-80">{servicios.join(' · ')}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Navegación entre días ── */}
       <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-800 rounded-2xl px-3 py-2 border border-slate-100 dark:border-slate-700 shadow-sm">
