@@ -12,6 +12,7 @@ import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
 import PanelGastosFijos from './components/PanelGastosFijos';
 import SugerenciaPago from './components/SugerenciaPago';
+import ResumenCierre from './components/ResumenCierre';
 import type { GastoFijo } from './hooks/useGastosFijos';
 
 // Fechas habilitadas desde config de servicios (igual que en Turnos)
@@ -391,39 +392,16 @@ function CajaContent() {
         {gastos.length > 0 && <div className="mt-1.5"><GastosList gastos={gastos} onEliminar={eliminarGasto} /></div>}
       </section>
 
-      {/* ── Cierre de día — solo datos ── */}
-      <section className="px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10">
-        <div className="flex items-center gap-4">
-          <span className="text-[9px] font-bold text-purple-500 uppercase tracking-wide shrink-0">🔒 Cierre</span>
-          <div className="flex gap-4 text-xs flex-1">
-            <div>
-              <p className="text-[9px] text-purple-400 uppercase">Estado</p>
-              <p className={`font-bold text-xs ${estadoCaja === 'cerrada' ? 'text-red-600' : 'text-green-600'}`}>
-                {estadoCaja === 'cerrada' ? '🔒 Cerrada' : '🔓 Abierta'}
-              </p>
-            </div>
-            <div>
-              <p className="text-[9px] text-purple-400 uppercase">Ingresos</p>
-              <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ingresos_totales)}</p>
-            </div>
-            <div>
-              <p className="text-[9px] text-purple-400 uppercase">Gastos</p>
-              <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.gastos_totales)}</p>
-            </div>
-            <div>
-              <p className="text-[9px] text-purple-400 uppercase">Ganancia</p>
-              <p className="font-bold text-purple-900 dark:text-purple-100">{formatearDinero(totales.ganancia_neta)}</p>
-            </div>
-            {totales.ingresos_totales > 0 && (
-              <div className="flex gap-1 items-center ml-2">
-                <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[9px] font-bold">💵 {formatearDinero(totales.efectivo)}</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold">🏦 {formatearDinero(totales.transferencia)}</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] font-bold">📱 {formatearDinero(totales.otro)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      {/* ── Cierre de día — resumen profesional ── */}
+      <ResumenCierre
+        fecha={fecha}
+        estadoCaja={estadoCaja}
+        totales={totales}
+        turnos={turnos}
+        gastos={gastos}
+        gastosFijosEmpresa={gastosFijosEmpresa}
+        gastosFijosPersonal={gastosFijosPersonal}
+      />
 
       {/* ── Botones de acción — fuera del recuadro ── */}
       <div className="flex gap-2">
