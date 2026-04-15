@@ -99,11 +99,12 @@ export default function TurnosTable({
     return () => window.removeEventListener('focus', cargar);
   }, []);
 
-  const opcionesDepi     = Object.values(catalogo).filter(item => item.categoria === 'depilacion');
-  const opcionesUnas     = Object.values(catalogo).filter(item => item.categoria === 'unas');
-  const opcionesEstetica = Object.values(catalogo).filter(item => item.categoria === 'estetica');
-  const opcionesPestanas = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
-  const opcionesCombos   = Object.values(catalogo).filter(item => item.categoria === 'combo');
+  const opcionesDepiZonas  = Object.values(catalogo).filter(item => item.categoria === 'depilacion_zona');
+  const opcionesDepiPromos = Object.values(catalogo).filter(item => item.categoria === 'depilacion');
+  const opcionesUnas       = Object.values(catalogo).filter(item => item.categoria === 'unas');
+  const opcionesEstetica   = Object.values(catalogo).filter(item => item.categoria === 'estetica');
+  const opcionesPestanas   = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
+  const opcionesCombos     = Object.values(catalogo).filter(item => item.categoria === 'combo');
 
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
     const item = catalogo[nuevoTrat] ?? buscarEnCatalogo(nuevoTrat);
@@ -142,9 +143,16 @@ export default function TurnosTable({
         {tratamiento && !catalogo[tratamiento] && (
           <option value={tratamiento}>{tratamiento}</option>
         )}
-        {opcionesDepi.length > 0 && (
+        {opcionesDepiPromos.length > 0 && (
           <optgroup label="✨ Promos Depilación">
-            {opcionesDepi.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+            {opcionesDepiPromos.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+              <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
+            ))}
+          </optgroup>
+        )}
+        {opcionesDepiZonas.length > 0 && (
+          <optgroup label="🌸 Zonas Mujer / 💪 Hombre">
+            {opcionesDepiZonas.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
               <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
             ))}
           </optgroup>

@@ -79,11 +79,17 @@ export function leerCatalogo(): CatalogoPromos {
 
   const config = leerConfig();
 
-  // 1) Promos de depilación (solo 🎁)
-  const itemsDepi = config
-    ? leerSubserviciosCat(config, 'depilacion', item => item.nombre.startsWith('🎁'), 'depilacion')
+  // 1) Depilación completa: zonas individuales + promos
+  const itemsDepiZonas = config
+    ? leerSubserviciosCat(config, 'depilacion', item =>
+        item.nombre.startsWith('🌸') || item.nombre.startsWith('💪'), 'depilacion_zona')
+    : [];
+  const itemsDepiPromos = config
+    ? leerSubserviciosCat(config, 'depilacion', item =>
+        item.nombre.startsWith('🎁') || item.nombre.startsWith('PROMO'), 'depilacion')
     : DEFAULT_PROMOS;
-  itemsDepi.forEach(item => { catalogo[item.nombre] = item; });
+  itemsDepiZonas.forEach(item => { catalogo[item.nombre] = item; });
+  itemsDepiPromos.forEach(item => { catalogo[item.nombre] = item; });
 
   // 2) Uñas (todos los subservicios activos)
   const itemsUnas = config
