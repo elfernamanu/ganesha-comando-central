@@ -9,18 +9,9 @@ import { formatearDinero, formatearFecha, formatearHora } from './utils/formatte
 import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
 
-const ZOOM_CAJA_STEPS = [0.8, 0.9, 1, 1.15, 1.3, 1.5];
-const ZOOM_CAJA_KEY = 'ganesha_caja_zoom';
-
 export default function CajaPage() {
   const hoy = new Date().toISOString().split('T')[0];
   const { mostrar } = useToast();
-  const [zoomIdx, setZoomIdx] = useState(() => {
-    try { const s = localStorage.getItem(ZOOM_CAJA_KEY); return s ? Number(s) : 2; } catch { return 2; }
-  });
-  const zoom = ZOOM_CAJA_STEPS[zoomIdx];
-  const zoomMenos = () => setZoomIdx(i => { const n = Math.max(0, i - 1); try { localStorage.setItem(ZOOM_CAJA_KEY, String(n)); } catch {} return n; });
-  const zoomMas   = () => setZoomIdx(i => { const n = Math.min(ZOOM_CAJA_STEPS.length - 1, i + 1); try { localStorage.setItem(ZOOM_CAJA_KEY, String(n)); } catch {} return n; });
 
   const {
     turnos,
@@ -103,14 +94,6 @@ export default function CajaPage() {
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          {/* Zoom */}
-          <div className="flex items-center gap-0.5">
-            <button onClick={zoomMenos} disabled={zoomIdx === 0}
-              className="w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 disabled:opacity-30 transition-colors">A-</button>
-            <span className="text-[10px] text-slate-400 w-8 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={zoomMas} disabled={zoomIdx === ZOOM_CAJA_STEPS.length - 1}
-              className="w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 disabled:opacity-30 transition-colors">A+</button>
-          </div>
           <button
             onClick={cargarTurnos}
             title="Refrescar turnos de la secretaria"
@@ -134,8 +117,7 @@ export default function CajaPage() {
         </div>
       )}
 
-      {/* ── Zona con zoom (stats + gastos + cierre) ── */}
-      <div style={{ zoom: zoom }} className="space-y-3">
+      <div className="space-y-3">
 
       {/* ── Estadísticas — franja compacta ── */}
       <div className="flex divide-x divide-slate-200 dark:divide-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
@@ -315,7 +297,7 @@ export default function CajaPage() {
         {mensajeRecuperar && <span className="text-[10px] text-slate-500">{mensajeRecuperar}</span>}
       </div>
 
-      </div>{/* fin zona zoom */}
+      </div>
 
     </div>
   );

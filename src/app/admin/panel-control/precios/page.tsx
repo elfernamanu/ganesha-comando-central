@@ -341,9 +341,6 @@ function SeccionHeader({ label }: { label: string }) {
 }
 
 // ── Lista de precios compacta ──────────────────────────────────────────────
-const ZOOM_STEPS = [0.8, 0.9, 1, 1.15, 1.3, 1.5];
-const ZOOM_LS_KEY = 'ganesha_precios_zoom';
-
 function ListaPrecios({
   catId,
   subservicios,
@@ -360,12 +357,6 @@ function ListaPrecios({
   onEliminar: (catId: string, id: number) => void;
 }) {
   const [mostrar, setMostrar] = useState(true);
-  const [zoomIdx, setZoomIdx] = useState(() => {
-    try { const s = localStorage.getItem(ZOOM_LS_KEY); return s ? Number(s) : 2; } catch { return 2; }
-  });
-  const zoom = ZOOM_STEPS[zoomIdx];
-  const zoomMenos = () => setZoomIdx(i => { const n = Math.max(0, i - 1); try { localStorage.setItem(ZOOM_LS_KEY, String(n)); } catch {} return n; });
-  const zoomMas  = () => setZoomIdx(i => { const n = Math.min(ZOOM_STEPS.length - 1, i + 1); try { localStorage.setItem(ZOOM_LS_KEY, String(n)); } catch {} return n; });
 
   const esDepilacion = catId === 'depilacion';
   const esUnas       = catId === 'unas';
@@ -388,23 +379,13 @@ function ListaPrecios({
   return (
     <div>
       <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <button
+        <button
             onClick={() => setMostrar(m => !m)}
             className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide"
           >
             <span>{mostrar ? '▾' : '▸'}</span>
             💰 Servicios y precios ({subservicios.length})
           </button>
-          {/* Zoom A- / A+ */}
-          <div className="flex items-center gap-0.5 ml-2">
-            <button onClick={zoomMenos} disabled={zoomIdx === 0}
-              className="w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 disabled:opacity-30 transition-colors">A-</button>
-            <span className="text-[10px] text-slate-400 w-8 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={zoomMas} disabled={zoomIdx === ZOOM_STEPS.length - 1}
-              className="w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 disabled:opacity-30 transition-colors">A+</button>
-          </div>
-        </div>
 
         {/* Botones de agregar — distintos según la categoría */}
         {esDepilacion ? (
@@ -442,7 +423,7 @@ function ListaPrecios({
       </div>
 
       {mostrar && (
-        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden" style={{ zoom: zoom }}>
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
           {/* ── Con grupos: 3 columnas paralelas ── */}
           {(esDepilacion && grupos) || (esUnas && gruposUnas) ? (
             <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 ${
