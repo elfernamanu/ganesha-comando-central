@@ -80,27 +80,33 @@ export function leerCatalogo(): CatalogoPromos {
   const config = leerConfig();
 
   // 1) Depilación — 4 categorías separadas por género
-  const itemsZonaMujer = config
-    ? leerSubserviciosCat(config, 'depilacion', item => item.nombre.startsWith('🌸'), 'depilacion_zona_mujer')
-    : [];
-  const itemsZonaHombre = config
-    ? leerSubserviciosCat(config, 'depilacion', item => item.nombre.startsWith('💪'), 'depilacion_zona_hombre')
-    : [];
-  const itemsPromoMujer = config
-    ? leerSubserviciosCat(config, 'depilacion',
-        item => (item.nombre.startsWith('🎁') || item.nombre.startsWith('PROMO')) && !item.nombre.includes('Hombre'),
-        'depilacion_mujer')
-    : DEFAULT_PROMOS.filter(p => !p.nombre.includes('Hombre'));
-  const itemsPromoHombre = config
-    ? leerSubserviciosCat(config, 'depilacion',
-        item => (item.nombre.startsWith('🎁') || item.nombre.startsWith('PROMO')) && item.nombre.includes('Hombre'),
-        'depilacion_hombre')
-    : DEFAULT_PROMOS.filter(p => p.nombre.includes('Hombre'));
-
-  itemsZonaMujer.forEach(item  => { catalogo[item.nombre] = item; });
-  itemsZonaHombre.forEach(item => { catalogo[item.nombre] = item; });
-  itemsPromoMujer.forEach(item => { catalogo[item.nombre] = item; });
-  itemsPromoHombre.forEach(item => { catalogo[item.nombre] = item; });
+  // IMPORTANTE: las zonas MANTIENEN el emoji en la clave para evitar colisión
+  // entre "🌸 Brazos" (Mujer, $20k) y "💪 Brazos" (Hombre, $22k)
+  const catDepi = config?.find(c => c.id === 'depilacion');
+  if (catDepi?.subservicios) {
+    for (const s of catDepi.subservicios) {
+      if (!s.activo) continue;
+      const esMujerZona  = s.nombre.startsWith('🌸');
+      const esHombreZona = s.nombre.startsWith('💪');
+      const esPromo      = s.nombre.startsWith('🎁') || s.nombre.startsWith('PROMO');
+      if (esMujerZona) {
+        // Clave = nombre con emoji para no colisionar con hombre
+        catalogo[s.nombre] = { nombre: s.nombre, nombreDisplay: s.nombre, detalle: '', precio: s.precio, categoria: 'depilacion_zona_mujer' };
+      } else if (esHombreZona) {
+        catalogo[s.nombre] = { nombre: s.nombre, nombreDisplay: s.nombre, detalle: '', precio: s.precio, categoria: 'depilacion_zona_hombre' };
+      } else if (esPromo && !s.nombre.includes('Hombre')) {
+        const clave = quitarEmoji(s.nombre);
+        catalogo[clave] = { nombre: clave, nombreDisplay: s.nombre, detalle: '', precio: s.precio, categoria: 'depilacion_mujer' };
+      } else if (esPromo && s.nombre.includes('Hombre')) {
+        const clave = quitarEmoji(s.nombre);
+        catalogo[clave] = { nombre: clave, nombreDisplay: s.nombre, detalle: '', precio: s.precio, categoria: 'depilacion_hombre' };
+      }
+    }
+  } else {
+    // Defaults si no hay config
+    DEFAULT_PROMOS.filter(p => !p.nombre.includes('Hombre')).forEach(p => { catalogo[p.nombre] = { ...p, categoria: 'depilacion_mujer' }; });
+    DEFAULT_PROMOS.filter(p =>  p.nombre.includes('Hombre')).forEach(p => { catalogo[p.nombre] = { ...p, categoria: 'depilacion_hombre' }; });
+  }
 
   // 2) Uñas (todos los subservicios activos)
   const itemsUnas = config
