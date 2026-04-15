@@ -476,48 +476,41 @@ export default function ConfiguracionServiciosPage() {
   const [tabActiva, setTabActiva]   = useState('unas');
   const [guardando, setGuardando]   = useState(false);
   const [mensaje, setMensaje]       = useState('');
+  const [cargado, setCargado]       = useState(false);
   const { mostrar } = useToast();
 
   useEffect(() => {
-    // Primero intenta cargar desde el servidor (fuente de verdad)
+    // 1. Carga localStorage inmediatamente (rápido)
+    try {
+      if (localStorage.getItem(LS_VERSION) === 'ok') {
+        const stored = localStorage.getItem(LS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as CategoriaServicio[];
+          setCategorias(parsed.map(c => ({ ...c, jornadas: c.jornadas ?? [] })));
+        }
+      }
+    } catch {}
+
+    // 2. Luego busca en el servidor (fuente de verdad)
     fetch('/api/admin/config')
       .then(r => r.json())
       .then(data => {
         if (data.ok && Array.isArray(data.datos) && data.datos.length > 0) {
-          const migradas = (data.datos as CategoriaServicio[]).map(c => ({
-            ...c, jornadas: c.jornadas ?? [],
-          }));
-          setCategorias(migradas);
-          try { localStorage.setItem(LS_KEY, JSON.stringify(migradas)); localStorage.setItem(LS_VERSION, 'ok'); } catch {}
-          return;
+          setCategorias(data.datos.map((c: CategoriaServicio) => ({ ...c, jornadas: c.jornadas ?? [] })));
         }
-        // Fallback a localStorage si el servidor no tiene datos
-        try {
-          const stored = localStorage.getItem(LS_KEY);
-          if (stored && localStorage.getItem(LS_VERSION) === 'ok') {
-            const parsed = JSON.parse(stored) as CategoriaServicio[];
-            setCategorias(parsed.map(c => ({ ...c, jornadas: c.jornadas ?? [] })));
-          }
-        } catch {}
       })
-      .catch(() => {
-        // Sin red — usar localStorage
-        try {
-          const stored = localStorage.getItem(LS_KEY);
-          if (stored && localStorage.getItem(LS_VERSION) === 'ok') {
-            const parsed = JSON.parse(stored) as CategoriaServicio[];
-            setCategorias(parsed.map(c => ({ ...c, jornadas: c.jornadas ?? [] })));
-          }
-        } catch {}
-      });
+      .catch(() => {})
+      .finally(() => setCargado(true));
   }, []);
 
+  // Guarda en localStorage — SOLO después de que cargó (no sobreescribe con INICIAL)
   useEffect(() => {
+    if (!cargado) return;
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(categorias));
       localStorage.setItem(LS_VERSION, 'ok');
     } catch {}
-  }, [categorias]);
+  }, [categorias, cargado]);
 
   const actualizarJornadas = (catId: string, jornadas: Jornada[]) =>
     setCategorias(prev => prev.map(c => c.id === catId ? { ...c, jornadas } : c));
