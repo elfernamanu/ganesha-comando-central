@@ -41,9 +41,9 @@ const INICIAL: CategoriaServicio[] = [
       { id: 6,  nombre: 'Retiro Capping',                          precio: 5000,  activo: true },
       { id: 7,  nombre: 'Belleza de Pies con Tradicional',         precio: 20000, activo: true },
       { id: 8,  nombre: 'Belleza de Pies con Semi',                precio: 22000, activo: true },
-      { id: 9,  nombre: '🎁 PROMO: Semi + Belleza de Manos',       precio: 28000, activo: true },
-      { id: 10, nombre: '🎁 PROMO: Capping + Belleza de Pies',     precio: 38000, activo: true },
-      { id: 11, nombre: '🎁 PROMO: Semi Manos + Pies',             precio: 35000, activo: true },
+      { id: 9,  nombre: 'PROMO UÑAS 1: Semi + Belleza de Manos',   precio: 28000, activo: true },
+      { id: 10, nombre: 'PROMO UÑAS 2: Capping + Belleza de Pies', precio: 38000, activo: true },
+      { id: 11, nombre: 'PROMO UÑAS 3: Semi Manos + Pies',         precio: 35000, activo: true },
     ],
   },
   {
@@ -86,14 +86,14 @@ const INICIAL: CategoriaServicio[] = [
       { id: 33, nombre: '💪 Dedos',             precio: 11000, activo: true },
       { id: 34, nombre: '💪 Empeine',           precio: 12000, activo: true },
       // 🎁 PROMOS
-      { id: 35, nombre: '🎁 PROMO 1: Rostro completo (Mujer)',     precio: 20500, activo: true },
-      { id: 36, nombre: '🎁 PROMO 2: Cavado + Tira de cola',       precio: 22500, activo: true },
-      { id: 37, nombre: '🎁 PROMO 3: Cuerpo completo sin rostro',  precio: 33000, activo: true },
-      { id: 38, nombre: '🎁 PROMO 4: Pecho y Abdomen (Hombre)',    precio: 26500, activo: true },
-      { id: 39, nombre: '🎁 PROMO 5: Pelvis y Tira (Hombre)',      precio: 27000, activo: true },
-      { id: 40, nombre: '🎁 PROMO 6: Rostro completo (Hombre)',    precio: 24000, activo: true },
-      { id: 41, nombre: '🎁 PROMO 7: Cuerpo completo (Hombre)',    precio: 41000, activo: true },
-      { id: 42, nombre: '🎁 PROMO 8: Brazos y Axilas (Hombre)',    precio: 30000, activo: true },
+      { id: 35, nombre: 'PROMO DEPI 1: Rostro completo (Mujer)',    precio: 20500, activo: true },
+      { id: 36, nombre: 'PROMO DEPI 2: Cavado + Tira de cola',     precio: 22500, activo: true },
+      { id: 37, nombre: 'PROMO DEPI 3: Cuerpo completo sin rostro',precio: 33000, activo: true },
+      { id: 38, nombre: 'PROMO DEPI 4: Pecho y Abdomen (Hombre)',  precio: 26500, activo: true },
+      { id: 39, nombre: 'PROMO DEPI 5: Pelvis y Tira (Hombre)',    precio: 27000, activo: true },
+      { id: 40, nombre: 'PROMO DEPI 6: Rostro completo (Hombre)',  precio: 24000, activo: true },
+      { id: 41, nombre: 'PROMO DEPI 7: Cuerpo completo (Hombre)',  precio: 41000, activo: true },
+      { id: 42, nombre: 'PROMO DEPI 8: Brazos y Axilas (Hombre)',  precio: 30000, activo: true },
     ],
   },
   {
@@ -114,7 +114,7 @@ const INICIAL: CategoriaServicio[] = [
 ];
 
 const LS_KEY     = 'ganesha_config_servicios';
-const LS_VERSION = 'ganesha_config_v4';      // v4: fuerza recarga desde servidor
+const LS_VERSION = 'ganesha_config_v5';      // v5: promos renombrados + emojis limpios
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatFechaLabel(f: string): string {
