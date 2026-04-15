@@ -299,16 +299,34 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
   React.useEffect(() => { setPrecio(formatPrecio(s.precio)); }, [s.precio]);
 
   const esPromo = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
+  const [editando, setEditando] = React.useState(false);
+  // Separar código y descripción: "PROMO DEPI 1: Rostro completo" → ["PROMO DEPI 1", "Rostro completo"]
+  const colonIdx = nombre.indexOf(':');
+  const codigoPromo = colonIdx > -1 ? nombre.slice(0, colonIdx).trim() : nombre;
+  const descPromo   = colonIdx > -1 ? nombre.slice(colonIdx + 1).trim() : '';
+
   return (
     <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
-      <input
-        value={nombre}
-        title={nombre}
-        onFocus={e => e.target.select()}
-        onChange={e => setNombre(e.target.value)}
-        onBlur={() => onActualizar(catId, s.id, 'nombre', nombre)}
-        className={`flex-1 min-w-0 text-[11px] font-semibold bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 truncate ${esPromo ? 'text-amber-700 dark:text-amber-400' : ''}`}
-      />
+      {esPromo && !editando ? (
+        <div
+          className="flex-1 min-w-0 flex flex-col cursor-text py-0.5"
+          onClick={() => setEditando(true)}
+          title={nombre}
+        >
+          <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 leading-tight">{codigoPromo}</span>
+          {descPromo && <span className="text-[9px] text-amber-600 dark:text-amber-500 leading-tight truncate">{descPromo}</span>}
+        </div>
+      ) : (
+        <input
+          value={nombre}
+          title={nombre}
+          autoFocus={editando}
+          onFocus={e => e.target.select()}
+          onChange={e => setNombre(e.target.value)}
+          onBlur={() => { onActualizar(catId, s.id, 'nombre', nombre); setEditando(false); }}
+          className={`flex-1 min-w-0 text-[11px] font-semibold bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 truncate ${esPromo ? 'text-amber-700 dark:text-amber-400' : ''}`}
+        />
+      )}
       <span className="text-[9px] text-slate-400 shrink-0">$</span>
       <input
         type="text" inputMode="numeric"
@@ -375,10 +393,13 @@ function ListaPrecios({
       ].filter(g => g.items.length > 0)
     : null;
 
-  // Grupos para uñas (servicios base + promos)
-  const gruposUnas = esUnas ? [
-    { label: 'Servicios', prefijo: '',      items: subservicios.filter(s => !esPromoNombre(s.nombre)) },
-    { label: 'Promos',    prefijo: 'PROMO', items: subservicios.filter(s => esPromoNombre(s.nombre)) },
+  // Grupos para uñas y demás: servicios + promos en 2 columnas
+  const promoPrefijoPorCat: Record<string, string> = {
+    unas: 'PROMO UÑAS', estetica: 'PROMO EST', pestanas: 'PROMO PEST',
+  };
+  const gruposUnas = !esDepilacion ? [
+    { label: 'SERVICIOS', prefijo: '',      items: subservicios.filter(s => !esPromoNombre(s.nombre)) },
+    { label: 'PROMOS',    prefijo: promoPrefijoPorCat[catId] ?? 'PROMO', items: subservicios.filter(s => esPromoNombre(s.nombre)) },
   ].filter(g => g.items.length > 0) : null;
 
   return (
@@ -408,29 +429,24 @@ function ListaPrecios({
               + Promo
             </button>
           </div>
-        ) : esUnas ? (
+        ) : (
           <div className="flex gap-1">
             <button onClick={() => onAgregar(catId)}
               className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 hover:bg-emerald-200 transition-colors">
               + Servicio
             </button>
-            <button onClick={() => onAgregarConPrefijo(catId, 'PROMO UÑAS')}
+            <button onClick={() => onAgregarConPrefijo(catId, promoPrefijoPorCat[catId] ?? 'PROMO')}
               className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 hover:bg-amber-200 transition-colors">
               + Promo
             </button>
           </div>
-        ) : (
-          <button onClick={() => onAgregar(catId)}
-            className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-700 hover:bg-emerald-200 transition-colors">
-            + Agregar
-          </button>
         )}
       </div>
 
       {mostrar && (
         <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
           {/* ── Con grupos: 3 columnas paralelas ── */}
-          {(esDepilacion && grupos) || (esUnas && gruposUnas) ? (
+          {(esDepilacion && grupos) || (!esDepilacion && gruposUnas) ? (
             <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 ${
               (esDepilacion ? grupos! : gruposUnas!).length === 3
                 ? 'grid-cols-3'
@@ -438,7 +454,7 @@ function ListaPrecios({
                   ? 'grid-cols-2'
                   : 'grid-cols-1'
             }`}>
-              {(esDepilacion ? grupos! : gruposUnas!).map(grupo => (
+              {(esDepilacion ? grupos! : gruposUnas!).filter(g => g.items.length > 0).map(grupo => (
                 <div key={grupo.label} className="flex flex-col">
                   {/* Header de columna */}
                   <div className="flex items-center justify-between px-2 py-1 bg-slate-100 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 sticky top-0">

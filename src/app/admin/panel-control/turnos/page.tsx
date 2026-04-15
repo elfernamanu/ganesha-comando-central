@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useTurnos } from './hooks/useTurnos';
 import TurnosTable from './components/TurnosTable';
@@ -35,6 +35,7 @@ function useFechasHabilitadas() {
 
 function TurnosContent() {
   const params = useSearchParams();
+  const router = useRouter();
   // Fecha LOCAL — no UTC (evita mostrar el día siguiente pasada las 21hs en Argentina)
   const d = new Date();
   const hoy = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -44,6 +45,18 @@ function TurnosContent() {
   const { turnos, totales, mensaje, guardando, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(fecha);
 
   const fechasHabilitadas = useFechasHabilitadas();
+
+  // Auto-navegar a la próxima fecha con jornada si hoy no tiene ninguna
+  useEffect(() => {
+    if (params.get('fecha')) return; // ya hay fecha en URL, no redirigir
+    if (fechasHabilitadas.length === 0) return; // todavía cargando
+    const tieneFechaHoy = fechasHabilitadas.some(f => f.fecha === hoy);
+    if (!tieneFechaHoy) {
+      // Ir a la próxima fecha habilitada
+      const proxima = fechasHabilitadas.find(f => f.fecha >= hoy);
+      if (proxima) router.replace(`/admin/panel-control/turnos?fecha=${proxima.fecha}`);
+    }
+  }, [fechasHabilitadas, hoy, params, router]);
   const fechaLabel = new Date(fecha + 'T12:00:00')
     .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
 import { useToast } from '@/components/Toast';
 import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
@@ -9,12 +10,41 @@ import { formatearDinero, formatearFecha, formatearHora } from './utils/formatte
 import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
 
-export default function CajaPage() {
+// Fechas habilitadas desde config de servicios (igual que en Turnos)
+function useFechasHabilitadas() {
+  const [fechas, setFechas] = useState<{ fecha: string; servicios: string[] }[]>([]);
+  useEffect(() => {
+    fetch('/api/admin/config', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok || !Array.isArray(data.datos)) return;
+        const mapa: Record<string, string[]> = {};
+        for (const cat of data.datos) {
+          for (const j of (cat.jornadas ?? [])) {
+            if (j.activa) {
+              if (!mapa[j.fecha]) mapa[j.fecha] = [];
+              mapa[j.fecha].push(cat.nombre);
+            }
+          }
+        }
+        const resultado = Object.entries(mapa)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([fecha, servicios]) => ({ fecha, servicios }));
+        setFechas(resultado);
+      })
+      .catch(() => {});
+  }, []);
+  return fechas;
+}
+
+function CajaContent() {
+  const params = useSearchParams();
   // Fecha LOCAL (no UTC) — en Argentina a las 23:30 UTC sería el día siguiente
-  const hoy = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  const d = new Date();
+  const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const fecha = params.get('fecha') ?? hoy;
+  const esHoy = fecha === hoy;
+
   const { mostrar } = useToast();
 
   const {
@@ -30,21 +60,34 @@ export default function CajaPage() {
     reabrirDia,
     cargarTurnos,
     recuperarReporte,
-  } = useCajaDiaria(hoy);
+  } = useCajaDiaria(fecha);
 
   // ── Estado local para recuperar reporte ──
   const [fechaRecuperar, setFechaRecuperar] = useState('');
   const [recuperando, setRecuperando] = useState(false);
   const [mensajeRecuperar, setMensajeRecuperar] = useState('');
 
+  const fechasHabilitadas = useFechasHabilitadas();
+
+  // Fecha anterior y siguiente
+  const fechaObj = new Date(fecha + 'T12:00:00');
+  const prevDate = new Date(fechaObj); prevDate.setDate(prevDate.getDate() - 1);
+  const nextDate = new Date(fechaObj); nextDate.setDate(nextDate.getDate() + 1);
+  const prevStr = prevDate.toISOString().split('T')[0];
+  const nextStr = nextDate.toISOString().split('T')[0];
+
+  const fechaLabel = new Date(fecha + 'T12:00:00')
+    .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+    .replace(/^\w/, c => c.toUpperCase());
+
   // Cerrar + guardar + descargar .txt — todo en uno
   const handleCerrarYGuardar = async () => {
     const ok = await cerrarYGuardar();
     if (ok) {
       mostrar('Caja cerrada y guardada', 'exito', 'El resumen del día llegó al servidor ✓');
-      setFechaRecuperar(hoy);
-      const contenido = generarReporteTxt(hoy, turnos, gastos, totales);
-      descargarReporte(contenido, hoy);
+      setFechaRecuperar(fecha);
+      const contenido = generarReporteTxt(fecha, turnos, gastos, totales);
+      descargarReporte(contenido, fecha);
     } else {
       mostrar('Error al guardar caja', 'error', 'Verificá la conexión con el servidor');
     }
@@ -52,8 +95,8 @@ export default function CajaPage() {
 
   // Solo descargar .txt del día actual (sin cerrar)
   const handleDescargarHoy = () => {
-    const contenido = generarReporteTxt(hoy, turnos, gastos, totales);
-    descargarReporte(contenido, hoy);
+    const contenido = generarReporteTxt(fecha, turnos, gastos, totales);
+    descargarReporte(contenido, fecha);
   };
 
   // Recuperar reporte de un día pasado desde PostgreSQL
@@ -87,11 +130,17 @@ export default function CajaPage() {
       {/* ── Header ── */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-xl font-bold">💰 Control de Caja</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {formatearFecha(new Date(hoy + 'T00:00:00'))}
+          <h1 className="hidden md:block text-xl font-bold">💰 Control de Caja</h1>
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2 flex-wrap">
+            {fechaLabel}
+            {!esHoy && (
+              <Link href="/admin/panel-control/caja"
+                className="text-xs text-violet-600 dark:text-violet-400 font-bold hover:underline">
+                → Ir a hoy
+              </Link>
+            )}
             {estadoCaja === 'cerrada' && (
-              <span className="ml-2 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full font-semibold">
+              <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full font-semibold">
                 🔒 Cerrada
               </span>
             )}
@@ -112,6 +161,52 @@ export default function CajaPage() {
             ← Panel
           </Link>
         </div>
+      </div>
+
+      {/* ── Fechas habilitadas — acceso rápido ── */}
+      {fechasHabilitadas.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {fechasHabilitadas.map(({ fecha: f, servicios }) => {
+            const esSeleccionada = f === fecha;
+            const label = new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+            return (
+              <Link key={f} href={`/admin/panel-control/caja?fecha=${f}`}
+                className={`flex flex-col items-center px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                  esSeleccionada
+                    ? 'bg-violet-600 text-white border-violet-600 shadow'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-violet-400'
+                }`}>
+                <span className="text-[11px] font-extrabold">{label}</span>
+                <span className="text-[9px] font-medium opacity-80">{servicios.join(' · ')}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Navegación entre días ── */}
+      <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-800 rounded-2xl px-3 py-2 border border-slate-100 dark:border-slate-700 shadow-sm">
+        <Link
+          href={`/admin/panel-control/caja?fecha=${prevStr}`}
+          className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+          Anterior
+        </Link>
+        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-wide uppercase">
+          {esHoy ? '📅 Hoy' : fecha}
+        </span>
+        <Link
+          href={`/admin/panel-control/caja?fecha=${nextStr}`}
+          className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all"
+        >
+          Siguiente
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9,18 15,12 9,6"/>
+          </svg>
+        </Link>
       </div>
 
       {/* ── Mensaje feedback ── */}
@@ -304,5 +399,18 @@ export default function CajaPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function CajaPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+        <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+        <p className="text-sm font-medium">Cargando caja...</p>
+      </div>
+    }>
+      <CajaContent />
+    </Suspense>
   );
 }
