@@ -3,8 +3,8 @@ import { query } from '@/lib/db';
 
 /**
  * POST /api/admin/config
- * Guarda la configuración de servicios desde el panel de administración.
- * No requiere token externo — el panel ya tiene autenticación por PIN.
+ * Guarda la configuración de servicios. Siempre 1 sola fila (id=1).
+ * Limpia automáticamente filas basura de versiones anteriores.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const json = JSON.stringify(datos);
 
-    // UPSERT: inserta si no existe ninguna fila, de lo contrario actualiza
+    // UPSERT: siempre id=1, 1 sola fila, nunca acumula
     await query(
       `INSERT INTO config_servicios (id, datos, actualizado_at)
        VALUES (1, $1::jsonb, NOW())
@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
        DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = EXCLUDED.actualizado_at`,
       [json]
     );
+
+    // Limpia filas basura que no son id=1 (acumuladas por bugs anteriores)
+    await query('DELETE FROM config_servicios WHERE id != 1');
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -32,11 +35,10 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/admin/config
- * Lee la configuración de servicios desde la base de datos.
+ * Lee siempre la fila id=1.
  */
 export async function GET() {
   try {
-    // Siempre lee la fila id=1 (la única que usamos)
     const rows = await query<{ datos: unknown }>(
       'SELECT datos FROM config_servicios WHERE id = 1'
     );

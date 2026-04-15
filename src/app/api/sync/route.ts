@@ -38,6 +38,11 @@ export async function POST(req: NextRequest) {
       [fecha, JSON.stringify(datos)]
     );
 
+    // Limpia automáticamente turnos con más de 90 días (evita acumulación infinita)
+    await query(
+      `DELETE FROM turnos WHERE fecha < (CURRENT_DATE - INTERVAL '90 days')::text`
+    );
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false }, { status: 500 });
