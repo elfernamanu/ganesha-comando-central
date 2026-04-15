@@ -98,6 +98,10 @@ export function useCajaDiaria(fecha: string) {
   const [syncGastos, setSyncGastos] = useState<'idle' | 'guardando' | 'guardado' | 'error'>('idle');
   // Ref: bloquea auto-save hasta que el servidor respondió (evita sobrescribir con [] vacío)
   const serverCargado = useRef(false);
+  // Ref: espejo del estado cerrada para closures (evita stale state en programarGuardadoGastos)
+  const estadoCajaRef = useRef<'abierta' | 'cerrada'>('abierta');
+  // Ref: bloquea auto-save durante el proceso de cierre (evita race condition)
+  const isClosing = useRef(false);
   // Ref: timer de debounce para auto-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref: timer para limpiar el ✓ guardado después de mostrarlo
@@ -116,7 +120,10 @@ export function useCajaDiaria(fecha: string) {
             setGastos(data.gastos);
             try { localStorage.setItem(lsGastosKey, JSON.stringify(data.gastos)); } catch { /* silencioso */ }
           }
-          if (data.cerrada) setEstadoCaja('cerrada');
+          if (data.cerrada) {
+            setEstadoCaja('cerrada');
+            estadoCajaRef.current = 'cerrada';
+          }
         }
         // Si no existe en el servidor todavía, nos quedamos con localStorage (o [])
         serverCargado.current = true;
@@ -129,7 +136,9 @@ export function useCajaDiaria(fecha: string) {
 
   // Auto-save gastos al servidor (parcial — no toca cerrada ni turnos)
   function programarGuardadoGastos(gastosActuales: Gasto[]) {
-    if (!serverCargado.current) return; // no guardar antes de cargar del servidor
+    if (!serverCargado.current) return;        // no guardar antes de cargar del servidor
+    if (estadoCajaRef.current === 'cerrada') return; // no tocar una caja ya cerrada
+    if (isClosing.current) return;             // no auto-save durante el proceso de cierre
     // Guardar en localStorage inmediatamente
     try { localStorage.setItem(lsGastosKey, JSON.stringify(gastosActuales)); } catch { /* silencioso */ }
     // Indicador visual: "guardando..."
@@ -183,16 +192,21 @@ export function useCajaDiaria(fecha: string) {
   const totales = useMemo<TotalesCaja>(() => {
     const presentes = turnos.filter(t => t.asistencia === 'presente');
 
+    // Generan ingreso: presentes + ausentes que pagaron seña (seña retenida)
     const conIngreso = turnos.filter(t =>
       t.asistencia === 'presente' ||
-      (t.asistencia === 'no_vino' && (t.seña_pagada || 0) > 0)
+      (t.asistencia === 'no_vino' && (t.seña_pagada ?? 0) > 0)
     );
 
-    const ingresos_totales = conIngreso.reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const efectivo         = conIngreso.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const transferencia    = conIngreso.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const otro             = conIngreso.filter(t => t.metodo_pago === 'otro').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const gastos_totales   = gastos.reduce((sum, g) => sum + (g.monto || 0), 0);
+    // Null safety: (t.seña_pagada ?? 0) evita NaN si el campo viene undefined/null
+    const seña = (t: typeof turnos[0]) => Math.max(0, t.seña_pagada ?? 0);
+
+    const ingresos_totales = conIngreso.reduce((sum, t) => sum + seña(t), 0);
+    const efectivo         = conIngreso.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + seña(t), 0);
+    const transferencia    = conIngreso.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + seña(t), 0);
+    // 'otro' incluye métodos no reconocidos → suma residual para que efectivo+transf+otro = ingresos_totales
+    const otro             = ingresos_totales - efectivo - transferencia;
+    const gastos_totales   = gastos.reduce((sum, g) => sum + Math.max(0, g.monto ?? 0), 0);
 
     return {
       ingresos_totales,
@@ -218,8 +232,11 @@ export function useCajaDiaria(fecha: string) {
     setGuardando(true);
     setMensaje('');
 
+    // Bloquear auto-save durante el cierre para evitar race condition
+    isClosing.current = true;
     // Cancelar cualquier auto-save pendiente (ya vamos a hacer el save completo)
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (syncTimer.current) clearTimeout(syncTimer.current);
 
     try {
       const res = await fetch('/api/caja', {
@@ -238,18 +255,22 @@ export function useCajaDiaria(fecha: string) {
       const data = await res.json();
 
       if (res.ok && data.ok) {
+        estadoCajaRef.current = 'cerrada'; // sincronizar ref antes del state
         setEstadoCaja('cerrada');
+        setSyncGastos('idle');
         setMensaje(`✅ ${data.mensaje ?? 'Caja cerrada y guardada'}`);
         setGuardando(false);
         setTimeout(() => setMensaje(''), 7000);
         return true;
       } else {
+        isClosing.current = false; // falló → permitir auto-save de nuevo
         setMensaje('⚠️ Error al guardar — verificá la conexión con el servidor');
         setGuardando(false);
         setTimeout(() => setMensaje(''), 7000);
         return false;
       }
     } catch {
+      isClosing.current = false; // falló → permitir auto-save de nuevo
       setMensaje('⚠️ Sin conexión al servidor');
       setGuardando(false);
       setTimeout(() => setMensaje(''), 7000);
@@ -257,7 +278,11 @@ export function useCajaDiaria(fecha: string) {
     }
   };
 
-  const reabrirDia = () => setEstadoCaja('abierta');
+  const reabrirDia = () => {
+    estadoCajaRef.current = 'abierta';
+    isClosing.current = false;
+    setEstadoCaja('abierta');
+  };
 
   // ========================================
   // RECUPERAR REPORTE HISTÓRICO DE POSTGRESQL

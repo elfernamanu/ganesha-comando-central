@@ -110,14 +110,18 @@ export async function POST(req: NextRequest) {
     } else {
       // ── Auto-guardado parcial: solo gastos del día ─────────────────────────
       // Usa || (merge JSONB) para actualizar solo el campo 'gastos' en datos.
-      // Nunca cambia cerrada — si estaba true, queda true.
+      // NUNCA cambia cerrada — si estaba true, queda true.
+      // NUNCA toca datos si la caja ya está cerrada (protege el snapshot histórico).
       const parche = JSON.stringify({ gastos: gastos ?? [] });
 
       await query(
         `INSERT INTO caja_diaria (fecha, datos, cerrada, actualizado)
          VALUES ($1, $2::jsonb, false, NOW())
          ON CONFLICT (fecha) DO UPDATE
-           SET datos       = caja_diaria.datos || $2::jsonb,
+           SET datos       = CASE
+                               WHEN caja_diaria.cerrada THEN caja_diaria.datos
+                               ELSE caja_diaria.datos || $2::jsonb
+                             END,
                actualizado = NOW()`,
         [fecha, parche]
       );
