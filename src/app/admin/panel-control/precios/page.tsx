@@ -114,7 +114,7 @@ const INICIAL: CategoriaServicio[] = [
 ];
 
 const LS_KEY     = 'ganesha_config_servicios';
-const LS_VERSION = 'ganesha_config_v3';      // Bump al cambiar INICIAL
+const LS_VERSION = 'ganesha_config_v4';      // v4: fuerza recarga desde servidor
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatFechaLabel(f: string): string {
