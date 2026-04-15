@@ -14,19 +14,14 @@ export async function POST(req: NextRequest) {
 
     const json = JSON.stringify(datos);
 
-    // Intenta actualizar la fila existente
-    const updated = await query<{ id: number }>(
-      'UPDATE config_servicios SET datos = $1::jsonb, actualizado_at = NOW() RETURNING id',
+    // UPSERT: inserta si no existe ninguna fila, de lo contrario actualiza
+    await query(
+      `INSERT INTO config_servicios (id, datos, actualizado_at)
+       VALUES (1, $1::jsonb, NOW())
+       ON CONFLICT (id)
+       DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = EXCLUDED.actualizado_at`,
       [json]
     );
-
-    // Si no había fila, la crea
-    if (updated.length === 0) {
-      await query(
-        'INSERT INTO config_servicios (datos, actualizado_at) VALUES ($1::jsonb, NOW())',
-        [json]
-      );
-    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
