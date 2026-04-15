@@ -12,21 +12,26 @@ export async function POST(req: NextRequest) {
     const { datos } = body;
     if (!datos) return NextResponse.json({ ok: false, error: 'Sin datos' }, { status: 400 });
 
-    await query(
-      `INSERT INTO config_servicios (datos, actualizado_at)
-       VALUES ($1::jsonb, NOW())
-       ON CONFLICT DO NOTHING`,
-      [JSON.stringify(datos)]
+    const json = JSON.stringify(datos);
+
+    // Intenta actualizar la fila existente
+    const updated = await query<{ id: number }>(
+      'UPDATE config_servicios SET datos = $1::jsonb, actualizado_at = NOW() RETURNING id',
+      [json]
     );
-    await query(
-      'UPDATE config_servicios SET datos = $1::jsonb, actualizado_at = NOW()',
-      [JSON.stringify(datos)]
-    );
+
+    // Si no había fila, la crea
+    if (updated.length === 0) {
+      await query(
+        'INSERT INTO config_servicios (datos, actualizado_at) VALUES ($1::jsonb, NOW())',
+        [json]
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[POST /api/admin/config]', err);
-    return NextResponse.json({ ok: false, error: 'Error en base de datos' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }
 

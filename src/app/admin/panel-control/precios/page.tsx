@@ -479,27 +479,37 @@ export default function ConfiguracionServiciosPage() {
   const { mostrar } = useToast();
 
   useEffect(() => {
-    try {
-      // Si la versión del localStorage es diferente a la actual,
-      // los datos son viejos → limpiar y arrancar con INICIAL fresco.
-      const version = localStorage.getItem(LS_VERSION);
-      if (version !== 'ok') {
-        localStorage.removeItem(LS_KEY);
-        localStorage.setItem(LS_VERSION, 'ok');
-        return; // usa INICIAL (valor por defecto del useState)
-      }
-
-      const stored = localStorage.getItem(LS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as CategoriaServicio[];
-        // Migración suave: asegurar que cada categoría tiene jornadas (array)
-        const migradas = parsed.map(c => ({
-          ...c,
-          jornadas: c.jornadas ?? [],
-        }));
-        setCategorias(migradas);
-      }
-    } catch {}
+    // Primero intenta cargar desde el servidor (fuente de verdad)
+    fetch('/api/admin/config')
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok && Array.isArray(data.datos) && data.datos.length > 0) {
+          const migradas = (data.datos as CategoriaServicio[]).map(c => ({
+            ...c, jornadas: c.jornadas ?? [],
+          }));
+          setCategorias(migradas);
+          try { localStorage.setItem(LS_KEY, JSON.stringify(migradas)); localStorage.setItem(LS_VERSION, 'ok'); } catch {}
+          return;
+        }
+        // Fallback a localStorage si el servidor no tiene datos
+        try {
+          const stored = localStorage.getItem(LS_KEY);
+          if (stored && localStorage.getItem(LS_VERSION) === 'ok') {
+            const parsed = JSON.parse(stored) as CategoriaServicio[];
+            setCategorias(parsed.map(c => ({ ...c, jornadas: c.jornadas ?? [] })));
+          }
+        } catch {}
+      })
+      .catch(() => {
+        // Sin red — usar localStorage
+        try {
+          const stored = localStorage.getItem(LS_KEY);
+          if (stored && localStorage.getItem(LS_VERSION) === 'ok') {
+            const parsed = JSON.parse(stored) as CategoriaServicio[];
+            setCategorias(parsed.map(c => ({ ...c, jornadas: c.jornadas ?? [] })));
+          }
+        } catch {}
+      });
   }, []);
 
   useEffect(() => {
