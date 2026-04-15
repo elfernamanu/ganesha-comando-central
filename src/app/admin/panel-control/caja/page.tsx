@@ -1,14 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
+import { useGastosFijos } from './hooks/useGastosFijos';
 import { useToast } from '@/components/Toast';
 import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
 import { formatearDinero, formatearFecha, formatearHora } from './utils/formatters';
 import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
+import PanelGastosFijos from './components/PanelGastosFijos';
+import SugerenciaPago from './components/SugerenciaPago';
+import type { GastoFijo } from './hooks/useGastosFijos';
 
 // Fechas habilitadas desde config de servicios (igual que en Turnos)
 function useFechasHabilitadas() {
@@ -62,6 +66,55 @@ function CajaContent() {
     recuperarReporte,
   } = useCajaDiaria(fecha);
 
+  const {
+    empresa: gastosFijosEmpresa,
+    personal: gastosFijosPersonal,
+    agregarEmpresa,
+    agregarPersonal,
+    pagarGasto: pagarGastoFijo,
+    resetearGasto,
+    eliminarGasto: eliminarGastoFijo,
+    actualizarMonto,
+    actualizarNombre,
+    totalPendienteEmpresa,
+    totalPendientePersonal,
+  } = useGastosFijos();
+
+  // ── Sugerencia de pago ──
+  const [sugerencia, setSugerencia] = useState<{
+    visible: boolean;
+    montoPagado: number;
+    clienteNombre: string;
+  } | null>(null);
+
+  // Detecta cuando un turno cambia a "presente" con pago
+  const turnosAnteriorRef = useRef<typeof turnos>([]);
+  useEffect(() => {
+    const anterior = turnosAnteriorRef.current;
+    if (anterior.length === 0) {
+      turnosAnteriorRef.current = turnos;
+      return;
+    }
+    for (const t of turnos) {
+      const prev = anterior.find(p => p.id === t.id);
+      if (
+        t.asistencia === 'presente' &&
+        (t.seña_pagada ?? 0) > 0 &&
+        (!prev || prev.asistencia !== 'presente' || (prev.seña_pagada ?? 0) !== (t.seña_pagada ?? 0))
+      ) {
+        const pendientes: GastoFijo[] = [
+          ...gastosFijosEmpresa.filter(g => !g.pagado),
+          ...gastosFijosPersonal.filter(g => !g.pagado),
+        ];
+        if (pendientes.length > 0) {
+          setSugerencia({ visible: true, montoPagado: t.seña_pagada ?? 0, clienteNombre: t.clienteNombre });
+        }
+        break;
+      }
+    }
+    turnosAnteriorRef.current = turnos;
+  }, [turnos, gastosFijosEmpresa, gastosFijosPersonal]);
+
   // ── Estado local para recuperar reporte ──
   const [fechaRecuperar, setFechaRecuperar] = useState('');
   const [recuperando, setRecuperando] = useState(false);
@@ -86,7 +139,7 @@ function CajaContent() {
     if (ok) {
       mostrar('Caja cerrada y guardada', 'exito', 'El resumen del día llegó al servidor ✓');
       setFechaRecuperar(fecha);
-      const contenido = generarReporteTxt(fecha, turnos, gastos, totales);
+      const contenido = generarReporteTxt(fecha, turnos, gastos, totales, gastosFijosEmpresa, gastosFijosPersonal);
       descargarReporte(contenido, fecha);
     } else {
       mostrar('Error al guardar caja', 'error', 'Verificá la conexión con el servidor');
@@ -95,7 +148,7 @@ function CajaContent() {
 
   // Solo descargar .txt del día actual (sin cerrar)
   const handleDescargarHoy = () => {
-    const contenido = generarReporteTxt(fecha, turnos, gastos, totales);
+    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, gastosFijosEmpresa, gastosFijosPersonal);
     descargarReporte(contenido, fecha);
   };
 
@@ -231,8 +284,8 @@ function CajaContent() {
           <span className="text-[10px] text-slate-400 ml-auto">{gastos.length} gs.</span>
         </div>
         <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
-          <span className={`text-[10px] font-bold uppercase shrink-0 ${totales.ganancia_neta >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
-          <span className={`text-xs font-bold font-mono ${totales.ganancia_neta >= 0 ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(totales.ganancia_neta)}</span>
+          <span className={`text-[10px] font-bold uppercase shrink-0 ${totales.ganancia_neta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
+          <span className={`text-xs font-bold font-mono ${totales.ganancia_neta >= 0 ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(totales.ganancia_neta)}</span>
         </div>
       </div>
 
@@ -317,6 +370,21 @@ function CajaContent() {
         )}
       </section>
 
+      {/* ── Gastos Fijos (empresa + personal) ── */}
+      <PanelGastosFijos
+        empresa={gastosFijosEmpresa}
+        personal={gastosFijosPersonal}
+        onPagar={pagarGastoFijo}
+        onReset={resetearGasto}
+        onEliminar={eliminarGastoFijo}
+        onActualizarMonto={actualizarMonto}
+        onActualizarNombre={actualizarNombre}
+        onAgregarEmpresa={agregarEmpresa}
+        onAgregarPersonal={agregarPersonal}
+        totalPendienteEmpresa={totalPendienteEmpresa}
+        totalPendientePersonal={totalPendientePersonal}
+      />
+
       {/* ── Gastos del día ── */}
       <section>
         <GastosForm onAgregar={agregarGasto} />
@@ -397,6 +465,20 @@ function CajaContent() {
       </div>
 
       </div>
+
+      {/* ── Sugerencia de pago a gastos fijos ── */}
+      {sugerencia?.visible && (
+        <SugerenciaPago
+          montoPagado={sugerencia.montoPagado}
+          clienteNombre={sugerencia.clienteNombre}
+          gastosPendientes={[
+            ...gastosFijosEmpresa.filter(g => !g.pagado),
+            ...gastosFijosPersonal.filter(g => !g.pagado),
+          ]}
+          onAplicar={pagarGastoFijo}
+          onCerrar={() => setSugerencia(null)}
+        />
+      )}
 
     </div>
   );

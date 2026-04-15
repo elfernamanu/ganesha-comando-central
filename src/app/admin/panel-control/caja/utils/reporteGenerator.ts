@@ -1,5 +1,6 @@
 import type { TurnoSecretaria, TotalesCaja } from '../hooks/useCajaDiaria';
 import type { Gasto } from '../types/index';
+import type { GastoFijo } from '../hooks/useGastosFijos';
 import { formatearDinero, formatearFecha, formatearHora } from './formatters';
 import { desglosarGastos } from './calculosCaja';
 
@@ -11,7 +12,9 @@ export function generarReporteTxt(
   fecha: string,
   turnos: TurnoSecretaria[],
   gastos: Gasto[],
-  totales: TotalesCaja
+  totales: TotalesCaja,
+  gastosEmpresa?: GastoFijo[],
+  gastosPersonal?: GastoFijo[]
 ): string {
   const fechaFormateada = formatearFecha(new Date(fecha + 'T00:00:00'));
   const desglose = desglosarGastos(gastos);
@@ -48,6 +51,37 @@ export function generarReporteTxt(
         .map((g, i) => `${i + 1}. ${g.concepto}: ${formatearDinero(g.monto)}`)
         .join('\n');
 
+  // Secciones de gastos fijos (opcionales)
+  const seccionEmpresa = gastosEmpresa && gastosEmpresa.length > 0
+    ? [
+        '',
+        `${linea}`,
+        '💼 GASTOS EMPRESA (FIJOS)',
+        sublin,
+        ...gastosEmpresa.map(g => {
+          const estado = g.pagado
+            ? '✓ PAGADO'
+            : `${formatearDinero(g.montoAcumulado)} pagado / ${formatearDinero(g.montoTotal)} total`;
+          return `  ${g.nombre}: ${estado}`;
+        }),
+      ].join('\n')
+    : '';
+
+  const seccionPersonal = gastosPersonal && gastosPersonal.length > 0
+    ? [
+        '',
+        '🏠 GASTOS PERSONALES — Mirian G. Francolino',
+        sublin,
+        ...gastosPersonal.map(g => {
+          const estado = g.pagado
+            ? '✓ PAGADO'
+            : `${formatearDinero(g.montoAcumulado)} pagado / ${formatearDinero(g.montoTotal)} total`;
+          return `  ${g.nombre}: ${estado}`;
+        }),
+        linea,
+      ].join('\n')
+    : '';
+
   return `
 ${linea}
    GANESHA ESTHETIC — CIERRE DE CAJA
@@ -73,6 +107,7 @@ Desglose de gastos:
   Alquiler:  ${formatearDinero(desglose.alquiler)}
   Servicios: ${formatearDinero(desglose.servicios)}
   Otros:     ${formatearDinero(desglose.otros)}
+${seccionEmpresa}${seccionPersonal}
 
 ${linea}
 📊 RESUMEN FINANCIERO
