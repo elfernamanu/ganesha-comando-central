@@ -479,16 +479,16 @@ export default function PanelGastosFijos({
         </button>
       </div>
 
-      {/* ── Alerta: deuda del mes anterior ── */}
+      {/* ── Recordatorio: quedan gastos sin marcar del mes anterior ── */}
       {deudaMesAnterior > 0 && (
-        <div className="mb-2 px-3 py-2 rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10 flex items-center gap-2">
-          <span className="text-base shrink-0">⚠️</span>
+        <div className="mb-2 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/10 flex items-center gap-2">
+          <span className="text-base shrink-0">🔔</span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold text-orange-700 dark:text-orange-300">
-              Del mes anterior ({nombreMesAnterior}) te falta pagar {fmt(deudaMesAnterior)}
+            <p className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+              Recordatorio — {nombreMesAnterior}: {fmt(deudaMesAnterior)} sin marcar como pagado
             </p>
-            <p className="text-[10px] text-orange-600 dark:text-orange-400">
-              Revisá los gastos del mes anterior y marcá los que pagaste.
+            <p className="text-[10px] text-amber-600 dark:text-amber-500">
+              Si ya lo pagaste, marcálo arriba para tener el registro al día.
             </p>
           </div>
         </div>

@@ -32,12 +32,16 @@ export interface GastoFijo {
 const LS_EMPRESA  = 'ganesha_gastos_fijos_empresa_v2';
 const LS_PERSONAL = 'ganesha_gastos_fijos_personal_v2';
 
-const GASTOS_PERSONALES_DEFAULT: GastoFijo[] = [
-  { id: 'personal_luz',  nombre: 'Luz Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
-  { id: 'personal_gas',  nombre: 'Gas Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
-  { id: 'personal_gym',  nombre: 'Gym',       tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
-  { id: 'personal_arba', nombre: 'ARBA',      tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
-];
+// Función en lugar de constante para que fechaCreacion sea el día de hoy real
+function gastoPersonalDefault(): GastoFijo[] {
+  const hoy = hoyStr();
+  return [
+    { id: 'personal_luz',  nombre: 'Luz Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
+    { id: 'personal_gas',  nombre: 'Gas Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
+    { id: 'personal_gym',  nombre: 'Gym',       tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
+    { id: 'personal_arba', nombre: 'ARBA',      tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
+  ];
+}
 
 // ─── Migración de formato viejo (sin pagos[]) al nuevo ───────────────────────
 
@@ -149,7 +153,7 @@ export function useGastosFijos(fecha: string) {
     const perLS = lsGet(LS_PERSONAL);
     if (empLS) setEmpresa(empLS);
     if (perLS) setPersonal(perLS);
-    else       setPersonal(GASTOS_PERSONALES_DEFAULT);
+    else       setPersonal(gastoPersonalDefault());
 
     // 2. Servidor — fuente de verdad entre dispositivos
     fetch('/api/gastos-fijos')
@@ -168,8 +172,9 @@ export function useGastosFijos(fecha: string) {
           setPersonal(migrados);
           lsSet(LS_PERSONAL, migrados);
         } else if (!empLS && !perLS) {
-          // Primera vez: inicializar con defaults
-          _guardarEnServidor([], GASTOS_PERSONALES_DEFAULT);
+          // Primera vez: inicializar con defaults (fechaCreacion = hoy)
+          const defaults = gastoPersonalDefault();
+          _guardarEnServidor([], defaults);
           serverLoaded.current = true;
         }
       })
@@ -366,17 +371,29 @@ export function useGastosFijos(fecha: string) {
     [personal, mes]
   );
 
-  // ── Computed: deuda del MES ANTERIOR (solo gastos con monto conocido) ─────
-
+  // ── Computed: deuda del MES ANTERIOR ─────────────────────────────────────
+  //
+  // REGLA: solo se muestra deuda si el gasto fue creado ANTES del mes actual.
+  // Si el gasto se acaba de crear este mes → sin deuda (es nuevo, no existía antes).
+  // Si fechaCreacion está vacía (datos legacy) → sin deuda (no sabemos cuándo existía).
+  //
+  // Esto evita el cartel de "te falta de marzo" cuando recién se carga el alquiler hoy.
   const deudaMesAnterior = useMemo(() => {
     const todos = [...empresa, ...personal];
     return todos
-      .filter(g => g.activo && g.montoTotal > 0)
+      .filter(g => {
+        if (!g.activo || g.montoTotal <= 0) return false;
+        // Si no tiene fechaCreacion o fue creado en el mes actual → sin deuda
+        if (!g.fechaCreacion) return false;
+        const mesCreacion = g.fechaCreacion.slice(0, 7); // "YYYY-MM"
+        // Solo hay deuda si el gasto existía ANTES del mes actual (creado en mes anterior o antes)
+        return mesCreacion < mes;
+      })
       .reduce((s, g) => {
         const p = g.pagos[mesAnt] ?? { montoAcumulado: 0, pagado: false };
         return s + Math.max(0, g.montoTotal - p.montoAcumulado);
       }, 0);
-  }, [empresa, personal, mesAnt]);
+  }, [empresa, personal, mesAnt, mes]);
 
   return {
     empresa,
