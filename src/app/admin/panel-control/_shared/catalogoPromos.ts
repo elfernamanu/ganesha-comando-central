@@ -67,14 +67,29 @@ const DEFAULT_PESTANAS: ItemCatalogo[] = [
   { nombre: 'Relleno',             nombreDisplay: '👁️ Relleno',             detalle: '', precio: 0,     categoria: 'pestanas' },
 ];
 
+// ── Cache en memoria — evita re-parsear localStorage en cada render ────
+// TTL: 2s. Tiempo suficiente para que los precios actualizados se propaguen
+// cuando la secretaria navega entre Admin → Turnos.
+let _catalogoCache: CatalogoPromos | null = null;
+let _catalogoCacheTs = 0;
+const CATALOG_CACHE_MS = 2000;
+
+/** Llama esto después de guardar la configuración para forzar re-lectura */
+export function invalidarCatalogoCache(): void {
+  _catalogoCache = null;
+}
+
 // ── API pública ────────────────────────────────────────────────────────
 
 /**
- * Lee el catálogo completo SIEMPRE desde ganesha_config_servicios.
+ * Lee el catálogo completo desde ganesha_config_servicios.
  * Si no hay datos, usa defaults.
- * Llamar esto cada vez que se necesite para obtener precios actualizados.
+ * Resultado cacheado 2s en memoria para evitar JSON.parse repetido.
  */
 export function leerCatalogo(): CatalogoPromos {
+  if (_catalogoCache && Date.now() - _catalogoCacheTs < CATALOG_CACHE_MS) {
+    return _catalogoCache;
+  }
   const catalogo: CatalogoPromos = {};
 
   const config = leerConfig();
@@ -142,6 +157,8 @@ export function leerCatalogo(): CatalogoPromos {
   // 7) Otro (manual siempre)
   catalogo['Otro'] = { nombre: 'Otro', nombreDisplay: 'Otro', detalle: '', precio: 0, categoria: 'otro' };
 
+  _catalogoCache = catalogo;
+  _catalogoCacheTs = Date.now();
   return catalogo;
 }
 

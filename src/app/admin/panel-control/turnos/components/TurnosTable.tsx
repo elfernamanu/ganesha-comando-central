@@ -1,8 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { TurnosTableProps } from '../types';
 import { leerCatalogo, buscarEnCatalogo, type CatalogoPromos } from '../../_shared/catalogoPromos';
+
+// ── Autocompleta horario al salir del campo ────────────────────────────
+// "16"   → "16:00" | "9"   → "09:00"
+// "1630" → "16:30" | "930" → "09:30"
+// "16:3" → "16:30" | "9:0" → "09:00"
+function normalizarHorario(val: string): string {
+  const v = val.trim();
+  if (!v) return v;
+  // Ya válido "HH:MM"
+  if (/^\d{1,2}:\d{2}$/.test(v)) {
+    const [h, m] = v.split(':');
+    return `${h.padStart(2, '0')}:${m}`;
+  }
+  // 3-4 dígitos sin separador: "1630" → "16:30", "930" → "09:30"
+  if (/^\d{3,4}$/.test(v)) {
+    const padded = v.padStart(4, '0');
+    return `${padded.slice(0, 2)}:${padded.slice(2)}`;
+  }
+  // Solo horas "9" o "16" → "09:00" / "16:00"
+  if (/^\d{1,2}$/.test(v)) {
+    const h = parseInt(v, 10);
+    if (h >= 0 && h <= 23) return `${String(h).padStart(2, '0')}:00`;
+  }
+  // Un solo dígito de minutos "16:3" → "16:30"
+  if (/^\d{1,2}:\d$/.test(v)) {
+    const [h, m] = v.split(':');
+    return `${h.padStart(2, '0')}:${m}0`;
+  }
+  return v;
+}
 
 // ── Formatea número con puntos de miles (es-AR: 20000 → "20.000") ──────
 function formatPuntos(n: number): string {
@@ -99,14 +129,29 @@ export default function TurnosTable({
     return () => window.removeEventListener('focus', cargar);
   }, []);
 
-  const opcionesDepiPromoMujer  = Object.values(catalogo).filter(item => item.categoria === 'depilacion_mujer');
-  const opcionesDepiPromoHombre = Object.values(catalogo).filter(item => item.categoria === 'depilacion_hombre');
-  const opcionesDepiZonaMujer   = Object.values(catalogo).filter(item => item.categoria === 'depilacion_zona_mujer');
-  const opcionesDepiZonaHombre  = Object.values(catalogo).filter(item => item.categoria === 'depilacion_zona_hombre');
-  const opcionesUnas            = Object.values(catalogo).filter(item => item.categoria === 'unas');
-  const opcionesEstetica        = Object.values(catalogo).filter(item => item.categoria === 'estetica');
-  const opcionesPestanas        = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
-  const opcionesCombos          = Object.values(catalogo).filter(item => item.categoria === 'combo');
+  // Memoizado: solo se recalcula cuando cambia el catálogo (no en cada render)
+  const {
+    opcionesDepiPromoMujer,
+    opcionesDepiPromoHombre,
+    opcionesDepiZonaMujer,
+    opcionesDepiZonaHombre,
+    opcionesUnas,
+    opcionesEstetica,
+    opcionesPestanas,
+    opcionesCombos,
+  } = useMemo(() => {
+    const vals = Object.values(catalogo);
+    return {
+      opcionesDepiPromoMujer:  vals.filter(i => i.categoria === 'depilacion_mujer'),
+      opcionesDepiPromoHombre: vals.filter(i => i.categoria === 'depilacion_hombre'),
+      opcionesDepiZonaMujer:   vals.filter(i => i.categoria === 'depilacion_zona_mujer'),
+      opcionesDepiZonaHombre:  vals.filter(i => i.categoria === 'depilacion_zona_hombre'),
+      opcionesUnas:            vals.filter(i => i.categoria === 'unas'),
+      opcionesEstetica:        vals.filter(i => i.categoria === 'estetica'),
+      opcionesPestanas:        vals.filter(i => i.categoria === 'pestanas'),
+      opcionesCombos:          vals.filter(i => i.categoria === 'combo'),
+    };
+  }, [catalogo]);
 
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
     const item = catalogo[nuevoTrat] ?? buscarEnCatalogo(nuevoTrat);
@@ -273,6 +318,20 @@ export default function TurnosTable({
                   maxLength={5}
                   value={turno.horario}
                   onChange={e => onActualizar(turno.id, { horario: e.target.value })}
+                  onKeyDown={e => {
+                    if (e.key === 'Tab' || e.key === 'Enter') {
+                      const t = e.target as HTMLInputElement;
+                      const normalizado = normalizarHorario(t.value);
+                      if (normalizado) {
+                        t.value = normalizado; // DOM inmediato (el usuario ve "12:00" al instante)
+                        onActualizar(turno.id, { horario: normalizado });
+                      }
+                    }
+                  }}
+                  onBlur={e => {
+                    const normalizado = normalizarHorario(e.target.value);
+                    if (normalizado) onActualizar(turno.id, { horario: normalizado });
+                  }}
                   className="w-16 px-2 py-1.5 rounded-lg text-sm font-mono font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-center"
                 />
                 <input
@@ -489,6 +548,20 @@ export default function TurnosTable({
                     maxLength={5}
                     value={turno.horario}
                     onChange={e => onActualizar(turno.id, { horario: e.target.value })}
+                    onKeyDown={e => {
+                      if (e.key === 'Tab' || e.key === 'Enter') {
+                        const t = e.target as HTMLInputElement;
+                        const normalizado = normalizarHorario(t.value);
+                        if (normalizado) {
+                          t.value = normalizado; // DOM inmediato
+                          onActualizar(turno.id, { horario: normalizado });
+                        }
+                      }
+                    }}
+                    onBlur={e => {
+                      const normalizado = normalizarHorario(e.target.value);
+                      if (normalizado) onActualizar(turno.id, { horario: normalizado });
+                    }}
                     className="w-full px-1 py-1 rounded text-sm font-mono border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
                   />
                 </div>

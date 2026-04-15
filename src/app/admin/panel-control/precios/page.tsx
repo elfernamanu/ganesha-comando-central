@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/Toast';
+import { invalidarCatalogoCache } from '../_shared/catalogoPromos';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface Jornada {
@@ -543,6 +544,7 @@ export default function ConfiguracionServiciosPage() {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(categorias));
       localStorage.setItem(LS_VERSION, 'ok');
+      invalidarCatalogoCache(); // precio nuevo disponible de inmediato en turnos
     } catch {}
   }, [categorias, cargado]);
 
