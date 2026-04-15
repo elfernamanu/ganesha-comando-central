@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
 import { useGastosFijos } from './hooks/useGastosFijos';
 import { useToast } from '@/components/Toast';
@@ -17,7 +17,8 @@ import type { GastoFijo } from './hooks/useGastosFijos';
 import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
 
 function CajaContent() {
-  const params = useSearchParams();
+  const params  = useSearchParams();
+  const router  = useRouter();
   // Fecha LOCAL (no UTC) — en Argentina a las 23:30 UTC sería el día siguiente
   const d = new Date();
   const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -96,6 +97,18 @@ function CajaContent() {
   const [mensajeRecuperar, setMensajeRecuperar] = useState('');
 
   const fechasHabilitadas = useFechasHabilitadas();
+
+  // ── Auto-redirigir a la próxima fecha habilitada si hoy no tiene jornada ──
+  // Igual que en Turnos — así ambas páginas siempre muestran la misma fecha
+  useEffect(() => {
+    if (params.get('fecha')) return;          // ya tiene fecha en URL → no tocar
+    if (fechasHabilitadas.length === 0) return; // todavía cargando
+    const tieneFechaHoy = fechasHabilitadas.some(f => f.fecha === hoy);
+    if (!tieneFechaHoy) {
+      const proxima = fechasHabilitadas.find(f => f.fecha >= hoy);
+      if (proxima) router.replace(`/admin/panel-control/caja?fecha=${proxima.fecha}`);
+    }
+  }, [fechasHabilitadas, hoy, params, router]);
 
   // Fecha anterior y siguiente
   const fechaObj = new Date(fecha + 'T12:00:00');
