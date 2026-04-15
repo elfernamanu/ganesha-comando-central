@@ -54,13 +54,19 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { fecha, turnos, gastos, totales, estado } = body;
+    const { fecha, turnos, gastos, totales, estado, gastosFijosEmpresa, gastosFijosPersonal } = body;
 
     if (!fecha) return NextResponse.json({ ok: false, error: 'Falta fecha' }, { status: 400 });
 
     await ensureTable();
 
-    const datos = { turnos: turnos ?? [], gastos: gastos ?? [], totales: totales ?? {} };
+    const datos = {
+      turnos:               turnos               ?? [],
+      gastos:               gastos               ?? [],
+      totales:              totales              ?? {},
+      gastosFijosEmpresa:   gastosFijosEmpresa   ?? [],
+      gastosFijosPersonal:  gastosFijosPersonal  ?? [],
+    };
     const cerrada = estado === 'cerrada';
 
     await query(

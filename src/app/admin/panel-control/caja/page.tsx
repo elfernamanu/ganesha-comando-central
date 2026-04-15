@@ -108,8 +108,9 @@ function CajaContent() {
     .replace(/^\w/, c => c.toUpperCase());
 
   // Cerrar + guardar + descargar .txt — todo en uno
+  // Los gastos fijos se pasan para guardar snapshot histórico en caja_diaria
   const handleCerrarYGuardar = async () => {
-    const ok = await cerrarYGuardar();
+    const ok = await cerrarYGuardar(gastosFijosEmpresa, gastosFijosPersonal);
     if (ok) {
       mostrar('Caja cerrada y guardada', 'exito', 'El resumen del día llegó al servidor ✓');
       setFechaRecuperar(fecha);

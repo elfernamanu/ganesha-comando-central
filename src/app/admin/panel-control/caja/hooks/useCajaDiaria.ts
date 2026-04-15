@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Gasto } from '../types/index';
 import type { Turno } from '../../_shared/turnoType';
+import type { GastoFijo } from './useGastosFijos';
 
 // Re-exportamos para que reporteGenerator.ts y page.tsx puedan importar desde aquí
 export type { Turno as TurnoSecretaria };  // alias de compatibilidad
@@ -136,13 +137,25 @@ export function useCajaDiaria(fecha: string) {
 
   // ========================================
   // PERSISTENCIA — guarda directo en PostgreSQL via /api/caja
+  // gastosFijosEmpresa y gastosFijosPersonal se incluyen como snapshot histórico
   // ========================================
-  const guardarEnServidor = async (): Promise<{ ok: boolean; mensaje?: string }> => {
+  const guardarEnServidor = async (
+    gastosFijosEmpresa: GastoFijo[] = [],
+    gastosFijosPersonal: GastoFijo[] = []
+  ): Promise<{ ok: boolean; mensaje?: string }> => {
     try {
       const res = await fetch('/api/caja', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha, turnos, gastos, totales, estado: 'cerrada' }),
+        body: JSON.stringify({
+          fecha,
+          turnos,
+          gastos,
+          totales,
+          estado: 'cerrada',
+          gastosFijosEmpresa,   // snapshot del estado en el momento del cierre
+          gastosFijosPersonal,
+        }),
       });
       const data = await res.json();
       return { ok: res.ok && data.ok, mensaje: data.mensaje };
@@ -153,16 +166,19 @@ export function useCajaDiaria(fecha: string) {
 
   // ========================================
   // ACCIÓN PRINCIPAL — Cerrar y guardar (todo en uno)
+  // Recibe los gastos fijos del componente padre (Caja page)
   // ========================================
-  const cerrarYGuardar = async (): Promise<boolean> => {
+  const cerrarYGuardar = async (
+    gastosFijosEmpresa: GastoFijo[] = [],
+    gastosFijosPersonal: GastoFijo[] = []
+  ): Promise<boolean> => {
     setGuardando(true);
     setMensaje('');
 
-    const { ok, mensaje } = await guardarEnServidor();
+    const { ok, mensaje } = await guardarEnServidor(gastosFijosEmpresa, gastosFijosPersonal);
 
     if (ok) {
       setEstadoCaja('cerrada');
-      // Mensaje detallado: qué se guardó, dónde
       setMensaje(`✅ ${mensaje ?? 'Caja cerrada y guardada'}`);
     } else {
       setMensaje('⚠️ Error al guardar — verificá la conexión con el servidor');
