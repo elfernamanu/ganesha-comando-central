@@ -442,7 +442,7 @@ function ListaPrecios({
       </div>
 
       {mostrar && (
-        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden" style={{ fontSize: `${zoom}em` }}>
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden" style={{ zoom: zoom }}>
           {/* ── Con grupos: 3 columnas paralelas ── */}
           {(esDepilacion && grupos) || (esUnas && gruposUnas) ? (
             <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 ${

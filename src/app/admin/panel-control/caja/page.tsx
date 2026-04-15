@@ -135,7 +135,7 @@ export default function CajaPage() {
       )}
 
       {/* ── Zona con zoom (stats + gastos + cierre) ── */}
-      <div style={{ fontSize: `${zoom}em` }} className="space-y-3">
+      <div style={{ zoom: zoom }} className="space-y-3">
 
       {/* ── Estadísticas — franja compacta ── */}
       <div className="flex divide-x divide-slate-200 dark:divide-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
