@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import type { GastoFijo, TipoGastoFijo } from '../hooks/useGastosFijos';
+import type { GastoFijo, TipoGastoFijo, PagoMes } from '../hooks/useGastosFijos';
 
 // ─── Format helpers ───────────────────────────────────────────────────────────
 
@@ -27,6 +27,15 @@ function formatInput(s: string): string {
 interface Props {
   empresa: GastoFijo[];
   personal: GastoFijo[];
+  mes: string;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mesAnterior: string;  // recibido para consistencia aunque no se usa directamente
+  nombreMesAnterior: string;
+  nombreMesActual: string;
+  deudaMesAnterior: number;
+  guardando: boolean;
+  syncStatus: 'idle' | 'guardando' | 'guardado' | 'error';
+  getPagoMes: (g: GastoFijo) => PagoMes;
   onPagar: (id: string, monto: number, tipo: TipoGastoFijo) => void;
   onReset: (id: string, tipo: TipoGastoFijo) => void;
   onEliminar: (id: string, tipo: TipoGastoFijo) => void;
@@ -34,6 +43,7 @@ interface Props {
   onActualizarNombre: (id: string, nombre: string, tipo: TipoGastoFijo) => void;
   onAgregarEmpresa: (nombre: string, monto: number) => void;
   onAgregarPersonal: (nombre: string, monto: number) => void;
+  onGuardar: () => void;
   totalPendienteEmpresa: number;
   totalPendientePersonal: number;
 }
@@ -42,6 +52,7 @@ interface Props {
 
 function GastoFijoRow({
   gasto,
+  pagoMes,
   onPagar,
   onReset,
   onEliminar,
@@ -49,6 +60,7 @@ function GastoFijoRow({
   onActualizarNombre,
 }: {
   gasto: GastoFijo;
+  pagoMes: PagoMes;
   onPagar: (monto: number) => void;
   onReset: () => void;
   onEliminar: () => void;
@@ -66,14 +78,14 @@ function GastoFijoRow({
   const inputPagoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (editandoNombre) inputNombreRef.current?.focus(); }, [editandoNombre]);
-  useEffect(() => { if (editandoMonto) inputMontoRef.current?.focus(); }, [editandoMonto]);
-  useEffect(() => { if (pagando) inputPagoRef.current?.focus(); }, [pagando]);
+  useEffect(() => { if (editandoMonto)  inputMontoRef.current?.focus();  }, [editandoMonto]);
+  useEffect(() => { if (pagando)        inputPagoRef.current?.focus();   }, [pagando]);
 
+  const { montoAcumulado, pagado, fechaPago } = pagoMes;
   const porcentaje = gasto.montoTotal > 0
-    ? Math.min(100, Math.round((gasto.montoAcumulado / gasto.montoTotal) * 100))
+    ? Math.min(100, Math.round((montoAcumulado / gasto.montoTotal) * 100))
     : 0;
-
-  const pendiente = Math.max(0, gasto.montoTotal - gasto.montoAcumulado);
+  const pendiente = Math.max(0, gasto.montoTotal - montoAcumulado);
 
   const confirmarNombre = () => {
     if (nombreEdit.trim()) onActualizarNombre(nombreEdit.trim());
@@ -95,7 +107,7 @@ function GastoFijoRow({
 
   return (
     <div className={`rounded-lg px-2 py-1.5 border text-xs ${
-      gasto.pagado
+      pagado
         ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
         : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
     }`}>
@@ -148,11 +160,11 @@ function GastoFijoRow({
 
         {/* Botones acción */}
         <div className="flex gap-0.5 shrink-0">
-          {!gasto.pagado && (
+          {!pagado && (
             <button
               onClick={() => setPagando(p => !p)}
               className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
-              title="Registrar pago parcial o total"
+              title="Registrar pago"
             >
               + Pagar
             </button>
@@ -160,14 +172,14 @@ function GastoFijoRow({
           <button
             onClick={onReset}
             className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            title="Reiniciar a $0 pagado"
+            title="Reiniciar pago de este mes"
           >
             ↺
           </button>
           <button
             onClick={onEliminar}
             className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 text-[10px] font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-            title="Eliminar gasto"
+            title="Eliminar gasto fijo"
           >
             ×
           </button>
@@ -179,35 +191,35 @@ function GastoFijoRow({
         <div className="mt-1 space-y-0.5">
           <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${gasto.pagado ? 'bg-green-500' : 'bg-amber-500'}`}
+              className={`h-full rounded-full transition-all duration-300 ${pagado ? 'bg-green-500' : 'bg-amber-500'}`}
               style={{ width: `${porcentaje}%` }}
             />
           </div>
           <div className="flex justify-between items-center">
-            {gasto.pagado ? (
-              <span className="text-[10px] font-bold text-green-600 dark:text-green-400">PAGADO ✓</span>
+            {pagado ? (
+              <span className="text-[10px] font-bold text-green-600 dark:text-green-400">✓ PAGADO este mes</span>
             ) : (
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                {fmt(gasto.montoAcumulado)} pagado / {fmt(gasto.montoTotal)} total
+                {fmt(montoAcumulado)} pagado / {fmt(gasto.montoTotal)} total
               </span>
             )}
-            {!gasto.pagado && pendiente > 0 && (
-              <span className="text-[10px] text-red-500 dark:text-red-400 font-mono">
-                -{fmt(pendiente)}
+            {!pagado && pendiente > 0 && (
+              <span className="text-[10px] text-red-500 dark:text-red-400 font-mono font-bold">
+                -{fmt(pendiente)} pendiente
               </span>
             )}
           </div>
         </div>
       )}
 
-      {/* Badge pagado completo */}
-      {gasto.pagado && (
+      {/* Badge pagado */}
+      {pagado && (
         <div className="mt-0.5 flex items-center justify-between">
           <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full font-semibold">
-            ✓ Gasto pagado
+            ✓ Pagado este mes
           </span>
-          {gasto.fechaUltimoPago && (
-            <span className="text-[9px] text-slate-400">{gasto.fechaUltimoPago}</span>
+          {fechaPago && (
+            <span className="text-[9px] text-slate-400">{fechaPago}</span>
           )}
         </div>
       )}
@@ -223,7 +235,7 @@ function GastoFijoRow({
             value={montoPago}
             onChange={e => setMontoPago(formatInput(e.target.value))}
             onKeyDown={e => { if (e.key === 'Enter') confirmarPago(); if (e.key === 'Escape') { setMontoPago(''); setPagando(false); } }}
-            placeholder="0"
+            placeholder={gasto.montoTotal > 0 ? fmt(pendiente) : '0'}
             className="flex-1 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-700 text-xs font-mono text-right outline-none focus:border-amber-500"
           />
           <button
@@ -285,7 +297,7 @@ function AgregarGastoForm({
         value={nombre}
         onChange={e => setNombre(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setAbierto(false); }}
-        placeholder="Nombre del gasto"
+        placeholder="Nombre del gasto (ej: Alquiler)"
         className="px-2 py-1 rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs outline-none focus:border-violet-400"
       />
       <div className="flex gap-1 items-center">
@@ -296,7 +308,7 @@ function AgregarGastoForm({
           value={monto}
           onChange={e => setMonto(formatInput(e.target.value))}
           onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setAbierto(false); }}
-          placeholder="0 (opcional)"
+          placeholder="0 (opcional, cargarlo después)"
           className="flex-1 px-2 py-1 rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-mono text-right outline-none focus:border-violet-400"
         />
         <button onClick={confirmar} disabled={!nombre.trim()}
@@ -312,7 +324,7 @@ function AgregarGastoForm({
   );
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
+// ─── Card por tipo (empresa / personal) ──────────────────────────────────────
 
 function GastosCard({
   titulo,
@@ -322,6 +334,7 @@ function GastosCard({
   totalPendiente,
   borderClass,
   headerClass,
+  getPagoMes,
   onPagar,
   onReset,
   onEliminar,
@@ -337,6 +350,7 @@ function GastosCard({
   totalPendiente: number;
   borderClass: string;
   headerClass: string;
+  getPagoMes: (g: GastoFijo) => PagoMes;
   onPagar: (id: string, monto: number) => void;
   onReset: (id: string) => void;
   onEliminar: (id: string) => void;
@@ -358,16 +372,15 @@ function GastosCard({
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{subtitulo}</p>
             )}
           </div>
-          {totalPendiente > 0 && (
+          {totalPendiente > 0 ? (
             <span className="shrink-0 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-full font-mono">
               -{fmt(totalPendiente)} pendiente
             </span>
-          )}
-          {totalPendiente === 0 && gastos.length > 0 && (
+          ) : gastos.length > 0 ? (
             <span className="shrink-0 text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded-full">
               Todo al día ✓
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -382,6 +395,7 @@ function GastosCard({
             <GastoFijoRow
               key={g.id}
               gasto={g}
+              pagoMes={getPagoMes(g)}
               onPagar={m => onPagar(g.id, m)}
               onReset={() => onReset(g.id)}
               onEliminar={() => onEliminar(g.id)}
@@ -402,6 +416,13 @@ function GastosCard({
 export default function PanelGastosFijos({
   empresa,
   personal,
+  mes,
+  nombreMesAnterior,
+  nombreMesActual,
+  deudaMesAnterior,
+  guardando,
+  syncStatus,
+  getPagoMes,
   onPagar,
   onReset,
   onEliminar,
@@ -409,21 +430,69 @@ export default function PanelGastosFijos({
   onActualizarNombre,
   onAgregarEmpresa,
   onAgregarPersonal,
+  onGuardar,
   totalPendienteEmpresa,
   totalPendientePersonal,
 }: Props) {
+
+  // Suprimir advertencia del lint — mes se usa para el label del mes actual
+  void mes;
+
   return (
     <section>
-      <div className="flex items-center justify-between mb-1.5">
-        <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-          🗂️ Gastos Fijos
-        </h2>
-        {(totalPendienteEmpresa + totalPendientePersonal) > 0 && (
-          <span className="text-[10px] font-bold text-red-600 dark:text-red-400 font-mono">
-            Total pendiente: -{fmt(totalPendienteEmpresa + totalPendientePersonal)}
-          </span>
-        )}
+      {/* Header con botón Guardar */}
+      <div className="flex items-center justify-between mb-1.5 gap-2">
+        <div className="min-w-0">
+          <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+            🗂️ Gastos Fijos — {nombreMesActual}
+          </h2>
+          {(totalPendienteEmpresa + totalPendientePersonal) > 0 && (
+            <p className="text-[10px] font-bold text-red-600 dark:text-red-400 font-mono">
+              Total pendiente este mes: -{fmt(totalPendienteEmpresa + totalPendientePersonal)}
+            </p>
+          )}
+        </div>
+
+        {/* Botón Guardar */}
+        <button
+          onClick={onGuardar}
+          disabled={guardando}
+          className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+            syncStatus === 'guardado'
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700'
+              : syncStatus === 'error'
+              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300'
+              : syncStatus === 'guardando'
+              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 animate-pulse'
+              : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-300 dark:border-violet-700 hover:bg-violet-200 dark:hover:bg-violet-900/50'
+          }`}
+        >
+          {syncStatus === 'guardando' ? '⏳' :
+           syncStatus === 'guardado'  ? '✓' :
+           syncStatus === 'error'     ? '⚠' :
+           '💾'}
+          {' '}
+          {syncStatus === 'guardando' ? 'Guardando...' :
+           syncStatus === 'guardado'  ? 'Guardado' :
+           syncStatus === 'error'     ? 'Sin conexión' :
+           'Guardar'}
+        </button>
       </div>
+
+      {/* ── Alerta: deuda del mes anterior ── */}
+      {deudaMesAnterior > 0 && (
+        <div className="mb-2 px-3 py-2 rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10 flex items-center gap-2">
+          <span className="text-base shrink-0">⚠️</span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-orange-700 dark:text-orange-300">
+              Del mes anterior ({nombreMesAnterior}) te falta pagar {fmt(deudaMesAnterior)}
+            </p>
+            <p className="text-[10px] text-orange-600 dark:text-orange-400">
+              Revisá los gastos del mes anterior y marcá los que pagaste.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {/* Empresa — rojo */}
@@ -434,6 +503,7 @@ export default function PanelGastosFijos({
           totalPendiente={totalPendienteEmpresa}
           borderClass="border-red-300 dark:border-red-700"
           headerClass="bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/30"
+          getPagoMes={getPagoMes}
           onPagar={(id, m) => onPagar(id, m, 'empresa')}
           onReset={id => onReset(id, 'empresa')}
           onEliminar={id => onEliminar(id, 'empresa')}
@@ -452,6 +522,7 @@ export default function PanelGastosFijos({
           totalPendiente={totalPendientePersonal}
           borderClass="border-blue-300 dark:border-blue-700"
           headerClass="bg-blue-50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/30"
+          getPagoMes={getPagoMes}
           onPagar={(id, m) => onPagar(id, m, 'personal')}
           onReset={id => onReset(id, 'personal')}
           onEliminar={id => onEliminar(id, 'personal')}

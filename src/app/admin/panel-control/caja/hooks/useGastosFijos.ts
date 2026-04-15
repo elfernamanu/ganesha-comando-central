@@ -6,31 +6,74 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 export type TipoGastoFijo = 'empresa' | 'personal';
 
+export interface PagoMes {
+  montoAcumulado: number;
+  pagado: boolean;
+  fechaPago?: string;
+}
+
 export interface GastoFijo {
   id: string;
   nombre: string;
   tipo: TipoGastoFijo;
   montoTotal: number;
-  montoAcumulado: number;
-  pagado: boolean;
   activo: boolean;
   fechaCreacion: string;
-  fechaUltimoPago?: string;
+  // Pagos por mes — key = "YYYY-MM", ej: "2026-04"
+  pagos: Record<string, PagoMes>;
+  // Campos legacy opcionales — para compatibilidad con SugerenciaPago
+  montoAcumulado?: number;
+  pagado?: boolean;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const LS_EMPRESA  = 'ganesha_gastos_fijos_empresa';
-const LS_PERSONAL = 'ganesha_gastos_fijos_personal';
+// v2 keys — nueva estructura con pagos por mes
+const LS_EMPRESA  = 'ganesha_gastos_fijos_empresa_v2';
+const LS_PERSONAL = 'ganesha_gastos_fijos_personal_v2';
 
 const GASTOS_PERSONALES_DEFAULT: GastoFijo[] = [
-  { id: 'personal_luz',  nombre: 'Luz Casa',  tipo: 'personal', montoTotal: 0, montoAcumulado: 0, pagado: false, activo: true, fechaCreacion: '' },
-  { id: 'personal_gas',  nombre: 'Gas Casa',  tipo: 'personal', montoTotal: 0, montoAcumulado: 0, pagado: false, activo: true, fechaCreacion: '' },
-  { id: 'personal_gym',  nombre: 'Gym',       tipo: 'personal', montoTotal: 0, montoAcumulado: 0, pagado: false, activo: true, fechaCreacion: '' },
-  { id: 'personal_arba', nombre: 'ARBA',      tipo: 'personal', montoTotal: 0, montoAcumulado: 0, pagado: false, activo: true, fechaCreacion: '' },
+  { id: 'personal_luz',  nombre: 'Luz Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
+  { id: 'personal_gas',  nombre: 'Gas Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
+  { id: 'personal_gym',  nombre: 'Gym',       tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
+  { id: 'personal_arba', nombre: 'ARBA',      tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: '', pagos: {} },
 ];
 
-// ─── Helpers localStorage ────────────────────────────────────────────────────
+// ─── Migración de formato viejo (sin pagos[]) al nuevo ───────────────────────
+
+function migrarGasto(raw: Record<string, unknown>): GastoFijo {
+  // Si ya tiene el campo pagos, es formato nuevo
+  if (raw.pagos && typeof raw.pagos === 'object' && !Array.isArray(raw.pagos)) {
+    return raw as unknown as GastoFijo;
+  }
+  // Formato viejo: tiene montoAcumulado/pagado a nivel raíz
+  // Migramos al mes actual para no perder los datos actuales
+  const d = new Date();
+  const mesHoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const montoAcumulado = (raw.montoAcumulado as number) ?? 0;
+  const pagado = (raw.pagado as boolean) ?? false;
+
+  const pagos: Record<string, PagoMes> = {};
+  if (montoAcumulado > 0 || pagado) {
+    pagos[mesHoy] = {
+      montoAcumulado,
+      pagado,
+      fechaPago: (raw.fechaUltimoPago as string) ?? undefined,
+    };
+  }
+
+  return {
+    id: (raw.id as string) ?? '',
+    nombre: (raw.nombre as string) ?? '',
+    tipo: (raw.tipo as TipoGastoFijo) ?? 'empresa',
+    montoTotal: (raw.montoTotal as number) ?? 0,
+    activo: (raw.activo as boolean) ?? true,
+    fechaCreacion: (raw.fechaCreacion as string) ?? '',
+    pagos,
+  };
+}
+
+// ─── Helpers localStorage ─────────────────────────────────────────────────────
 
 function lsGet(key: string): GastoFijo[] | null {
   if (typeof window === 'undefined') return null;
@@ -38,7 +81,8 @@ function lsGet(key: string): GastoFijo[] | null {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as GastoFijo[]) : null;
+    if (!Array.isArray(parsed)) return null;
+    return parsed.map(g => migrarGasto(g as Record<string, unknown>));
   } catch { return null; }
 }
 
@@ -47,36 +91,67 @@ function lsSet(key: string, data: GastoFijo[]): void {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch { /* silencioso */ }
 }
 
-function generarId(tipo: TipoGastoFijo): string {
-  return `${tipo}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
+// ─── Helpers de fechas ────────────────────────────────────────────────────────
 
-function hoy(): string {
+function hoyStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function mesAnteriorDe(mes: string): string {
+  const [y, m] = mes.split('-').map(Number);
+  const prev = new Date(y, m - 2, 1); // m-2 porque m es 1-based y Date es 0-based
+  return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function nombreMes(mes: string): string {
+  const [y, m] = mes.split('-').map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+}
+
+function generarId(tipo: TipoGastoFijo): string {
+  return `${tipo}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export function useGastosFijos() {
+/**
+ * useGastosFijos(fecha)
+ *
+ * Gastos fijos con estado POR MES.
+ * - Las definiciones (nombre, monto) son permanentes — no se re-cargan cada fecha.
+ * - El estado de pago (pagado, cuánto) se guarda por mes ("2026-04", "2026-05", ...).
+ * - Al abrir una fecha de otro mes, los gastos aparecen como NO pagados para ese mes.
+ * - Muestra deuda del mes anterior si quedaron gastos sin pagar.
+ * - Tiene botón Guardar explícito + auto-save debounced.
+ */
+export function useGastosFijos(fecha: string) {
+  // Mes de la fecha seleccionada: "2026-04"
+  const mes = fecha.slice(0, 7);
+  const mesAnt = mesAnteriorDe(mes);
+
   const [empresa,  setEmpresa]  = useState<GastoFijo[]>([]);
   const [personal, setPersonal] = useState<GastoFijo[]>([]);
 
-  // Controla si los datos ya cargaron del servidor (evita sobrescribir con datos parciales)
+  // Estado del guardado explícito
+  const [guardando,  setGuardando]  = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'guardando' | 'guardado' | 'error'>('idle');
+
   const serverLoaded = useRef(false);
-  // Debounce timer para auto-save al servidor
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Cargar: localStorage inmediato → servidor (fuente de verdad) ──────────
+  // ── Cargar: localStorage (inmediato) → servidor (fuente de verdad) ─────────
   useEffect(() => {
-    // 1. localStorage: respuesta visual inmediata mientras llega el servidor
-    const empLS  = lsGet(LS_EMPRESA);
-    const perLS  = lsGet(LS_PERSONAL);
-    if (empLS)  setEmpresa(empLS);
-    if (perLS)  setPersonal(perLS);
-    else        setPersonal(GASTOS_PERSONALES_DEFAULT);
+    // 1. localStorage para respuesta visual inmediata
+    const empLS = lsGet(LS_EMPRESA);
+    const perLS = lsGet(LS_PERSONAL);
+    if (empLS) setEmpresa(empLS);
+    if (perLS) setPersonal(perLS);
+    else       setPersonal(GASTOS_PERSONALES_DEFAULT);
 
-    // 2. Servidor: fuente de verdad — sincroniza entre todos los dispositivos
+    // 2. Servidor — fuente de verdad entre dispositivos
     fetch('/api/gastos-fijos')
       .then(r => r.json())
       .then(data => {
@@ -84,47 +159,80 @@ export function useGastosFijos() {
         serverLoaded.current = true;
 
         if (Array.isArray(data.empresa)) {
-          setEmpresa(data.empresa);
-          lsSet(LS_EMPRESA, data.empresa);
+          const migrados = (data.empresa as Record<string, unknown>[]).map(migrarGasto);
+          setEmpresa(migrados);
+          lsSet(LS_EMPRESA, migrados);
         }
         if (Array.isArray(data.personal) && data.personal.length > 0) {
-          setPersonal(data.personal);
-          lsSet(LS_PERSONAL, data.personal);
-        } else if (!Array.isArray(data.personal) || data.personal.length === 0) {
-          // Primera vez: servidor vacío → usar defaults y guardar
-          if (!empLS && !perLS) {
-            guardarEnServidor([], GASTOS_PERSONALES_DEFAULT);
-          }
+          const migrados = (data.personal as Record<string, unknown>[]).map(migrarGasto);
+          setPersonal(migrados);
+          lsSet(LS_PERSONAL, migrados);
+        } else if (!empLS && !perLS) {
+          // Primera vez: inicializar con defaults
+          _guardarEnServidor([], GASTOS_PERSONALES_DEFAULT);
           serverLoaded.current = true;
         }
       })
-      .catch(() => {
-        // Sin conexión: los datos de localStorage son suficientes
-        serverLoaded.current = true;
-      });
+      .catch(() => { serverLoaded.current = true; });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Guardar en servidor (fire-and-forget con manejo de error silencioso) ──
-  function guardarEnServidor(emp: GastoFijo[], per: GastoFijo[]) {
-    fetch('/api/gastos-fijos', {
+  // ── Guardar en servidor (fire-and-forget interno) ──────────────────────────
+  function _guardarEnServidor(emp: GastoFijo[], per: GastoFijo[]): Promise<Response> {
+    return fetch('/api/gastos-fijos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ empresa: emp, personal: per }),
-    }).catch(() => { /* silencioso — localStorage sigue funcionando */ });
+    });
   }
 
-  // ── Auto-save debounced: 1.5s después del último cambio ──────────────────
+  // ── Auto-save debounced: 2s después del último cambio ─────────────────────
   function programarGuardado(emp: GastoFijo[], per: GastoFijo[]) {
-    if (!serverLoaded.current) return; // no guardar antes de cargar del servidor
+    if (!serverLoaded.current) return;
+    lsSet(LS_EMPRESA, emp);
+    lsSet(LS_PERSONAL, per);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      lsSet(LS_EMPRESA,  emp);
-      lsSet(LS_PERSONAL, per);
-      guardarEnServidor(emp, per);
-    }, 1500);
+      _guardarEnServidor(emp, per).catch(() => {/* silencioso */});
+    }, 2000);
   }
 
-  // ─── Setters que también programan guardado ───────────────────────────────
+  // ── Guardar EXPLÍCITO — botón "Guardar" ────────────────────────────────────
+  const guardar = useCallback(async (): Promise<boolean> => {
+    setGuardando(true);
+    setSyncStatus('guardando');
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    if (saveTimer.current) clearTimeout(saveTimer.current); // cancelar auto-save pendiente
+
+    // Capturamos los valores actuales mediante setState funcional
+    return new Promise<boolean>(resolve => {
+      setEmpresa(emp => {
+        setPersonal(per => {
+          lsSet(LS_EMPRESA, emp);
+          lsSet(LS_PERSONAL, per);
+
+          _guardarEnServidor(emp, per)
+            .then(r => r.json())
+            .then(data => {
+              setSyncStatus(data.ok ? 'guardado' : 'error');
+              syncTimer.current = setTimeout(() => setSyncStatus('idle'), 3000);
+              setGuardando(false);
+              resolve(data.ok as boolean);
+            })
+            .catch(() => {
+              setSyncStatus('error');
+              syncTimer.current = setTimeout(() => setSyncStatus('idle'), 4000);
+              setGuardando(false);
+              resolve(false);
+            });
+
+          return per; // no mutation
+        });
+        return emp; // no mutation
+      });
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Setters con auto-save ────────────────────────────────────────────────
 
   const actualizarEmpresa = useCallback((fn: (prev: GastoFijo[]) => GastoFijo[]) => {
     setEmpresa(prev => {
@@ -142,74 +250,96 @@ export function useGastosFijos() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Operaciones empresa ──────────────────────────────────────────────────
+  // ─── Obtener pago del mes activo ──────────────────────────────────────────
+
+  const getPagoMes = useCallback((g: GastoFijo): PagoMes => {
+    return g.pagos[mes] ?? { montoAcumulado: 0, pagado: false };
+  }, [mes]);
+
+  // ── Agregar ───────────────────────────────────────────────────────────────
 
   const agregarEmpresa = useCallback((nombre: string, monto: number) => {
-    const nuevo: GastoFijo = {
+    actualizarEmpresa(prev => [...prev, {
       id: generarId('empresa'),
       nombre: nombre.trim(),
       tipo: 'empresa',
       montoTotal: monto,
-      montoAcumulado: 0,
-      pagado: false,
       activo: true,
-      fechaCreacion: hoy(),
-    };
-    actualizarEmpresa(prev => [...prev, nuevo]);
+      fechaCreacion: hoyStr(),
+      pagos: {},
+    }]);
   }, [actualizarEmpresa]);
 
-  // ── Operaciones personal ─────────────────────────────────────────────────
-
   const agregarPersonal = useCallback((nombre: string, monto: number) => {
-    const nuevo: GastoFijo = {
+    actualizarPersonal(prev => [...prev, {
       id: generarId('personal'),
       nombre: nombre.trim(),
       tipo: 'personal',
       montoTotal: monto,
-      montoAcumulado: 0,
-      pagado: false,
       activo: true,
-      fechaCreacion: hoy(),
-    };
-    actualizarPersonal(prev => [...prev, nuevo]);
+      fechaCreacion: hoyStr(),
+      pagos: {},
+    }]);
   }, [actualizarPersonal]);
 
-  // ── Operaciones compartidas ──────────────────────────────────────────────
+  // ── Pagar (para el mes de la fecha seleccionada) ──────────────────────────
 
   const pagarGasto = useCallback((id: string, monto: number, tipo: TipoGastoFijo) => {
     const fn = (prev: GastoFijo[]): GastoFijo[] =>
       prev.map(g => {
         if (g.id !== id) return g;
-        const nuevoAcumulado = Math.min(g.montoAcumulado + monto, g.montoTotal || monto);
+        const pagoActual = g.pagos[mes] ?? { montoAcumulado: 0, pagado: false };
+        const nuevoAcumulado = Math.min(pagoActual.montoAcumulado + monto, g.montoTotal || monto);
         const pagado = g.montoTotal > 0 ? nuevoAcumulado >= g.montoTotal : false;
-        return { ...g, montoAcumulado: nuevoAcumulado, pagado, fechaUltimoPago: hoy() };
+        return {
+          ...g,
+          pagos: { ...g.pagos, [mes]: { montoAcumulado: nuevoAcumulado, pagado, fechaPago: hoyStr() } },
+        };
       });
     if (tipo === 'empresa') actualizarEmpresa(fn);
     else actualizarPersonal(fn);
-  }, [actualizarEmpresa, actualizarPersonal]);
+  }, [mes, actualizarEmpresa, actualizarPersonal]);
+
+  // ── Resetear pago del mes activo ──────────────────────────────────────────
 
   const resetearGasto = useCallback((id: string, tipo: TipoGastoFijo) => {
     const fn = (prev: GastoFijo[]): GastoFijo[] =>
-      prev.map(g => g.id !== id ? g : { ...g, montoAcumulado: 0, pagado: false, fechaUltimoPago: undefined });
+      prev.map(g => {
+        if (g.id !== id) return g;
+        const nuevosPagos = { ...g.pagos };
+        delete nuevosPagos[mes];
+        return { ...g, pagos: nuevosPagos };
+      });
     if (tipo === 'empresa') actualizarEmpresa(fn);
     else actualizarPersonal(fn);
-  }, [actualizarEmpresa, actualizarPersonal]);
+  }, [mes, actualizarEmpresa, actualizarPersonal]);
+
+  // ── Eliminar ──────────────────────────────────────────────────────────────
 
   const eliminarGasto = useCallback((id: string, tipo: TipoGastoFijo) => {
     if (tipo === 'empresa') actualizarEmpresa(prev => prev.filter(g => g.id !== id));
     else actualizarPersonal(prev => prev.filter(g => g.id !== id));
   }, [actualizarEmpresa, actualizarPersonal]);
 
+  // ── Actualizar monto total ────────────────────────────────────────────────
+
   const actualizarMonto = useCallback((id: string, monto: number, tipo: TipoGastoFijo) => {
     const fn = (prev: GastoFijo[]): GastoFijo[] =>
       prev.map(g => {
         if (g.id !== id) return g;
-        const pagado = monto > 0 ? g.montoAcumulado >= monto : false;
-        return { ...g, montoTotal: monto, pagado };
+        const pagoActual = g.pagos[mes] ?? { montoAcumulado: 0, pagado: false };
+        const pagado = monto > 0 ? pagoActual.montoAcumulado >= monto : false;
+        return {
+          ...g,
+          montoTotal: monto,
+          pagos: { ...g.pagos, [mes]: { ...pagoActual, pagado } },
+        };
       });
     if (tipo === 'empresa') actualizarEmpresa(fn);
     else actualizarPersonal(fn);
-  }, [actualizarEmpresa, actualizarPersonal]);
+  }, [mes, actualizarEmpresa, actualizarPersonal]);
+
+  // ── Actualizar nombre ─────────────────────────────────────────────────────
 
   const actualizarNombre = useCallback((id: string, nombre: string, tipo: TipoGastoFijo) => {
     const fn = (prev: GastoFijo[]): GastoFijo[] =>
@@ -218,21 +348,47 @@ export function useGastosFijos() {
     else actualizarPersonal(fn);
   }, [actualizarEmpresa, actualizarPersonal]);
 
-  // ── Computed ─────────────────────────────────────────────────────────────
+  // ── Computed: pendiente del MES ACTUAL ────────────────────────────────────
 
   const totalPendienteEmpresa = useMemo(
-    () => empresa.filter(g => !g.pagado && g.activo).reduce((s, g) => s + Math.max(0, g.montoTotal - g.montoAcumulado), 0),
-    [empresa]
+    () => empresa.filter(g => g.activo).reduce((s, g) => {
+      const p = g.pagos[mes] ?? { montoAcumulado: 0, pagado: false };
+      return s + Math.max(0, g.montoTotal - p.montoAcumulado);
+    }, 0),
+    [empresa, mes]
   );
 
   const totalPendientePersonal = useMemo(
-    () => personal.filter(g => !g.pagado && g.activo).reduce((s, g) => s + Math.max(0, g.montoTotal - g.montoAcumulado), 0),
-    [personal]
+    () => personal.filter(g => g.activo).reduce((s, g) => {
+      const p = g.pagos[mes] ?? { montoAcumulado: 0, pagado: false };
+      return s + Math.max(0, g.montoTotal - p.montoAcumulado);
+    }, 0),
+    [personal, mes]
   );
+
+  // ── Computed: deuda del MES ANTERIOR (solo gastos con monto conocido) ─────
+
+  const deudaMesAnterior = useMemo(() => {
+    const todos = [...empresa, ...personal];
+    return todos
+      .filter(g => g.activo && g.montoTotal > 0)
+      .reduce((s, g) => {
+        const p = g.pagos[mesAnt] ?? { montoAcumulado: 0, pagado: false };
+        return s + Math.max(0, g.montoTotal - p.montoAcumulado);
+      }, 0);
+  }, [empresa, personal, mesAnt]);
 
   return {
     empresa,
     personal,
+    mes,
+    mesAnterior: mesAnt,
+    nombreMesAnterior: nombreMes(mesAnt),
+    nombreMesActual: nombreMes(mes),
+    deudaMesAnterior,
+    guardando,
+    syncStatus,
+    getPagoMes,
     agregarEmpresa,
     agregarPersonal,
     pagarGasto,
@@ -240,6 +396,7 @@ export function useGastosFijos() {
     eliminarGasto,
     actualizarMonto,
     actualizarNombre,
+    guardar,
     totalPendienteEmpresa,
     totalPendientePersonal,
   };

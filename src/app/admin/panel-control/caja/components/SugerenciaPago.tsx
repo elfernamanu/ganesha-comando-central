@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { GastoFijo, TipoGastoFijo } from '../hooks/useGastosFijos';
+import type { GastoFijo, TipoGastoFijo, PagoMes } from '../hooks/useGastosFijos';
 
 function fmt(n: number): string {
   return new Intl.NumberFormat('es-AR', {
@@ -10,10 +10,15 @@ function fmt(n: number): string {
   }).format(n);
 }
 
+// GastoFijo enriquecido con pagoMes para la sugerencia
+export interface GastoPendienteSugerencia extends GastoFijo {
+  pagoMes: PagoMes;
+}
+
 interface Props {
   montoPagado: number;
   clienteNombre: string;
-  gastosPendientes: GastoFijo[];
+  gastosPendientes: GastoPendienteSugerencia[];
   onAplicar: (id: string, monto: number, tipo: TipoGastoFijo) => void;
   onCerrar: () => void;
 }
@@ -64,7 +69,8 @@ export default function SugerenciaPago({
 
     for (const g of gastosSeleccionados) {
       if (restante <= 0) break;
-      const pendiente = Math.max(0, g.montoTotal - g.montoAcumulado);
+      const montoAcumulado = g.pagoMes.montoAcumulado;
+      const pendiente = Math.max(0, g.montoTotal - montoAcumulado);
       const aPagar = Math.min(pendiente > 0 ? pendiente : restante, restante);
       if (aPagar > 0) {
         onAplicar(g.id, aPagar, g.tipo);
@@ -75,7 +81,7 @@ export default function SugerenciaPago({
     onCerrar();
   }, [seleccionados, gastosPendientes, montoPagado, onAplicar, onCerrar]);
 
-  const pendientesFiltrados = gastosPendientes.filter(g => !g.pagado);
+  const pendientesFiltrados = gastosPendientes.filter(g => !g.pagoMes.pagado);
 
   if (pendientesFiltrados.length === 0) return null;
 
@@ -112,7 +118,7 @@ export default function SugerenciaPago({
       {/* Lista de gastos pendientes */}
       <div className="px-2 py-1.5 space-y-0.5 max-h-48 overflow-y-auto">
         {pendientesFiltrados.map(g => {
-          const pendiente = g.montoTotal > 0 ? Math.max(0, g.montoTotal - g.montoAcumulado) : 0;
+          const pendiente = g.montoTotal > 0 ? Math.max(0, g.montoTotal - g.pagoMes.montoAcumulado) : 0;
           const checked = seleccionados.has(g.id);
           return (
             <label

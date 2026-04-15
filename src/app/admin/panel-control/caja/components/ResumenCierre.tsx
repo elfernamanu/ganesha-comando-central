@@ -52,10 +52,15 @@ export default function ResumenCierre({
   const cobradosCount = presentes.filter(t => (t.seña_pagada ?? 0) > 0).length;
 
   // Desglose pagos pendientes en gastos fijos
-  const empPendiente = gastosFijosEmpresa.filter(g => !g.pagado && g.activo);
-  const empPagado    = gastosFijosEmpresa.filter(g => g.pagado  && g.activo);
-  const perPendiente = gastosFijosPersonal.filter(g => !g.pagado && g.activo);
-  const perPagado    = gastosFijosPersonal.filter(g => g.pagado  && g.activo);
+  // Compatibilidad: soporta tanto el campo raíz legacy (montoAcumulado/pagado)
+  // como el nuevo formato con pagos por mes (cuando se pasan objetos enriquecidos)
+  const gEmpresa  = gastosFijosEmpresa.map(g => ({ ...g, montoAcumulado: g.montoAcumulado ?? 0, pagado: g.pagado ?? false }));
+  const gPersonal = gastosFijosPersonal.map(g => ({ ...g, montoAcumulado: g.montoAcumulado ?? 0, pagado: g.pagado ?? false }));
+
+  const empPendiente = gEmpresa.filter(g => !g.pagado && g.activo);
+  const empPagado    = gEmpresa.filter(g => g.pagado  && g.activo);
+  const perPendiente = gPersonal.filter(g => !g.pagado && g.activo);
+  const perPagado    = gPersonal.filter(g => g.pagado  && g.activo);
 
   const totalFijosPendiente =
     empPendiente.reduce((s, g) => s + Math.max(0, g.montoTotal - g.montoAcumulado), 0) +
@@ -206,10 +211,10 @@ export default function ResumenCierre({
                 <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-wide">💼 Empresa</p>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                {gastosFijosEmpresa.filter(g => g.activo).length === 0 && (
+                {gEmpresa.filter(g => g.activo).length === 0 && (
                   <p className="text-[10px] text-slate-400 italic text-center py-1.5">Sin gastos</p>
                 )}
-                {gastosFijosEmpresa.filter(g => g.activo).map(g => (
+                {gEmpresa.filter(g => g.activo).map(g => (
                   <div key={g.id} className="flex justify-between items-center px-2 py-0.5">
                     <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1 mr-1">{g.nombre}</span>
                     {g.pagado ? (
@@ -231,10 +236,10 @@ export default function ResumenCierre({
                 <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wide">🏠 Personal</p>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                {gastosFijosPersonal.filter(g => g.activo).length === 0 && (
+                {gPersonal.filter(g => g.activo).length === 0 && (
                   <p className="text-[10px] text-slate-400 italic text-center py-1.5">Sin gastos</p>
                 )}
-                {gastosFijosPersonal.filter(g => g.activo).map(g => (
+                {gPersonal.filter(g => g.activo).map(g => (
                   <div key={g.id} className="flex justify-between items-center px-2 py-0.5">
                     <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1 mr-1">{g.nombre}</span>
                     {g.pagado ? (

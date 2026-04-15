@@ -59,9 +59,11 @@ export function generarReporteTxt(
         '💼 GASTOS EMPRESA (FIJOS)',
         sublin,
         ...gastosEmpresa.map(g => {
-          const estado = g.pagado
+          const pagado = g.pagado ?? false;
+          const acum   = g.montoAcumulado ?? 0;
+          const estado = pagado
             ? '✓ PAGADO'
-            : `${formatearDinero(g.montoAcumulado)} pagado / ${formatearDinero(g.montoTotal)} total`;
+            : `${formatearDinero(acum)} pagado / ${formatearDinero(g.montoTotal)} total`;
           return `  ${g.nombre}: ${estado}`;
         }),
       ].join('\n')
@@ -73,9 +75,11 @@ export function generarReporteTxt(
         '🏠 GASTOS PERSONALES — Mirian G. Francolino',
         sublin,
         ...gastosPersonal.map(g => {
-          const estado = g.pagado
+          const pagado = g.pagado ?? false;
+          const acum   = g.montoAcumulado ?? 0;
+          const estado = pagado
             ? '✓ PAGADO'
-            : `${formatearDinero(g.montoAcumulado)} pagado / ${formatearDinero(g.montoTotal)} total`;
+            : `${formatearDinero(acum)} pagado / ${formatearDinero(g.montoTotal)} total`;
           return `  ${g.nombre}: ${estado}`;
         }),
         linea,

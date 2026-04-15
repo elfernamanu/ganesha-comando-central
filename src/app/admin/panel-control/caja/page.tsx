@@ -11,9 +11,8 @@ import { formatearDinero, formatearHora } from './utils/formatters';
 import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
 import PanelGastosFijos from './components/PanelGastosFijos';
-import SugerenciaPago from './components/SugerenciaPago';
+import SugerenciaPago, { type GastoPendienteSugerencia } from './components/SugerenciaPago';
 import ResumenCierre from './components/ResumenCierre';
-import type { GastoFijo } from './hooks/useGastosFijos';
 import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
 
 function CajaContent() {
@@ -45,6 +44,14 @@ function CajaContent() {
   const {
     empresa: gastosFijosEmpresa,
     personal: gastosFijosPersonal,
+    mes: mesGastos,
+    mesAnterior: mesAnteriorGastos,
+    nombreMesAnterior,
+    nombreMesActual,
+    deudaMesAnterior,
+    guardando: guardandoFijos,
+    syncStatus: syncFijos,
+    getPagoMes,
     agregarEmpresa,
     agregarPersonal,
     pagarGasto: pagarGastoFijo,
@@ -52,9 +59,10 @@ function CajaContent() {
     eliminarGasto: eliminarGastoFijo,
     actualizarMonto,
     actualizarNombre,
+    guardar: guardarFijos,
     totalPendienteEmpresa,
     totalPendientePersonal,
-  } = useGastosFijos();
+  } = useGastosFijos(fecha);
 
   // ── Sugerencia de pago ──
   const [sugerencia, setSugerencia] = useState<{
@@ -78,9 +86,9 @@ function CajaContent() {
         (t.seña_pagada ?? 0) > 0 &&
         (!prev || prev.asistencia !== 'presente' || (prev.seña_pagada ?? 0) !== (t.seña_pagada ?? 0))
       ) {
-        const pendientes: GastoFijo[] = [
-          ...gastosFijosEmpresa.filter(g => !g.pagado),
-          ...gastosFijosPersonal.filter(g => !g.pagado),
+        const pendientes = [
+          ...gastosFijosEmpresa.filter(g => !getPagoMes(g).pagado),
+          ...gastosFijosPersonal.filter(g => !getPagoMes(g).pagado),
         ];
         if (pendientes.length > 0) {
           setSugerencia({ visible: true, montoPagado: t.seña_pagada ?? 0, clienteNombre: t.clienteNombre });
@@ -121,14 +129,18 @@ function CajaContent() {
     .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());
 
+  // Gastos fijos enriquecidos con el estado del mes actual (para ResumenCierre y reportes)
+  const fijosEmpresaConPago  = gastosFijosEmpresa.map(g => ({ ...g, montoAcumulado: getPagoMes(g).montoAcumulado, pagado: getPagoMes(g).pagado }));
+  const fijosPersonalConPago = gastosFijosPersonal.map(g => ({ ...g, montoAcumulado: getPagoMes(g).montoAcumulado, pagado: getPagoMes(g).pagado }));
+
   // Cerrar + guardar + descargar .txt — todo en uno
   // Los gastos fijos se pasan para guardar snapshot histórico en caja_diaria
   const handleCerrarYGuardar = async () => {
-    const ok = await cerrarYGuardar(gastosFijosEmpresa, gastosFijosPersonal);
+    const ok = await cerrarYGuardar(fijosEmpresaConPago, fijosPersonalConPago);
     if (ok) {
       mostrar('Caja cerrada y guardada', 'exito', 'El resumen del día llegó al servidor ✓');
       setFechaRecuperar(fecha);
-      const contenido = generarReporteTxt(fecha, turnos, gastos, totales, gastosFijosEmpresa, gastosFijosPersonal);
+      const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaConPago, fijosPersonalConPago);
       descargarReporte(contenido, fecha);
     } else {
       mostrar('Error al guardar caja', 'error', 'Verificá la conexión con el servidor');
@@ -137,7 +149,7 @@ function CajaContent() {
 
   // Solo descargar .txt del día actual (sin cerrar)
   const handleDescargarHoy = () => {
-    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, gastosFijosEmpresa, gastosFijosPersonal);
+    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaConPago, fijosPersonalConPago);
     descargarReporte(contenido, fecha);
   };
 
@@ -358,6 +370,14 @@ function CajaContent() {
       <PanelGastosFijos
         empresa={gastosFijosEmpresa}
         personal={gastosFijosPersonal}
+        mes={mesGastos}
+        mesAnterior={mesAnteriorGastos}
+        nombreMesAnterior={nombreMesAnterior}
+        nombreMesActual={nombreMesActual}
+        deudaMesAnterior={deudaMesAnterior}
+        guardando={guardandoFijos}
+        syncStatus={syncFijos}
+        getPagoMes={getPagoMes}
         onPagar={pagarGastoFijo}
         onReset={resetearGasto}
         onEliminar={eliminarGastoFijo}
@@ -365,6 +385,7 @@ function CajaContent() {
         onActualizarNombre={actualizarNombre}
         onAgregarEmpresa={agregarEmpresa}
         onAgregarPersonal={agregarPersonal}
+        onGuardar={guardarFijos}
         totalPendienteEmpresa={totalPendienteEmpresa}
         totalPendientePersonal={totalPendientePersonal}
       />
@@ -396,8 +417,8 @@ function CajaContent() {
         totales={totales}
         turnos={turnos}
         gastos={gastos}
-        gastosFijosEmpresa={gastosFijosEmpresa}
-        gastosFijosPersonal={gastosFijosPersonal}
+        gastosFijosEmpresa={fijosEmpresaConPago}
+        gastosFijosPersonal={fijosPersonalConPago}
       />
 
       {/* ── Botones de acción — fuera del recuadro ── */}
@@ -447,8 +468,12 @@ function CajaContent() {
           montoPagado={sugerencia.montoPagado}
           clienteNombre={sugerencia.clienteNombre}
           gastosPendientes={[
-            ...gastosFijosEmpresa.filter(g => !g.pagado),
-            ...gastosFijosPersonal.filter(g => !g.pagado),
+            ...gastosFijosEmpresa
+              .filter(g => !getPagoMes(g).pagado)
+              .map(g => ({ ...g, pagoMes: getPagoMes(g) }) satisfies GastoPendienteSugerencia),
+            ...gastosFijosPersonal
+              .filter(g => !getPagoMes(g).pagado)
+              .map(g => ({ ...g, pagoMes: getPagoMes(g) }) satisfies GastoPendienteSugerencia),
           ]}
           onAplicar={pagarGastoFijo}
           onCerrar={() => setSugerencia(null)}
