@@ -79,17 +79,28 @@ export function leerCatalogo(): CatalogoPromos {
 
   const config = leerConfig();
 
-  // 1) Depilación completa: zonas individuales + promos
-  const itemsDepiZonas = config
-    ? leerSubserviciosCat(config, 'depilacion', item =>
-        item.nombre.startsWith('🌸') || item.nombre.startsWith('💪'), 'depilacion_zona')
+  // 1) Depilación — 4 categorías separadas por género
+  const itemsZonaMujer = config
+    ? leerSubserviciosCat(config, 'depilacion', item => item.nombre.startsWith('🌸'), 'depilacion_zona_mujer')
     : [];
-  const itemsDepiPromos = config
-    ? leerSubserviciosCat(config, 'depilacion', item =>
-        item.nombre.startsWith('🎁') || item.nombre.startsWith('PROMO'), 'depilacion')
-    : DEFAULT_PROMOS;
-  itemsDepiZonas.forEach(item => { catalogo[item.nombre] = item; });
-  itemsDepiPromos.forEach(item => { catalogo[item.nombre] = item; });
+  const itemsZonaHombre = config
+    ? leerSubserviciosCat(config, 'depilacion', item => item.nombre.startsWith('💪'), 'depilacion_zona_hombre')
+    : [];
+  const itemsPromoMujer = config
+    ? leerSubserviciosCat(config, 'depilacion',
+        item => (item.nombre.startsWith('🎁') || item.nombre.startsWith('PROMO')) && !item.nombre.includes('Hombre'),
+        'depilacion_mujer')
+    : DEFAULT_PROMOS.filter(p => !p.nombre.includes('Hombre'));
+  const itemsPromoHombre = config
+    ? leerSubserviciosCat(config, 'depilacion',
+        item => (item.nombre.startsWith('🎁') || item.nombre.startsWith('PROMO')) && item.nombre.includes('Hombre'),
+        'depilacion_hombre')
+    : DEFAULT_PROMOS.filter(p => p.nombre.includes('Hombre'));
+
+  itemsZonaMujer.forEach(item  => { catalogo[item.nombre] = item; });
+  itemsZonaHombre.forEach(item => { catalogo[item.nombre] = item; });
+  itemsPromoMujer.forEach(item => { catalogo[item.nombre] = item; });
+  itemsPromoHombre.forEach(item => { catalogo[item.nombre] = item; });
 
   // 2) Uñas (todos los subservicios activos)
   const itemsUnas = config

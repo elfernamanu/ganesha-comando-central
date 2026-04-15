@@ -99,12 +99,14 @@ export default function TurnosTable({
     return () => window.removeEventListener('focus', cargar);
   }, []);
 
-  const opcionesDepiZonas  = Object.values(catalogo).filter(item => item.categoria === 'depilacion_zona');
-  const opcionesDepiPromos = Object.values(catalogo).filter(item => item.categoria === 'depilacion');
-  const opcionesUnas       = Object.values(catalogo).filter(item => item.categoria === 'unas');
-  const opcionesEstetica   = Object.values(catalogo).filter(item => item.categoria === 'estetica');
-  const opcionesPestanas   = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
-  const opcionesCombos     = Object.values(catalogo).filter(item => item.categoria === 'combo');
+  const opcionesDepiPromoMujer  = Object.values(catalogo).filter(item => item.categoria === 'depilacion_mujer');
+  const opcionesDepiPromoHombre = Object.values(catalogo).filter(item => item.categoria === 'depilacion_hombre');
+  const opcionesDepiZonaMujer   = Object.values(catalogo).filter(item => item.categoria === 'depilacion_zona_mujer');
+  const opcionesDepiZonaHombre  = Object.values(catalogo).filter(item => item.categoria === 'depilacion_zona_hombre');
+  const opcionesUnas            = Object.values(catalogo).filter(item => item.categoria === 'unas');
+  const opcionesEstetica        = Object.values(catalogo).filter(item => item.categoria === 'estetica');
+  const opcionesPestanas        = Object.values(catalogo).filter(item => item.categoria === 'pestanas');
+  const opcionesCombos          = Object.values(catalogo).filter(item => item.categoria === 'combo');
 
   const handleTratamientoChange = (turnoId: string, nuevoTrat: string) => {
     const item = catalogo[nuevoTrat] ?? buscarEnCatalogo(nuevoTrat);
@@ -143,16 +145,30 @@ export default function TurnosTable({
         {tratamiento && !catalogo[tratamiento] && (
           <option value={tratamiento}>{tratamiento}</option>
         )}
-        {opcionesDepiPromos.length > 0 && (
-          <optgroup label="✨ Promos Depilación">
-            {opcionesDepiPromos.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+        {opcionesDepiPromoMujer.length > 0 && (
+          <optgroup label="✨ Promos Depilación MUJER">
+            {opcionesDepiPromoMujer.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
               <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
             ))}
           </optgroup>
         )}
-        {opcionesDepiZonas.length > 0 && (
-          <optgroup label="🌸 Zonas Mujer / 💪 Hombre">
-            {opcionesDepiZonas.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+        {opcionesDepiPromoHombre.length > 0 && (
+          <optgroup label="✨ Promos Depilación HOMBRE">
+            {opcionesDepiPromoHombre.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+              <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
+            ))}
+          </optgroup>
+        )}
+        {opcionesDepiZonaMujer.length > 0 && (
+          <optgroup label="🌸 Zonas Individuales MUJER">
+            {opcionesDepiZonaMujer.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
+              <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
+            ))}
+          </optgroup>
+        )}
+        {opcionesDepiZonaHombre.length > 0 && (
+          <optgroup label="💪 Zonas Individuales HOMBRE">
+            {opcionesDepiZonaHombre.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
               <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
             ))}
           </optgroup>

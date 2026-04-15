@@ -85,15 +85,16 @@ const INICIAL: CategoriaServicio[] = [
       { id: 32, nombre: '💪 Línea de alba',     precio: 14000, activo: true },
       { id: 33, nombre: '💪 Dedos',             precio: 11000, activo: true },
       { id: 34, nombre: '💪 Empeine',           precio: 12000, activo: true },
-      // 🎁 PROMOS
-      { id: 35, nombre: 'PROMO DEPI 1: Rostro completo (Mujer)',    precio: 20500, activo: true },
-      { id: 36, nombre: 'PROMO DEPI 2: Cavado + Tira de cola',     precio: 22500, activo: true },
-      { id: 37, nombre: 'PROMO DEPI 3: Cuerpo completo sin rostro',precio: 33000, activo: true },
-      { id: 38, nombre: 'PROMO DEPI 4: Pecho y Abdomen (Hombre)',  precio: 26500, activo: true },
-      { id: 39, nombre: 'PROMO DEPI 5: Pelvis y Tira (Hombre)',    precio: 27000, activo: true },
-      { id: 40, nombre: 'PROMO DEPI 6: Rostro completo (Hombre)',  precio: 24000, activo: true },
-      { id: 41, nombre: 'PROMO DEPI 7: Cuerpo completo (Hombre)',  precio: 41000, activo: true },
-      { id: 42, nombre: 'PROMO DEPI 8: Brazos y Axilas (Hombre)',  precio: 30000, activo: true },
+      // PROMOS MUJER
+      { id: 35, nombre: 'PROMO DEPI 1: Rostro completo (Mujer)',           precio: 20500, activo: true },
+      { id: 36, nombre: 'PROMO DEPI 2: Cavado + Tira de cola (Mujer)',     precio: 22500, activo: true },
+      { id: 37, nombre: 'PROMO DEPI 3: Cuerpo completo (Mujer)',           precio: 33000, activo: true },
+      // PROMOS HOMBRE
+      { id: 38, nombre: 'PROMO DEPI 4: Pecho y Abdomen (Hombre)',          precio: 26500, activo: true },
+      { id: 39, nombre: 'PROMO DEPI 5: Pelvis y Tira (Hombre)',            precio: 27000, activo: true },
+      { id: 40, nombre: 'PROMO DEPI 6: Rostro completo (Hombre)',          precio: 24000, activo: true },
+      { id: 41, nombre: 'PROMO DEPI 7: Cuerpo completo (Hombre)',          precio: 41000, activo: true },
+      { id: 42, nombre: 'PROMO DEPI 8: Brazos y Axilas (Hombre)',          precio: 30000, activo: true },
     ],
   },
   {
@@ -384,12 +385,14 @@ function ListaPrecios({
   // Helper: detecta promos por prefijo PROMO o emoji 🎁
   const esPromoNombre = (nombre: string) => nombre.startsWith('PROMO') || nombre.startsWith('🎁');
 
-  // Grupos para depilación — 3 secciones: Mujer, Hombre, Promos
+  // Grupos para depilación — 4 secciones: Zonas Mujer | Zonas Hombre | Promos Mujer | Promos Hombre
+  const todosPromos = subservicios.filter(s => esPromoNombre(s.nombre));
   const grupos = esDepilacion
     ? [
-        { label: '🌸 ZONAS MUJER',  prefijo: '🌸',   items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
-        { label: '💪 ZONAS HOMBRE', prefijo: '💪',   items: subservicios.filter(s => s.nombre.startsWith('💪')) },
-        { label: 'PROMOS',          prefijo: 'PROMO', items: subservicios.filter(s => esPromoNombre(s.nombre)) },
+        { label: '🌸 ZONAS MUJER',   prefijo: '🌸',                  items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
+        { label: '💪 ZONAS HOMBRE',  prefijo: '💪',                  items: subservicios.filter(s => s.nombre.startsWith('💪')) },
+        { label: '🌸 PROMOS MUJER',  prefijo: 'PROMO DEPI: (Mujer)', items: todosPromos.filter(s => !s.nombre.includes('Hombre')) },
+        { label: '💪 PROMOS HOMBRE', prefijo: 'PROMO DEPI: (Hombre)',items: todosPromos.filter(s =>  s.nombre.includes('Hombre')) },
       ].filter(g => g.items.length > 0)
     : null;
 
@@ -418,15 +421,19 @@ function ListaPrecios({
           <div className="flex gap-1 flex-wrap">
             <button onClick={() => onAgregarConPrefijo(catId, '🌸')}
               className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 dark:bg-pink-900/40 text-pink-700 hover:bg-pink-200 transition-colors">
-              + Mujer
+              + Zona Mujer
             </button>
             <button onClick={() => onAgregarConPrefijo(catId, '💪')}
               className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 hover:bg-blue-200 transition-colors">
-              + Hombre
+              + Zona Hombre
             </button>
-            <button onClick={() => onAgregarConPrefijo(catId, 'PROMO DEPI')}
-              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 hover:bg-amber-200 transition-colors">
-              + Promo
+            <button onClick={() => onAgregarConPrefijo(catId, 'PROMO DEPI: (Mujer)')}
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-50 dark:bg-pink-900/20 text-amber-700 border border-pink-300 hover:bg-pink-100 transition-colors">
+              + Promo Mujer
+            </button>
+            <button onClick={() => onAgregarConPrefijo(catId, 'PROMO DEPI: (Hombre)')}
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-amber-700 border border-blue-300 hover:bg-blue-100 transition-colors">
+              + Promo Hombre
             </button>
           </div>
         ) : (
@@ -448,7 +455,9 @@ function ListaPrecios({
           {/* ── Con grupos: 3 columnas paralelas ── */}
           {(esDepilacion && grupos) || (!esDepilacion && gruposUnas) ? (
             <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 ${
-              (esDepilacion ? grupos! : gruposUnas!).length === 3
+              (esDepilacion ? grupos! : gruposUnas!).length === 4
+                ? 'grid-cols-4'
+                : (esDepilacion ? grupos! : gruposUnas!).length === 3
                 ? 'grid-cols-3'
                 : (esDepilacion ? grupos! : gruposUnas!).length === 2
                   ? 'grid-cols-2'
