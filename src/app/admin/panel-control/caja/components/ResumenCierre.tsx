@@ -48,7 +48,8 @@ export default function ResumenCierre({
   const turnosSorted  = [...turnos].sort((a, b) => a.horario.localeCompare(b.horario));
   const presentes     = turnosSorted.filter(t => t.asistencia === 'presente');
   const ausentes      = turnosSorted.filter(t => t.asistencia === 'no_vino');
-  const sinRegistrar  = turnosSorted.filter(t => t.asistencia !== 'presente' && t.asistencia !== 'no_vino');
+  // Cuántos presentes realmente pagaron algo (para el label de la card Ingresos)
+  const cobradosCount = presentes.filter(t => (t.seña_pagada ?? 0) > 0).length;
 
   // Desglose pagos pendientes en gastos fijos
   const empPendiente = gastosFijosEmpresa.filter(g => !g.pagado && g.activo);
@@ -93,7 +94,7 @@ export default function ResumenCierre({
             <p className="text-xl font-black text-green-700 dark:text-green-300 font-mono leading-tight mt-0.5">
               {fmt(totales.ingresos_totales)}
             </p>
-            <p className="text-[9px] text-green-500">{totales.turnos_presentes} cobrado{totales.turnos_presentes !== 1 ? 's' : ''}</p>
+            <p className="text-[9px] text-green-500">{cobradosCount} cobrado{cobradosCount !== 1 ? 's' : ''}</p>
           </div>
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center border border-red-200 dark:border-red-800">
             <p className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Gastos Día</p>
@@ -171,7 +172,13 @@ export default function ResumenCierre({
                   <span className={`text-[11px] font-mono font-bold whitespace-nowrap ${
                     noVino ? 'text-red-500' : pagado ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
                   }`}>
-                    {noVino ? 'No vino' : pagado ? `✓ ${fmt(t.seña_pagada ?? 0)}` : `⏳ ${fmt(t.seña_pagada ?? 0)}`}
+                    {noVino
+                      ? (t.seña_pagada ?? 0) > 0
+                          ? `✗ ${fmt(t.seña_pagada ?? 0)}`   // seña perdida — contabilizada como ingreso
+                          : 'No vino'
+                      : pagado
+                          ? `✓ ${fmt(t.seña_pagada ?? 0)}`
+                          : `⏳ ${fmt(t.seña_pagada ?? 0)}`}
                   </span>
                   <span className="text-[10px] font-bold">
                     {noVino ? '' : t.metodo_pago === 'efectivo' ? '💵' : t.metodo_pago === 'transferencia' ? '🏦' : '📱'}

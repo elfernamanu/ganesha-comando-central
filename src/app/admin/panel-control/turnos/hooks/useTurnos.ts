@@ -170,7 +170,8 @@ export function useTurnos(fecha: string) {
         if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined) {
           const seña  = cambios.seña_pagada !== undefined ? cambios.seña_pagada : t.seña_pagada;
           const total = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
-          updated.estado_pago = seña === 0 ? 'sin_pago' : seña >= total ? 'completo' : 'seña';
+          // total > 0 evita marcar 'completo' cuando el precio aún no fue cargado
+          updated.estado_pago = seña === 0 ? 'sin_pago' : (total > 0 && seña >= total) ? 'completo' : 'seña';
         }
 
         return updated;

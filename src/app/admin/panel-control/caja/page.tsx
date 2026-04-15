@@ -140,7 +140,9 @@ function CajaContent() {
         fechaRecuperar,
         resultado.turnos,
         resultado.gastos ?? [],
-        resultado.totales
+        resultado.totales,
+        resultado.gastosFijosEmpresa  ?? [],
+        resultado.gastosFijosPersonal ?? [],
       );
       descargarReporte(contenido, fechaRecuperar);
       setMensajeRecuperar(`✅ Reporte de ${fechaRecuperar} descargado`);

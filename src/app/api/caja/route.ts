@@ -36,13 +36,22 @@ export async function GET(req: NextRequest) {
     if (!rows[0]) return NextResponse.json({ ok: false, encontrado: false });
 
     const datos = rows[0].datos as Record<string, unknown>;
+    // Totales guardados, o valor neutro por si el registro es antiguo
+    const totalesDefault = {
+      ingresos_totales: 0, gastos_totales: 0, ganancia_neta: 0,
+      turnos_total: 0, turnos_presentes: 0, turnos_ausentes: 0,
+      efectivo: 0, transferencia: 0, otro: 0,
+    };
+
     return NextResponse.json({
       ok: true,
       encontrado: true,
       cerrada: rows[0].cerrada,
-      turnos:  datos.turnos  ?? [],
-      gastos:  datos.gastos  ?? [],
-      totales: datos.totales ?? null,
+      turnos:               datos.turnos              ?? [],
+      gastos:               datos.gastos              ?? [],
+      totales:              datos.totales             ?? totalesDefault,
+      gastosFijosEmpresa:   datos.gastosFijosEmpresa  ?? [],
+      gastosFijosPersonal:  datos.gastosFijosPersonal ?? [],
     });
   } catch (err) {
     console.error('[/api/caja GET]', err);

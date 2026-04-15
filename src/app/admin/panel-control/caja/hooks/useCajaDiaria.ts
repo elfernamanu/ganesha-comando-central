@@ -197,6 +197,8 @@ export function useCajaDiaria(fecha: string) {
     turnos?: Turno[];
     gastos?: Gasto[];
     totales?: TotalesCaja;
+    gastosFijosEmpresa?: GastoFijo[];
+    gastosFijosPersonal?: GastoFijo[];
   }> => {
     try {
       const res = await fetch(`/api/caja?fecha=${fechaBuscar}`);
@@ -204,10 +206,12 @@ export function useCajaDiaria(fecha: string) {
       const data = await res.json();
       if (!data.ok || !data.encontrado) return { encontrado: false };
       return {
-        encontrado: true,
-        turnos:  data.turnos  ?? [],
-        gastos:  data.gastos  ?? [],
-        totales: data.totales ?? undefined,
+        encontrado:          true,
+        turnos:              data.turnos             ?? [],
+        gastos:              data.gastos             ?? [],
+        totales:             data.totales,                    // siempre llega del servidor (nunca null)
+        gastosFijosEmpresa:  data.gastosFijosEmpresa  ?? [],
+        gastosFijosPersonal: data.gastosFijosPersonal ?? [],
       };
     } catch {
       return { encontrado: false };
