@@ -303,6 +303,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
     <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
       <input
         value={nombre}
+        title={nombre}
         onFocus={e => e.target.select()}
         onChange={e => setNombre(e.target.value)}
         onBlur={() => onActualizar(catId, s.id, 'nombre', nombre)}
