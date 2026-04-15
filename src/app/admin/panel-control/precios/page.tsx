@@ -495,7 +495,12 @@ export default function ConfiguracionServiciosPage() {
     fetch('/api/admin/config')
       .then(r => r.json())
       .then(data => {
-        if (data.ok && Array.isArray(data.datos) && data.datos.length > 0) {
+        // Solo usa datos del servidor si son válidos (al menos 3 categorías con servicios reales)
+        const valido = data.ok &&
+          Array.isArray(data.datos) &&
+          data.datos.length >= 3 &&
+          data.datos.every((c: CategoriaServicio) => c.id && Array.isArray(c.subservicios) && c.subservicios.length > 0);
+        if (valido) {
           setCategorias(data.datos.map((c: CategoriaServicio) => ({ ...c, jornadas: c.jornadas ?? [] })));
         }
       })
