@@ -1,7 +1,31 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { cerrarSesionPanel } from '@/lib/panelAuth';
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+interface Dispositivo {
+  id: string;
+  nombre: string;
+  ip: string;
+  primera_vez: string;
+  ultima_vez: string;
+  visitas: number;
+}
+
+// ── Helper: tiempo relativo ───────────────────────────────────────────────────
+function tiempoRelativo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min  = Math.floor(diff / 60_000);
+  const hs   = Math.floor(diff / 3_600_000);
+  const dias = Math.floor(diff / 86_400_000);
+  if (min < 2)   return 'hace un momento';
+  if (min < 60)  return `hace ${min} min`;
+  if (hs  < 24)  return `hace ${hs} h`;
+  if (dias < 7)  return `hace ${dias} día${dias !== 1 ? 's' : ''}`;
+  return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+}
 
 const SECCIONES = [
   {
@@ -77,6 +101,15 @@ const SECCIONES = [
 ];
 
 export default function PanelControlPage() {
+  const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
+
+  useEffect(() => {
+    fetch('/api/dispositivos')
+      .then(r => r.json())
+      .then(data => { if (data.ok) setDispositivos(data.dispositivos ?? []); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-5">
 
@@ -126,6 +159,38 @@ export default function PanelControlPage() {
           </Link>
         ))}
       </div>
+
+      {/* ── Dispositivos conectados ── */}
+      {dispositivos.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <p className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+              📱 Dispositivos con acceso
+            </p>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {dispositivos.length} registrado{dispositivos.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
+            {dispositivos.map(d => (
+              <div key={d.id} className="flex items-center justify-between px-4 py-2 gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{d.nombre || 'Dispositivo desconocido'}</p>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {d.ip !== 'desconocida' ? `IP: ${d.ip} · ` : ''}{d.visitas} visita{d.visitas !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{tiempoRelativo(d.ultima_vez)}</p>
+                  <p className="text-[9px] text-slate-300 dark:text-slate-600">
+                    1er acceso: {new Date(d.primera_vez).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
