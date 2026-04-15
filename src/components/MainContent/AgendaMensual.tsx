@@ -154,26 +154,45 @@ export function AgendaMensual() {
   const [turnos,    setTurnos]    = useState<TurnoSecretaria[]>([]);
 
   // ── Leer config de servicios ──────────────────────────────────────────────
-  const cargarServicios = useCallback(() => {
+  const cargarServiciosDesdeLS = useCallback((): CategoriaServicio[] | null => {
     try {
       const raw = localStorage.getItem('ganesha_config_servicios');
       if (raw) {
         const parsed = JSON.parse(raw) as CategoriaServicio[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setServicios(parsed);
-          return;
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch {
-      // si falla el parse, usar defaults
-    }
-    setServicios(SERVICIOS_DEFAULT);
+    } catch { /* ignorar */ }
+    return null;
   }, []);
+
+  const cargarServicios = useCallback(() => {
+    // 1. Carga inmediata desde localStorage (sin latencia)
+    const fromLS = cargarServiciosDesdeLS();
+    if (fromLS) setServicios(fromLS);
+
+    // 2. Fetch al servidor en background (fuente de verdad — sin auth requerida)
+    fetch('/api/admin/config', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: { ok: boolean; datos: CategoriaServicio[] }) => {
+        if (data.ok && Array.isArray(data.datos) && data.datos.length > 0) {
+          const migradas = data.datos.map(c => ({ ...c, jornadas: c.jornadas ?? [] }));
+          setServicios(migradas);
+          // Sincroniza localStorage para próximas cargas offline
+          try { localStorage.setItem('ganesha_config_servicios', JSON.stringify(migradas)); } catch { /* ignorar */ }
+        } else if (!fromLS) {
+          setServicios(SERVICIOS_DEFAULT);
+        }
+      })
+      .catch(() => {
+        // Sin conexión — si no había localStorage tampoco, usar defaults
+        if (!fromLS) setServicios(SERVICIOS_DEFAULT);
+      });
+  }, [cargarServiciosDesdeLS]);
 
   useEffect(() => {
     cargarServicios();
     // Recargar cuando el usuario vuelve a esta pestaña
-    // (por si la dueña configuró servicios en otra pestaña)
+    // (por si la dueña configuró servicios en otra pestaña o en el panel admin)
     const onFocus = () => cargarServicios();
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);

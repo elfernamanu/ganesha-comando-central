@@ -27,16 +27,15 @@ export async function POST(req: NextRequest) {
     const { datos } = body;
     if (!datos) return NextResponse.json({ ok: false }, { status: 400 });
 
+    const json = JSON.stringify(datos);
+
+    // UPSERT: una sola operación atómica
     await query(
-      `INSERT INTO config_servicios (datos, actualizado_at)
-       VALUES ($1::jsonb, NOW())
-       ON CONFLICT DO NOTHING`,
-      [JSON.stringify(datos)]
-    );
-    // Siempre tenemos 1 sola fila → UPDATE
-    await query(
-      'UPDATE config_servicios SET datos = $1::jsonb, actualizado_at = NOW()',
-      [JSON.stringify(datos)]
+      `INSERT INTO config_servicios (id, datos, actualizado_at)
+       VALUES (1, $1::jsonb, NOW())
+       ON CONFLICT (id)
+       DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = EXCLUDED.actualizado_at`,
+      [json]
     );
 
     return NextResponse.json({ ok: true });
