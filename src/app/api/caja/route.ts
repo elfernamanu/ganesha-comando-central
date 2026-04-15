@@ -7,18 +7,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-// ── Asegura que la tabla existe — solo UNA vez por proceso/instancia ──────
+// ── Verifica que la tabla existe (el usuario DB no tiene permiso CREATE TABLE) ─
+// La tabla debe crearse manualmente con el superusuario de PostgreSQL:
+//   CREATE TABLE IF NOT EXISTS caja_diaria (
+//     fecha DATE PRIMARY KEY, datos JSONB NOT NULL DEFAULT '{}',
+//     cerrada BOOLEAN NOT NULL DEFAULT false, actualizado TIMESTAMPTZ NOT NULL DEFAULT NOW()
+//   );
+//   GRANT SELECT, INSERT, UPDATE ON caja_diaria TO ganesha_web;
 let tableReady = false;
 async function ensureTable() {
   if (tableReady) return;
-  await query(`
-    CREATE TABLE IF NOT EXISTS caja_diaria (
-      fecha        DATE        PRIMARY KEY,
-      datos        JSONB       NOT NULL DEFAULT '{}',
-      cerrada      BOOLEAN     NOT NULL DEFAULT false,
-      actualizado  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
+  // Verificar que la tabla existe (sin intentar crearla — sin permisos DDL)
+  const rows = await query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'caja_diaria'
+     ) as exists`
+  );
+  if (!rows[0]?.exists) {
+    throw new Error('TABLA_FALTANTE: ejecutá el SQL de migración en el servidor PostgreSQL');
+  }
   tableReady = true;
 }
 
