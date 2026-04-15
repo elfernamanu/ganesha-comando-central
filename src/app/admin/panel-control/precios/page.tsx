@@ -298,7 +298,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
   React.useEffect(() => { setNombre(s.nombre); }, [s.nombre]);
   React.useEffect(() => { setPrecio(formatPrecio(s.precio)); }, [s.precio]);
 
-  const esPromo = s.nombre.startsWith('PROMO');
+  const esPromo = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
   return (
     <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
       <input
@@ -362,19 +362,22 @@ function ListaPrecios({
   const esDepilacion = catId === 'depilacion';
   const esUnas       = catId === 'unas';
 
+  // Helper: detecta promos por prefijo PROMO o emoji 🎁
+  const esPromoNombre = (nombre: string) => nombre.startsWith('PROMO') || nombre.startsWith('🎁');
+
   // Grupos para depilación — 3 secciones: Mujer, Hombre, Promos
   const grupos = esDepilacion
     ? [
-        { label: '🌸 ZONAS MUJER',  prefijo: '🌸', items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
-        { label: '💪 ZONAS HOMBRE', prefijo: '💪', items: subservicios.filter(s => s.nombre.startsWith('💪')) },
-        { label: '🎁 PROMOS',       prefijo: '🎁', items: subservicios.filter(s => s.nombre.startsWith('🎁')) },
+        { label: '🌸 ZONAS MUJER',  prefijo: '🌸',   items: subservicios.filter(s => s.nombre.startsWith('🌸')) },
+        { label: '💪 ZONAS HOMBRE', prefijo: '💪',   items: subservicios.filter(s => s.nombre.startsWith('💪')) },
+        { label: 'PROMOS',          prefijo: 'PROMO', items: subservicios.filter(s => esPromoNombre(s.nombre)) },
       ].filter(g => g.items.length > 0)
     : null;
 
   // Grupos para uñas (servicios base + promos)
   const gruposUnas = esUnas ? [
-    { label: 'Servicios', prefijo: '',  items: subservicios.filter(s => !s.nombre.startsWith('🎁')) },
-    { label: '🎁 Promos', prefijo: '🎁', items: subservicios.filter(s => s.nombre.startsWith('🎁')) },
+    { label: 'Servicios', prefijo: '',      items: subservicios.filter(s => !esPromoNombre(s.nombre)) },
+    { label: 'Promos',    prefijo: 'PROMO', items: subservicios.filter(s => esPromoNombre(s.nombre)) },
   ].filter(g => g.items.length > 0) : null;
 
   return (
@@ -399,9 +402,9 @@ function ListaPrecios({
               className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors">
               + 💪 Hombre
             </button>
-            <button onClick={() => onAgregarConPrefijo(catId, '🎁')}
+            <button onClick={() => onAgregarConPrefijo(catId, 'PROMO DEPI')}
               className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors">
-              + 🎁 Promo
+              + Promo
             </button>
           </div>
         ) : esUnas ? (
@@ -410,9 +413,9 @@ function ListaPrecios({
               className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors">
               + Servicio
             </button>
-            <button onClick={() => onAgregarConPrefijo(catId, '🎁')}
+            <button onClick={() => onAgregarConPrefijo(catId, 'PROMO UÑAS')}
               className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors">
-              + 🎁 Promo
+              + Promo
             </button>
           </div>
         ) : (
