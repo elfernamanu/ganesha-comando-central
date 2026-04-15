@@ -25,17 +25,42 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Ganesha" />
-        <meta name="theme-color" content="#4c1d95" />
+        {/* Blanco en lugar de violeta oscuro — evita la pantalla morada al cargar */}
+        <meta name="theme-color" content="#ffffff" />
       </head>
       <body className="antialiased">
-        <AccessibilityProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </AccessibilityProvider>
+
+        {/* ── Splash: aparece ANTES que React (CSS puro, sin JS) ───────────
+            El script inline lo elimina cuando el DOM está listo.            */}
+        <div id="app-splash" aria-hidden="true">
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '3rem', lineHeight: 1 }}>🌺</div>
+            <p style={{ margin: '10px 0 4px', fontWeight: 700, color: '#1e1b4b', fontSize: '16px' }}>
+              Ganesha Esthetic
+            </p>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '12px' }}>Cargando...</p>
+          </div>
+          <div className="splash-spinner" />
+        </div>
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              (function() {
+                var el = document.getElementById('app-splash');
+                if (!el) return;
+                // Espera a que React monte el primer componente real
+                var observer = new MutationObserver(function() {
+                  var body = document.body;
+                  if (body && body.children.length > 1) {
+                    el.classList.add('fade-out');
+                    setTimeout(function() { el.remove(); }, 260);
+                    observer.disconnect();
+                  }
+                });
+                observer.observe(document.body, { childList: true, subtree: false });
+                // Fallback: quitar splash a los 5s pase lo que pase
+                setTimeout(function() { el.classList.add('fade-out'); setTimeout(function(){ el.remove(); }, 260); }, 5000);
+              })();
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js');
               }
