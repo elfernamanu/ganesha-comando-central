@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Gasto } from '../types/index';
 import type { Turno } from '../../_shared/turnoType';
 import type { GastoFijo } from './useGastosFijos';
@@ -15,7 +15,7 @@ export interface TotalesCaja {
   turnos_total: number;
   turnos_presentes: number;
   turnos_ausentes: number;
-  // Desglose por método de pago (solo presentes)
+  // Desglose por método de pago
   efectivo: number;
   transferencia: number;
   otro: number;
@@ -23,48 +23,46 @@ export interface TotalesCaja {
 
 /**
  * Hook principal de Caja Diaria
- * - Lee turnos desde localStorage (escritos por la secretaria en /turnos)
- * - Gestiona gastos del día
- * - Calcula totales: ingresos, gastos, ganancia
+ *
+ * FLUJO DE PERSISTENCIA:
+ *   - Turnos:      localStorage (secretaria) → /api/sync (fuente de verdad)
+ *   - Gastos día:  localStorage (caché) → /api/caja parcial (auto-save 1.5s)
+ *   - Gastos fijos: /api/gastos-fijos (independiente, no depende del cierre)
+ *   - Cierre caja: /api/caja completo → snapshot histórico permanente
+ *
+ * Los gastos del día se guardan SOLOS — no hay que cerrar la caja para persistirlos.
  */
 export function useCajaDiaria(fecha: string) {
+
   // ========================================
   // TURNOS (solo lectura — escritos por secretaria)
   // ========================================
   const [turnos, setTurnos] = useState<Turno[]>([]);
 
-  // Cargar turnos: localStorage primero, luego servidor (sincroniza entre dispositivos)
   const cargarTurnos = useCallback(async () => {
-    // 1. Primero localStorage (inmediato)
+    // 1. localStorage primero (inmediato)
     try {
       const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTurnos(parsed);
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) setTurnos(parsed);
       }
     } catch { /* silencioso */ }
 
-    // 2. Luego servidor (fuente de verdad — tiene lo que guardó la secretaria)
+    // 2. Servidor (fuente de verdad)
     try {
       const res = await fetch(`/api/sync?fecha=${fecha}`);
       const { ok, datos } = await res.json();
       if (ok && Array.isArray(datos) && datos.length > 0) {
         setTurnos(datos as Turno[]);
-        // Actualizar localStorage con los datos del servidor
-        try {
-          localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos));
-        } catch { /* silencioso */ }
+        try { localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos)); } catch { /* silencioso */ }
       }
     } catch { /* sin conexión — quedamos con localStorage */ }
   }, [fecha]);
 
   useEffect(() => {
     cargarTurnos();
-    // Refrescar al volver a la pestaña
     window.addEventListener('focus', cargarTurnos);
-    // También cada 30 segundos
     const interval = setInterval(cargarTurnos, 30000);
     return () => {
       window.removeEventListener('focus', cargarTurnos);
@@ -73,59 +71,116 @@ export function useCajaDiaria(fecha: string) {
   }, [cargarTurnos]);
 
   // ========================================
-  // GASTOS (solo dueña — no secretaria)
+  // GASTOS DEL DÍA
+  // Carga: localStorage (instante) → /api/caja GET (fuente de verdad)
+  // Guarda: auto-save 1.5s a /api/caja (parcial, sin cerrar caja)
   // ========================================
-  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const lsGastosKey = `ganesha_gastos_${fecha}`;
 
-  const agregarGasto = (gasto: Omit<Gasto, 'id' | 'timestamp'>) => {
+  const [gastos, setGastos] = useState<Gasto[]>(() => {
+    // Carga inicial desde localStorage (sincrónica — sin delay visual)
+    try {
+      const raw = localStorage.getItem(`ganesha_gastos_${fecha}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch { /* silencioso */ }
+    return [];
+  });
+
+  // Estado de caja — también se carga del servidor al abrir
+  const [estadoCaja, setEstadoCaja] = useState<'abierta' | 'cerrada'>('abierta');
+  const [guardando,  setGuardando]  = useState(false);
+  const [mensaje,    setMensaje]    = useState('');
+
+  // Ref: bloquea auto-save hasta que el servidor respondió (evita sobrescribir con [] vacío)
+  const serverCargado = useRef(false);
+  // Ref: timer de debounce para auto-save
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cargar gastos + estado de caja desde el servidor al montar
+  useEffect(() => {
+    serverCargado.current = false;
+
+    fetch(`/api/caja?fecha=${fecha}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok && data.encontrado) {
+          // Servidor tiene datos: úsalos como fuente de verdad
+          if (Array.isArray(data.gastos)) {
+            setGastos(data.gastos);
+            try { localStorage.setItem(lsGastosKey, JSON.stringify(data.gastos)); } catch { /* silencioso */ }
+          }
+          if (data.cerrada) setEstadoCaja('cerrada');
+        }
+        // Si no existe en el servidor todavía, nos quedamos con localStorage (o [])
+        serverCargado.current = true;
+      })
+      .catch(() => {
+        // Sin conexión — quedamos con localStorage
+        serverCargado.current = true;
+      });
+  }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save gastos al servidor (parcial — no toca cerrada ni turnos)
+  function programarGuardadoGastos(gastosActuales: Gasto[]) {
+    if (!serverCargado.current) return; // no guardar antes de cargar del servidor
+    // Guardar en localStorage inmediatamente
+    try { localStorage.setItem(lsGastosKey, JSON.stringify(gastosActuales)); } catch { /* silencioso */ }
+    // Debounce: espera 1.5s tras el último cambio para mandar al servidor
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      fetch('/api/caja', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha, gastos: gastosActuales, estado: 'abierta' }),
+      }).catch(() => { /* silencioso — localStorage es el fallback */ });
+    }, 1500);
+  }
+
+  const agregarGasto = useCallback((gasto: Omit<Gasto, 'id' | 'timestamp'>) => {
     const nuevoGasto: Gasto = {
       ...gasto,
       id: `gasto_${Date.now()}`,
       timestamp: Date.now(),
     };
-    setGastos(prev => [...prev, nuevoGasto]);
-  };
+    setGastos(prev => {
+      const siguiente = [...prev, nuevoGasto];
+      programarGuardadoGastos(siguiente);
+      return siguiente;
+    });
+  }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const eliminarGasto = (id: string) => {
-    setGastos(prev => prev.filter(g => g.id !== id));
-  };
-
-  // ========================================
-  // ESTADO DE CAJA
-  // ========================================
-  const [estadoCaja, setEstadoCaja] = useState<'abierta' | 'cerrada'>('abierta');
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState('');
-
-  const cerrarDia = () => setEstadoCaja('cerrada');
-  const reabrirDia = () => setEstadoCaja('abierta');
+  const eliminarGasto = useCallback((id: string) => {
+    setGastos(prev => {
+      const siguiente = prev.filter(g => g.id !== id);
+      programarGuardadoGastos(siguiente);
+      return siguiente;
+    });
+  }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ========================================
-  // CÁLCULOS
+  // CÁLCULOS (reactivos a turnos + gastos)
   // ========================================
   const totales = useMemo<TotalesCaja>(() => {
     const presentes = turnos.filter(t => t.asistencia === 'presente');
 
-    // Ingresos = presentes + ausentes con seña (la pierden → es ganancia del negocio)
     const conIngreso = turnos.filter(t =>
       t.asistencia === 'presente' ||
       (t.asistencia === 'no_vino' && (t.seña_pagada || 0) > 0)
     );
 
     const ingresos_totales = conIngreso.reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-
-    // Desglose por método de pago (incluye seña perdida de ausentes)
-    const efectivo      = conIngreso.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const transferencia = conIngreso.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-    const otro          = conIngreso.filter(t => t.metodo_pago === 'otro').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
-
-    const gastos_totales = gastos.reduce((sum, g) => sum + (g.monto || 0), 0);
-    const ganancia_neta  = ingresos_totales - gastos_totales;
+    const efectivo         = conIngreso.filter(t => t.metodo_pago === 'efectivo').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const transferencia    = conIngreso.filter(t => t.metodo_pago === 'transferencia').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const otro             = conIngreso.filter(t => t.metodo_pago === 'otro').reduce((sum, t) => sum + (t.seña_pagada || 0), 0);
+    const gastos_totales   = gastos.reduce((sum, g) => sum + (g.monto || 0), 0);
 
     return {
       ingresos_totales,
       gastos_totales,
-      ganancia_neta,
+      ganancia_neta:    ingresos_totales - gastos_totales,
       turnos_total:     turnos.length,
       turnos_presentes: presentes.length,
       turnos_ausentes:  turnos.filter(t => t.asistencia === 'no_vino').length,
@@ -136,13 +191,19 @@ export function useCajaDiaria(fecha: string) {
   }, [turnos, gastos]);
 
   // ========================================
-  // PERSISTENCIA — guarda directo en PostgreSQL via /api/caja
-  // gastosFijosEmpresa y gastosFijosPersonal se incluyen como snapshot histórico
+  // CIERRE DE CAJA — snapshot completo, una sola vez por día
+  // gastosFijosEmpresa y gastosFijosPersonal vienen del componente padre
   // ========================================
-  const guardarEnServidor = async (
+  const cerrarYGuardar = async (
     gastosFijosEmpresa: GastoFijo[] = [],
     gastosFijosPersonal: GastoFijo[] = []
-  ): Promise<{ ok: boolean; mensaje?: string }> => {
+  ): Promise<boolean> => {
+    setGuardando(true);
+    setMensaje('');
+
+    // Cancelar cualquier auto-save pendiente (ya vamos a hacer el save completo)
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+
     try {
       const res = await fetch('/api/caja', {
         method: 'POST',
@@ -153,44 +214,36 @@ export function useCajaDiaria(fecha: string) {
           gastos,
           totales,
           estado: 'cerrada',
-          gastosFijosEmpresa,   // snapshot del estado en el momento del cierre
+          gastosFijosEmpresa,
           gastosFijosPersonal,
         }),
       });
       const data = await res.json();
-      return { ok: res.ok && data.ok, mensaje: data.mensaje };
+
+      if (res.ok && data.ok) {
+        setEstadoCaja('cerrada');
+        setMensaje(`✅ ${data.mensaje ?? 'Caja cerrada y guardada'}`);
+        setGuardando(false);
+        setTimeout(() => setMensaje(''), 7000);
+        return true;
+      } else {
+        setMensaje('⚠️ Error al guardar — verificá la conexión con el servidor');
+        setGuardando(false);
+        setTimeout(() => setMensaje(''), 7000);
+        return false;
+      }
     } catch {
-      return { ok: false };
+      setMensaje('⚠️ Sin conexión al servidor');
+      setGuardando(false);
+      setTimeout(() => setMensaje(''), 7000);
+      return false;
     }
   };
 
-  // ========================================
-  // ACCIÓN PRINCIPAL — Cerrar y guardar (todo en uno)
-  // Recibe los gastos fijos del componente padre (Caja page)
-  // ========================================
-  const cerrarYGuardar = async (
-    gastosFijosEmpresa: GastoFijo[] = [],
-    gastosFijosPersonal: GastoFijo[] = []
-  ): Promise<boolean> => {
-    setGuardando(true);
-    setMensaje('');
-
-    const { ok, mensaje } = await guardarEnServidor(gastosFijosEmpresa, gastosFijosPersonal);
-
-    if (ok) {
-      setEstadoCaja('cerrada');
-      setMensaje(`✅ ${mensaje ?? 'Caja cerrada y guardada'}`);
-    } else {
-      setMensaje('⚠️ Error al guardar — verificá la conexión con el servidor');
-    }
-
-    setGuardando(false);
-    setTimeout(() => setMensaje(''), 7000);
-    return ok;
-  };
+  const reabrirDia = () => setEstadoCaja('abierta');
 
   // ========================================
-  // RECUPERAR REPORTE DE POSTGRESQL
+  // RECUPERAR REPORTE HISTÓRICO DE POSTGRESQL
   // ========================================
   const recuperarReporte = async (fechaBuscar: string): Promise<{
     encontrado: boolean;
@@ -209,7 +262,7 @@ export function useCajaDiaria(fecha: string) {
         encontrado:          true,
         turnos:              data.turnos             ?? [],
         gastos:              data.gastos             ?? [],
-        totales:             data.totales,                    // siempre llega del servidor (nunca null)
+        totales:             data.totales,
         gastosFijosEmpresa:  data.gastosFijosEmpresa  ?? [],
         gastosFijosPersonal: data.gastosFijosPersonal ?? [],
       };
@@ -219,19 +272,14 @@ export function useCajaDiaria(fecha: string) {
   };
 
   return {
-    // Datos
     turnos,
     gastos,
     totales,
     estadoCaja,
     mensaje,
     guardando,
-
-    // Acciones gastos
     agregarGasto,
     eliminarGasto,
-
-    // Acciones caja
     cerrarYGuardar,
     reabrirDia,
     cargarTurnos,

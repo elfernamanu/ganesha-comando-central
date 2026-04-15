@@ -60,6 +60,12 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST: guardar/cerrar caja ──────────────────────────────────────────────
+//
+// Dos modos:
+//   estado = 'cerrada'  → cierre completo: guarda todo (snapshot), marca cerrada = TRUE
+//   estado = 'abierta'  → auto-guardado parcial: solo actualiza gastos en datos JSONB,
+//                          NUNCA reabre una caja ya cerrada
+//
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -69,33 +75,56 @@ export async function POST(req: NextRequest) {
 
     await ensureTable();
 
-    const datos = {
-      turnos:               turnos               ?? [],
-      gastos:               gastos               ?? [],
-      totales:              totales              ?? {},
-      gastosFijosEmpresa:   gastosFijosEmpresa   ?? [],
-      gastosFijosPersonal:  gastosFijosPersonal  ?? [],
-    };
-    const cerrada = estado === 'cerrada';
+    if (estado === 'cerrada') {
+      // ── Cierre completo: snapshot de todo ─────────────────────────────────
+      const datos = {
+        turnos:               turnos               ?? [],
+        gastos:               gastos               ?? [],
+        totales:              totales              ?? {},
+        gastosFijosEmpresa:   gastosFijosEmpresa   ?? [],
+        gastosFijosPersonal:  gastosFijosPersonal  ?? [],
+      };
 
-    await query(
-      `INSERT INTO caja_diaria (fecha, datos, cerrada, actualizado)
-       VALUES ($1, $2::jsonb, $3, NOW())
-       ON CONFLICT (fecha)
-       DO UPDATE SET datos = EXCLUDED.datos, cerrada = EXCLUDED.cerrada, actualizado = NOW()`,
-      [fecha, JSON.stringify(datos), cerrada]
-    );
+      await query(
+        `INSERT INTO caja_diaria (fecha, datos, cerrada, actualizado)
+         VALUES ($1, $2::jsonb, true, NOW())
+         ON CONFLICT (fecha) DO UPDATE
+           SET datos      = EXCLUDED.datos,
+               cerrada    = true,
+               actualizado = NOW()`,
+        [fecha, JSON.stringify(datos)]
+      );
 
-    const nTurnos   = Array.isArray(turnos) ? turnos.length : 0;
-    const nPresente = Array.isArray(turnos) ? turnos.filter((t: { asistencia?: string }) => t.asistencia === 'presente').length : 0;
-    const cobrado   = totales?.ingresos_totales ?? 0;
+      const nTurnos   = Array.isArray(turnos) ? turnos.length : 0;
+      const nPresente = Array.isArray(turnos)
+        ? turnos.filter((t: { asistencia?: string }) => t.asistencia === 'presente').length : 0;
+      const cobrado   = totales?.ingresos_totales ?? 0;
 
-    return NextResponse.json({
-      ok: true,
-      mensaje: `Guardado: ${nTurnos} turno${nTurnos !== 1 ? 's' : ''} · ${nPresente} cobrado${nPresente !== 1 ? 's' : ''} · $${cobrado.toLocaleString('es-AR')} · carpeta ${fecha}`,
-      fecha,
-      cerrada,
-    });
+      return NextResponse.json({
+        ok: true,
+        mensaje: `Guardado: ${nTurnos} turno${nTurnos !== 1 ? 's' : ''} · ${nPresente} cobrado${nPresente !== 1 ? 's' : ''} · $${cobrado.toLocaleString('es-AR')} · carpeta ${fecha}`,
+        fecha,
+        cerrada: true,
+      });
+
+    } else {
+      // ── Auto-guardado parcial: solo gastos del día ─────────────────────────
+      // Usa || (merge JSONB) para actualizar solo el campo 'gastos' en datos.
+      // Nunca cambia cerrada — si estaba true, queda true.
+      const parche = JSON.stringify({ gastos: gastos ?? [] });
+
+      await query(
+        `INSERT INTO caja_diaria (fecha, datos, cerrada, actualizado)
+         VALUES ($1, $2::jsonb, false, NOW())
+         ON CONFLICT (fecha) DO UPDATE
+           SET datos       = caja_diaria.datos || $2::jsonb,
+               actualizado = NOW()`,
+        [fecha, parche]
+      );
+
+      return NextResponse.json({ ok: true, parcial: true, fecha });
+    }
+
   } catch (err) {
     console.error('[/api/caja POST]', err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
