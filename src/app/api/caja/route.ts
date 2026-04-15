@@ -7,8 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-// ── Asegura que la tabla existe ────────────────────────────────────────────
+// ── Asegura que la tabla existe — solo UNA vez por proceso/instancia ──────
+let tableReady = false;
 async function ensureTable() {
+  if (tableReady) return;
   await query(`
     CREATE TABLE IF NOT EXISTS caja_diaria (
       fecha        DATE        PRIMARY KEY,
@@ -17,6 +19,7 @@ async function ensureTable() {
       actualizado  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  tableReady = true;
 }
 
 // ── GET: recuperar cierre ──────────────────────────────────────────────────

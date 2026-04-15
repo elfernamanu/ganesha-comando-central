@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
 /**
  * GET /api/admin/config
  * Lee siempre la fila id=1.
+ * Cache 60s en CDN + stale-while-revalidate 5min → respuesta inmediata en navegaciones repetidas.
  */
 export async function GET() {
   try {
@@ -43,7 +44,11 @@ export async function GET() {
       'SELECT datos FROM config_servicios WHERE id = 1'
     );
     const datos = rows[0]?.datos ?? [];
-    return NextResponse.json({ ok: true, datos });
+    return NextResponse.json({ ok: true, datos }, {
+      headers: {
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+      },
+    });
   } catch (err) {
     console.error('[GET /api/admin/config]', err);
     return NextResponse.json({ ok: false, datos: [] }, { status: 500 });

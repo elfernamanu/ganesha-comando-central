@@ -7,10 +7,17 @@ export function getPool(): Pool {
   if (!pool) {
     pool = new Pool({
       connectionString: process.env.POSTGRES_URL,
-      ssl: false,           // DigitalOcean sin SSL local → OK en red interna
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      ssl: false,                        // DigitalOcean sin SSL local → OK en red interna
+      max: 5,                            // Serverless: pocas conexiones por instancia (evita agotar el límite del DB)
+      idleTimeoutMillis: 60000,          // Mantener conexiones idle 60s (reduce cold reconnects)
+      connectionTimeoutMillis: 4000,     // Timeout de adquisición de conexión
+      keepAlive: true,                   // Mantener TCP vivo → evita drops silenciosos
+      keepAliveInitialDelayMillis: 10000,// Primer keepalive a los 10s de idle
+    });
+
+    // Log de errores de pool para diagnóstico
+    pool.on('error', (err) => {
+      console.error('[DB pool error]', err.message);
     });
   }
   return pool;

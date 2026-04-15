@@ -67,11 +67,13 @@ export default function PromocionesPage() {
     try { localStorage.setItem(LS_COMBOS, JSON.stringify(combos)); } catch {}
     // Sincronizar catálogo simplificado para que Turnos lo lea
     guardarCombos(combos);
-    await fetch('/api/webhook', {
+    // Nota: el webhook n8n es opcional — los combos ya están en localStorage.
+    // Disparar sin await para no bloquear si n8n está caído.
+    fetch('/api/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accion: 'actualizar_combos', combos }),
-    }).catch(() => {});
+    }).catch(() => { /* silencioso si n8n está offline */ });
     setGuardando(false);
   };
 

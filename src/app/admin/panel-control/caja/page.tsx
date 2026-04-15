@@ -14,33 +14,7 @@ import PanelGastosFijos from './components/PanelGastosFijos';
 import SugerenciaPago from './components/SugerenciaPago';
 import ResumenCierre from './components/ResumenCierre';
 import type { GastoFijo } from './hooks/useGastosFijos';
-
-// Fechas habilitadas desde config de servicios (igual que en Turnos)
-function useFechasHabilitadas() {
-  const [fechas, setFechas] = useState<{ fecha: string; servicios: string[] }[]>([]);
-  useEffect(() => {
-    fetch('/api/admin/config', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.ok || !Array.isArray(data.datos)) return;
-        const mapa: Record<string, string[]> = {};
-        for (const cat of data.datos) {
-          for (const j of (cat.jornadas ?? [])) {
-            if (j.activa) {
-              if (!mapa[j.fecha]) mapa[j.fecha] = [];
-              mapa[j.fecha].push(cat.nombre);
-            }
-          }
-        }
-        const resultado = Object.entries(mapa)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([fecha, servicios]) => ({ fecha, servicios }));
-        setFechas(resultado);
-      })
-      .catch(() => {});
-  }, []);
-  return fechas;
-}
+import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
 
 function CajaContent() {
   const params = useSearchParams();

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
 // GET /api/sync?fecha=2026-04-14
+// Cache 20s: el cliente ya tiene localStorage; el server confirma cambios recientes.
 export async function GET(req: NextRequest) {
   const fecha = req.nextUrl.searchParams.get('fecha');
   if (!fecha) return NextResponse.json({ ok: false, datos: [] });
@@ -14,7 +15,11 @@ export async function GET(req: NextRequest) {
       'SELECT datos FROM turnos WHERE fecha = $1',
       [fecha]
     );
-    return NextResponse.json({ ok: true, datos: rows[0]?.datos ?? [] });
+    return NextResponse.json({ ok: true, datos: rows[0]?.datos ?? [] }, {
+      headers: {
+        'Cache-Control': 'private, max-age=20, stale-while-revalidate=60',
+      },
+    });
   } catch {
     return NextResponse.json({ ok: false, datos: [] });
   }

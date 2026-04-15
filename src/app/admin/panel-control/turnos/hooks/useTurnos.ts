@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Turno } from '../types';
 import { leerCatalogo, type CatalogoPromos } from '../../_shared/catalogoPromos';
 
@@ -28,6 +28,8 @@ export function useTurnos(fecha: string) {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  // Ref para cancelar el auto-sync si el usuario acaba de guardar manualmente
+  const ultimoGuardadoManual = useRef(0);
 
   const lsKey = `ganesha_turnos_${fecha}`;
 
@@ -103,9 +105,12 @@ export function useTurnos(fecha: string) {
   }, [turnos, lsKey]);
 
   // Auto-sync al servidor 3s después del último cambio
+  // (cancelado si el usuario acaba de hacer Guardar manual, para evitar double-write)
   useEffect(() => {
     if (turnos.length === 0) return;
     const timer = setTimeout(() => {
+      // Si hubo un guardado manual en los últimos 5s, no re-enviar
+      if (Date.now() - ultimoGuardadoManual.current < 5000) return;
       fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,6 +230,7 @@ export function useTurnos(fecha: string) {
     }
 
     try {
+      ultimoGuardadoManual.current = Date.now(); // cancelar auto-sync duplicado
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
