@@ -48,6 +48,9 @@ export function useTurnos(fecha: string) {
     });
   }, []);
 
+  // Ref para cancelar fetches anteriores cuando cambia la fecha
+  const abortRef = useRef<AbortController | null>(null);
+
   // Carga desde servidor + localStorage
   const cargarDesdeServidor = useCallback(async () => {
     try {
@@ -72,6 +75,10 @@ export function useTurnos(fecha: string) {
 
   // Carga inicial: localStorage (instantáneo) + servidor (sync)
   useEffect(() => {
+    // Cancelar fetch anterior si el usuario cambió de fecha rápido
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+
     cargaInicialCompleta.current = false; // nueva fecha = nueva carga
     setTurnos([]); // limpiar día anterior antes de cargar nuevo
 
