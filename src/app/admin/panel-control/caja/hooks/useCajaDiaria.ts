@@ -135,25 +135,19 @@ export function useCajaDiaria(fecha: string) {
   }, [turnos, gastos]);
 
   // ========================================
-  // PERSISTENCIA — guarda en servidor (interno)
+  // PERSISTENCIA — guarda directo en PostgreSQL via /api/caja
   // ========================================
-  const guardarEnServidor = async (): Promise<boolean> => {
+  const guardarEnServidor = async (): Promise<{ ok: boolean; mensaje?: string }> => {
     try {
-      const res = await fetch('/api/webhook', {
+      const res = await fetch('/api/caja', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accion: 'actualizar_caja',
-          fecha,
-          turnos,
-          gastos,
-          totales,
-          estado: 'cerrada',
-        }),
+        body: JSON.stringify({ fecha, turnos, gastos, totales, estado: 'cerrada' }),
       });
-      return res.ok;
+      const data = await res.json();
+      return { ok: res.ok && data.ok, mensaje: data.mensaje };
     } catch {
-      return false;
+      return { ok: false };
     }
   };
 
@@ -164,17 +158,18 @@ export function useCajaDiaria(fecha: string) {
     setGuardando(true);
     setMensaje('');
 
-    const ok = await guardarEnServidor();
+    const { ok, mensaje } = await guardarEnServidor();
 
     if (ok) {
       setEstadoCaja('cerrada');
-      setMensaje('✅ Caja cerrada y guardada en servidor');
+      // Mensaje detallado: qué se guardó, dónde
+      setMensaje(`✅ ${mensaje ?? 'Caja cerrada y guardada'}`);
     } else {
-      setMensaje('⚠️ Error al guardar — verificá la conexión');
+      setMensaje('⚠️ Error al guardar — verificá la conexión con el servidor');
     }
 
     setGuardando(false);
-    setTimeout(() => setMensaje(''), 5000);
+    setTimeout(() => setMensaje(''), 7000);
     return ok;
   };
 
@@ -188,25 +183,15 @@ export function useCajaDiaria(fecha: string) {
     totales?: TotalesCaja;
   }> => {
     try {
-      const res = await fetch('/api/webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accion: 'obtener_caja',
-          fecha: fechaBuscar,
-        }),
-      });
-
+      const res = await fetch(`/api/caja?fecha=${fechaBuscar}`);
       if (!res.ok) return { encontrado: false };
-
       const data = await res.json();
-      if (!data || !data.turnos) return { encontrado: false };
-
+      if (!data.ok || !data.encontrado) return { encontrado: false };
       return {
         encontrado: true,
-        turnos: data.turnos,
-        gastos: data.gastos ?? [],
-        totales: data.totales,
+        turnos:  data.turnos  ?? [],
+        gastos:  data.gastos  ?? [],
+        totales: data.totales ?? undefined,
       };
     } catch {
       return { encontrado: false };
