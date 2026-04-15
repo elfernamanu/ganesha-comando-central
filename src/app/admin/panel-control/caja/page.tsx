@@ -7,7 +7,7 @@ import { useCajaDiaria } from './hooks/useCajaDiaria';
 import { useGastosFijos } from './hooks/useGastosFijos';
 import { useToast } from '@/components/Toast';
 import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
-import { formatearDinero, formatearFecha, formatearHora } from './utils/formatters';
+import { formatearDinero, formatearHora } from './utils/formatters';
 import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
 import PanelGastosFijos from './components/PanelGastosFijos';
@@ -31,7 +31,6 @@ function CajaContent() {
     gastos,
     totales,
     estadoCaja,
-    mensaje,
     guardando,
     agregarGasto,
     eliminarGasto,
@@ -236,13 +235,6 @@ function CajaContent() {
           </svg>
         </Link>
       </div>
-
-      {/* ── Mensaje feedback ── */}
-      {mensaje && (
-        <div className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-sm text-blue-800 dark:text-blue-200">
-          {mensaje}
-        </div>
-      )}
 
       <div className="space-y-3">
 

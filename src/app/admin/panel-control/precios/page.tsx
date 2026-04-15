@@ -288,7 +288,6 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
 }: {
   s: SubServicio;
   catId: string;
-  idx: number;
   onActualizar: (catId: string, id: number, campo: keyof SubServicio, valor: string | number | boolean) => void;
   onEliminar: (catId: string, id: number) => void;
 }) {
@@ -477,8 +476,8 @@ function ListaPrecios({
                   </div>
                   {/* Items de esta columna — lista vertical */}
                   <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                    {grupo.items.map((s, idx) => (
-                      <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+                    {grupo.items.map((s) => (
+                      <FilaSubServicio key={s.id} s={s} catId={catId}
                         onActualizar={onActualizar} onEliminar={onEliminar} />
                     ))}
                   </div>
@@ -488,8 +487,8 @@ function ListaPrecios({
           ) : (
             /* ── Sin grupos: grilla 3 columnas de ítems ── */
             <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700">
-              {subservicios.map((s, idx) => (
-                <FilaSubServicio key={s.id} s={s} catId={catId} idx={idx}
+              {subservicios.map((s) => (
+                <FilaSubServicio key={s.id} s={s} catId={catId}
                   onActualizar={onActualizar} onEliminar={onEliminar} />
               ))}
             </div>
@@ -601,6 +600,8 @@ export default function ConfiguracionServiciosPage() {
         body: JSON.stringify({ datos: categorias }),
       });
       if (res.ok) {
+        // Limpiar caché de fechas para que Turnos y Caja refresquen las jornadas al instante
+        try { sessionStorage.removeItem('ganesha_fechas_cache'); } catch {}
         mostrar('Servicios guardados', 'exito', 'Los precios y jornadas llegaron al servidor ✓');
       } else {
         mostrar('Error al guardar', 'error', 'El servidor respondió con error, revisá la conexión');

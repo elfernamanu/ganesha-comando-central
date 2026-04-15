@@ -159,7 +159,6 @@ export default function ResumenCierre({
             {turnosSorted.map(t => {
               const noVino = t.asistencia === 'no_vino';
               const pagado = t.estado_pago === 'completo';
-              const saldo  = Math.max(0, t.monto_total - (t.seña_pagada ?? 0));
               return (
                 <div key={t.id} className={`grid grid-cols-[1fr_auto_auto_auto] gap-x-2 items-center px-3 py-1 ${
                   noVino ? 'opacity-50 bg-red-50 dark:bg-red-900/10' : pagado ? 'bg-green-50/50 dark:bg-green-900/10' : ''

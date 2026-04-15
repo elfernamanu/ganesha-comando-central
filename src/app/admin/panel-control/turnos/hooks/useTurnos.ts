@@ -30,6 +30,8 @@ export function useTurnos(fecha: string) {
   const [mensaje, setMensaje] = useState('');
   // Ref para cancelar el auto-sync si el usuario acaba de guardar manualmente
   const ultimoGuardadoManual = useRef(0);
+  // Ref para evitar auto-sync en la carga inicial (no hay cambios del usuario)
+  const cargaInicialCompleta = useRef(false);
 
   const lsKey = `ganesha_turnos_${fecha}`;
 
@@ -70,6 +72,7 @@ export function useTurnos(fecha: string) {
 
   // Carga inicial: localStorage (instantáneo) + servidor (sync)
   useEffect(() => {
+    cargaInicialCompleta.current = false; // nueva fecha = nueva carga
     setTurnos([]); // limpiar día anterior antes de cargar nuevo
 
     // 1. localStorage primero (respuesta inmediata)
@@ -83,8 +86,10 @@ export function useTurnos(fecha: string) {
       }
     } catch { /* silencioso */ }
 
-    // 2. Servidor (fuente de verdad)
-    cargarDesdeServidor();
+    // 2. Servidor (fuente de verdad) — cuando termina, marcamos carga completa
+    cargarDesdeServidor().finally(() => {
+      cargaInicialCompleta.current = true;
+    });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Polling cada 30s + recarga al volver al foco → celular y PC sincronizados
@@ -104,10 +109,11 @@ export function useTurnos(fecha: string) {
     } catch { /* silencioso */ }
   }, [turnos, lsKey]);
 
-  // Auto-sync al servidor 3s después del último cambio
-  // (cancelado si el usuario acaba de hacer Guardar manual, para evitar double-write)
+  // Auto-sync al servidor 3s después del último cambio DEL USUARIO
+  // (no dispara en carga inicial ni cuando el usuario acaba de guardar manualmente)
   useEffect(() => {
     if (turnos.length === 0) return;
+    if (!cargaInicialCompleta.current) return; // no auto-sync durante carga inicial
     const timer = setTimeout(() => {
       // Si hubo un guardado manual en los últimos 5s, no re-enviar
       if (Date.now() - ultimoGuardadoManual.current < 5000) return;
