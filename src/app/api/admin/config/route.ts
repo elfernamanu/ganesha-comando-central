@@ -36,8 +36,9 @@ export async function POST(req: NextRequest) {
  */
 export async function GET() {
   try {
+    // Siempre lee la fila id=1 (la única que usamos)
     const rows = await query<{ datos: unknown }>(
-      'SELECT datos FROM config_servicios ORDER BY id DESC LIMIT 1'
+      'SELECT datos FROM config_servicios WHERE id = 1'
     );
     const datos = rows[0]?.datos ?? [];
     return NextResponse.json({ ok: true, datos });
