@@ -1,21 +1,14 @@
-const CACHE_NAME = 'ganesha-v3';
+const CACHE_NAME = 'ganesha-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['/', '/manifest.json'])
-    )
-  );
 });
 
 self.addEventListener('activate', (event) => {
-  // Borrar caches viejos
+  // Borrar TODOS los caches anteriores
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      ))
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
       .then(() => clients.claim())
   );
 });
@@ -23,32 +16,25 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls → siempre red (nunca cachear datos dinámicos)
+  // API calls → siempre red, NUNCA cachear
   if (url.pathname.startsWith('/api/')) return;
 
-  // Chunks JS/CSS de Next.js → cache-first (son inmutables, tienen hash en nombre)
+  // Solo cachear chunks estáticos de Next.js (tienen hash, son inmutables)
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(event.request);
         if (cached) return cached;
         const response = await fetch(event.request);
-        if (response.ok) cache.put(event.request, response.clone());
+        if (response.ok) {
+          cache.put(event.request, response.clone());
+        }
         return response;
       })
     );
     return;
   }
 
-  // Páginas → red primero, cache como fallback
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok) {
-          caches.open(CACHE_NAME).then(c => c.put(event.request, response.clone()));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
+  // Todo lo demás (páginas, etc.) → red directa, sin cachear
+  // Esto evita el error "Response body already used" y errores de hydration
 });

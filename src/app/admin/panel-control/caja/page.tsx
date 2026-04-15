@@ -10,7 +10,11 @@ import GastosForm from './components/GastosForm';
 import GastosList from './components/GastosList';
 
 export default function CajaPage() {
-  const hoy = new Date().toISOString().split('T')[0];
+  // Fecha LOCAL (no UTC) — en Argentina a las 23:30 UTC sería el día siguiente
+  const hoy = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
   const { mostrar } = useToast();
 
   const {
