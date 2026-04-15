@@ -382,10 +382,10 @@ function ListaPrecios({
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
+      <div className="flex justify-between items-center mb-1 flex-wrap gap-1">
         <button
             onClick={() => setMostrar(m => !m)}
-            className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide"
           >
             <span>{mostrar ? '▾' : '▸'}</span>
             💰 Servicios y precios ({subservicios.length})
@@ -393,34 +393,34 @@ function ListaPrecios({
 
         {/* Botones de agregar — distintos según la categoría */}
         {esDepilacion ? (
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1 flex-wrap">
             <button onClick={() => onAgregarConPrefijo(catId, '🌸')}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 hover:bg-pink-200 transition-colors">
-              + 🌸 Mujer
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 dark:bg-pink-900/40 text-pink-700 hover:bg-pink-200 transition-colors">
+              + Mujer
             </button>
             <button onClick={() => onAgregarConPrefijo(catId, '💪')}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition-colors">
-              + 💪 Hombre
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 hover:bg-blue-200 transition-colors">
+              + Hombre
             </button>
             <button onClick={() => onAgregarConPrefijo(catId, 'PROMO DEPI')}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors">
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 hover:bg-amber-200 transition-colors">
               + Promo
             </button>
           </div>
         ) : esUnas ? (
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             <button onClick={() => onAgregar(catId)}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors">
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 hover:bg-emerald-200 transition-colors">
               + Servicio
             </button>
             <button onClick={() => onAgregarConPrefijo(catId, 'PROMO UÑAS')}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors">
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 hover:bg-amber-200 transition-colors">
               + Promo
             </button>
           </div>
         ) : (
           <button onClick={() => onAgregar(catId)}
-            className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors">
+            className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-700 hover:bg-emerald-200 transition-colors">
             + Agregar
           </button>
         )}

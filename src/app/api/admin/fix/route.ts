@@ -27,20 +27,39 @@ export async function GET() {
       unas: { 9: 'PROMO UÑAS 1: Semi + Belleza de Manos' },
     };
 
+    // Promos que deben existir si no están
+    const promosRequeridas: Record<string, { id: number; nombre: string; precio: number }[]> = {
+      unas: [
+        { id: 9,  nombre: 'PROMO UNAS 1: Semi + Belleza de Manos',   precio: 28000 },
+        { id: 10, nombre: 'PROMO UNAS 2: Capping + Belleza de Pies', precio: 38000 },
+        { id: 11, nombre: 'PROMO UNAS 3: Semi Manos + Pies',         precio: 35000 },
+      ],
+    };
+
     const datosLimpios = datos.map((cat: any) => {
-      // Limpiar subservicios: sacar items con nombre vacío o "Nuevo"
-      const subservicios = (cat.subservicios || []).filter(
-        (s: any) => s.nombre && s.nombre.trim() !== '' && !s.nombre.includes('Nuevo')
-      ).map((s: any) => {
-        // Fix nombres perdidos
+      // 1. Aplicar fix de nombres primero
+      const subsFix = (cat.subservicios || []).map((s: any) => {
         const fixNombre = nombresFix[cat.id]?.[s.id];
         return fixNombre ? { ...s, nombre: fixNombre } : s;
       });
 
+      // 2. Sacar items basura (nombre vacío o "Nuevo")
+      const subsFiltrados = subsFix.filter(
+        (s: any) => s.nombre && s.nombre.trim() !== '' && !s.nombre.includes('Nuevo')
+      );
+
+      // 3. Agregar promos requeridas si faltan
+      const promos = promosRequeridas[cat.id] ?? [];
+      for (const promo of promos) {
+        if (!subsFiltrados.find((s: any) => s.id === promo.id)) {
+          subsFiltrados.push({ ...promo, activo: true });
+        }
+      }
+
       return {
         ...cat,
         jornadas: jornadasPorCategoria[cat.id] ?? cat.jornadas ?? [],
-        subservicios,
+        subservicios: subsFiltrados,
       };
     });
 
