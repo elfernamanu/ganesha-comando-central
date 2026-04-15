@@ -94,10 +94,14 @@ export function useCajaDiaria(fecha: string) {
   const [guardando,  setGuardando]  = useState(false);
   const [mensaje,    setMensaje]    = useState('');
 
+  // Estado visual de sincronización de gastos
+  const [syncGastos, setSyncGastos] = useState<'idle' | 'guardando' | 'guardado' | 'error'>('idle');
   // Ref: bloquea auto-save hasta que el servidor respondió (evita sobrescribir con [] vacío)
   const serverCargado = useRef(false);
   // Ref: timer de debounce para auto-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref: timer para limpiar el ✓ guardado después de mostrarlo
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cargar gastos + estado de caja desde el servidor al montar
   useEffect(() => {
@@ -128,6 +132,9 @@ export function useCajaDiaria(fecha: string) {
     if (!serverCargado.current) return; // no guardar antes de cargar del servidor
     // Guardar en localStorage inmediatamente
     try { localStorage.setItem(lsGastosKey, JSON.stringify(gastosActuales)); } catch { /* silencioso */ }
+    // Indicador visual: "guardando..."
+    setSyncGastos('guardando');
+    if (syncTimer.current) clearTimeout(syncTimer.current);
     // Debounce: espera 1.5s tras el último cambio para mandar al servidor
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -135,7 +142,17 @@ export function useCajaDiaria(fecha: string) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fecha, gastos: gastosActuales, estado: 'abierta' }),
-      }).catch(() => { /* silencioso — localStorage es el fallback */ });
+      })
+        .then(r => r.json())
+        .then(data => {
+          setSyncGastos(data.ok ? 'guardado' : 'error');
+          // Limpiar el ✓ después de 3 segundos
+          syncTimer.current = setTimeout(() => setSyncGastos('idle'), 3000);
+        })
+        .catch(() => {
+          setSyncGastos('error');
+          syncTimer.current = setTimeout(() => setSyncGastos('idle'), 4000);
+        });
     }, 1500);
   }
 
@@ -278,6 +295,7 @@ export function useCajaDiaria(fecha: string) {
     estadoCaja,
     mensaje,
     guardando,
+    syncGastos,      // 'idle' | 'guardando' | 'guardado' | 'error'
     agregarGasto,
     eliminarGasto,
     cerrarYGuardar,

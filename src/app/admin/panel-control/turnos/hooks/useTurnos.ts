@@ -134,7 +134,9 @@ export function useTurnos(fecha: string) {
       .map(t => t.horario)
       .filter(h => /^\d{1,2}:\d{2}$/.test(h))
       .sort();
-    if (horarios.length === 0) return '';
+    // Sin turnos → arrancar a las 08:00
+    if (horarios.length === 0) return '08:00';
+    // Con turnos → último + 10 minutos
     const ultimo = horarios[horarios.length - 1];
     const [hStr, mStr] = ultimo.split(':');
     let h = parseInt(hStr, 10);

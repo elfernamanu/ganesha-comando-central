@@ -32,6 +32,7 @@ function CajaContent() {
     totales,
     estadoCaja,
     guardando,
+    syncGastos,
     agregarGasto,
     eliminarGasto,
     cerrarYGuardar,
@@ -357,6 +358,20 @@ function CajaContent() {
 
       {/* ── Gastos del día ── */}
       <section>
+        {/* Header con indicador de auto-guardado */}
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">💸 Gastos del día</p>
+          <span className={`text-[10px] font-bold transition-all ${
+            syncGastos === 'guardando' ? 'text-amber-500 animate-pulse' :
+            syncGastos === 'guardado'  ? 'text-emerald-600 dark:text-emerald-400' :
+            syncGastos === 'error'     ? 'text-red-500' :
+            'text-transparent'
+          }`}>
+            {syncGastos === 'guardando' ? '⏳ guardando...' :
+             syncGastos === 'guardado'  ? '✓ guardado en servidor' :
+             syncGastos === 'error'     ? '⚠ sin conexión' : '·'}
+          </span>
+        </div>
         <GastosForm onAgregar={agregarGasto} />
         {gastos.length > 0 && <div className="mt-1.5"><GastosList gastos={gastos} onEliminar={eliminarGasto} /></div>}
       </section>
