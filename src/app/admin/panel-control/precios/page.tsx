@@ -298,14 +298,15 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
   React.useEffect(() => { setNombre(s.nombre); }, [s.nombre]);
   React.useEffect(() => { setPrecio(formatPrecio(s.precio)); }, [s.precio]);
 
+  const esPromo = s.nombre.startsWith('PROMO');
   return (
-    <div className="flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-slate-800 group">
+    <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
       <input
         value={nombre}
         onFocus={e => e.target.select()}
         onChange={e => setNombre(e.target.value)}
         onBlur={() => onActualizar(catId, s.id, 'nombre', nombre)}
-        className="flex-1 min-w-0 text-[11px] font-medium bg-transparent outline-none focus:bg-slate-50 dark:focus:bg-slate-700 rounded px-0.5 truncate"
+        className={`flex-1 min-w-0 text-[11px] font-semibold bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 truncate ${esPromo ? 'text-amber-700 dark:text-amber-400' : ''}`}
       />
       <span className="text-[9px] text-slate-400 shrink-0">$</span>
       <input
@@ -319,7 +320,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
           setPrecio(formatPrecio(n));
         }}
         placeholder="—"
-        className="w-14 text-[11px] text-right font-mono bg-transparent outline-none focus:bg-slate-50 dark:focus:bg-slate-700 rounded px-0.5 shrink-0"
+        className={`w-14 text-[11px] text-right font-mono bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 shrink-0 ${esPromo ? 'text-amber-700 dark:text-amber-400 font-bold' : ''}`}
       />
       <button
         onClick={() => onEliminar(catId, s.id)}
