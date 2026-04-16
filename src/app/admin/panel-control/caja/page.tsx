@@ -309,59 +309,48 @@ function CajaContent() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg">
-            <div className="min-w-[540px] space-y-1">
-              <div className="grid grid-cols-[50px_120px_1fr_68px_68px_44px_40px] gap-x-2 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                <span>Hora</span><span>Clienta</span><span>Tratamiento</span>
-                <span className="text-right">Total</span>
-                <span className="text-right">Cobrado</span>
-                <span className="text-center text-orange-500">Forma</span>
-                <span className="text-center">Est.</span>
-              </div>
-              {turnos.slice().sort((a, b) => a.horario.localeCompare(b.horario)).map((t, idx) => (
-                <div key={t.id} className={`grid grid-cols-[50px_120px_1fr_68px_68px_44px_40px] gap-x-2 items-center px-3 py-1 rounded-lg text-sm ${
+          <div className="rounded-lg border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700">
+              {turnos.slice().sort((a, b) => a.horario.localeCompare(b.horario)).map((t) => (
+                <div key={t.id} className={`flex items-center gap-3 px-3 py-1.5 ${
                   t.asistencia === 'no_vino'
-                    ? 'bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 opacity-70'
-                    : idx % 2 === 0
-                      ? 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700'
-                      : 'bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-600'
+                    ? 'bg-red-50 dark:bg-red-900/10 opacity-60'
+                    : t.asistencia === 'presente'
+                    ? 'bg-emerald-50 dark:bg-emerald-900/10'
+                    : 'bg-white dark:bg-slate-800'
                 }`}>
-                  <span className="font-mono text-xs text-slate-500">{formatearHora(t.horario)}</span>
-                  <div className="min-w-0">
-                    <p className="font-medium text-xs truncate">{t.clienteNombre}</p>
-                    {t.detalle && <p className="text-[10px] text-slate-400 italic truncate">{t.detalle}</p>}
+                  {/* Hora */}
+                  <span className="font-mono text-xs text-slate-400 w-10 shrink-0">{formatearHora(t.horario)}</span>
+                  {/* Nombre + servicio */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{t.clienteNombre}</p>
+                    {(t.tratamiento && t.tratamiento !== 'Otro') && (
+                      <p className="text-[10px] text-slate-400 truncate">{t.tratamiento}</p>
+                    )}
                   </div>
-                  <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{t.tratamiento}</span>
-                  <span className="text-right font-mono text-xs">{formatearDinero(t.monto_total)}</span>
-                  <span className={`text-right font-mono text-xs font-bold ${t.asistencia === 'presente' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'}`}>
-                    {t.asistencia === 'presente' ? formatearDinero(t.seña_pagada) : '—'}
-                  </span>
-                  {/* Método de pago */}
-                  <div className="flex justify-center">
+                  {/* Cobrado + forma */}
+                  <div className="shrink-0 text-right">
                     {t.asistencia === 'presente' ? (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                        t.metodo_pago === 'efectivo'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                          : t.metodo_pago === 'transferencia'
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
-                      }`}>
-                        {t.metodo_pago === 'efectivo' ? '💵' : t.metodo_pago === 'transferencia' ? '🏦' : '📱'}
-                      </span>
+                      <>
+                        <p className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">{formatearDinero(t.seña_pagada)}</p>
+                        <p className="text-[9px] text-slate-400">{t.metodo_pago === 'efectivo' ? 'Efect.' : t.metodo_pago === 'transferencia' ? 'Transf.' : 'Otro'}</p>
+                      </>
+                    ) : t.asistencia === 'no_vino' ? (
+                      <span className="text-[10px] text-red-500 font-bold">No vino</span>
                     ) : (
-                      <span className="text-slate-300 text-xs">—</span>
+                      <span className="text-[10px] text-slate-300">—</span>
                     )}
                   </div>
                   {/* Estado */}
-                  <div className="flex justify-center">
+                  <div className="shrink-0 w-6 flex justify-center">
                     {t.asistencia === 'no_vino' ? (
-                      <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-bold">NV</span>
+                      <span className="text-red-400 text-sm">✗</span>
                     ) : t.estado_pago === 'completo' ? (
-                      <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">✓</span>
+                      <span className="text-emerald-500 text-sm font-bold">✓</span>
                     ) : t.estado_pago === 'seña' ? (
-                      <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-bold">⏳</span>
+                      <span className="text-yellow-500 text-sm">⏳</span>
                     ) : (
-                      <span className="text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full">○</span>
+                      <span className="text-slate-300 text-sm">○</span>
                     )}
                   </div>
                 </div>
