@@ -162,7 +162,7 @@ export function useGastosFijos(fecha: string) {
         if (!data.ok) return;
         serverLoaded.current = true;
 
-        if (Array.isArray(data.empresa)) {
+        if (Array.isArray(data.empresa) && data.empresa.length > 0) {
           const migrados = (data.empresa as Record<string, unknown>[]).map(migrarGasto);
           setEmpresa(migrados);
           lsSet(LS_EMPRESA, migrados);
