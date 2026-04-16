@@ -200,10 +200,10 @@ export function AgendaMensual() {
 
   // ── Leer turnos del día seleccionado (localStorage + servidor) ───────────
   useEffect(() => {
-    if (!diaSeleccionado) {
-      setTurnos([]);
-      return;
-    }
+    // SIEMPRE limpiar al cambiar fecha — evita que se vean datos del día anterior
+    setTurnos([]);
+    if (!diaSeleccionado) return;
+
     const fechaStr = fechaKey(diaSeleccionado);
     const lsKey    = `ganesha_turnos_${fechaStr}`;
 
