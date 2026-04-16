@@ -204,7 +204,7 @@ function CajaContent() {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 max-w-3xl mx-auto">
 
       {/* ── Header ── */}
       <div className="flex justify-between items-start">
