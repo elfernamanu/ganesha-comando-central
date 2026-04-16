@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { guardarCombos } from '../_shared/catalogoPromos';
+import { guardarCombos, invalidarCatalogoCache } from '../_shared/catalogoPromos';
 
 interface Combo {
   numero: number;
@@ -17,24 +17,38 @@ interface Combo {
   activo: boolean;
 }
 
-const LS_COMBOS = 'ganesha_catalog_combos_raw'; // guarda el formato completo Combo[]
+const LS_COMBOS = 'ganesha_catalog_combos_raw';
 
 export default function PromocionesPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
+  const [guardando, setGuardando] = useState(false);
+  const [estado, setEstado] = useState<'ok' | 'error' | ''>('');
 
-  // Cargar combos guardados al montar
+  // Cargar: primero localStorage (inmediato), luego servidor (si tiene datos)
   useEffect(() => {
+    // 1. localStorage primero
     try {
       const stored = localStorage.getItem(LS_COMBOS);
       if (stored) {
         const parsed = JSON.parse(stored) as Combo[];
         if (Array.isArray(parsed)) setCombos(parsed);
       }
-    } catch {
-      // silencioso
-    }
+    } catch { /* silencioso */ }
+
+    // 2. Servidor — si tiene datos gana (versión más fresca)
+    fetch('/api/combos')
+      .then(r => r.json())
+      .then((data: { ok: boolean; datos?: unknown }) => {
+        if (data.ok && Array.isArray(data.datos) && (data.datos as unknown[]).length > 0) {
+          const fromServer = data.datos as Combo[];
+          setCombos(fromServer);
+          try { localStorage.setItem(LS_COMBOS, JSON.stringify(fromServer)); } catch { /* silencioso */ }
+          guardarCombos(fromServer);
+          invalidarCatalogoCache();
+        }
+      })
+      .catch(() => { /* silencioso — usa localStorage */ });
   }, []);
-  const [guardando, setGuardando] = useState(false);
 
   const agregarCombo = () => {
     const nuevoNumero = Math.max(...combos.map(c => c.numero), 0) + 1;
@@ -63,18 +77,27 @@ export default function PromocionesPage() {
 
   const guardar = async () => {
     setGuardando(true);
-    // Guardar raw para recuperar en próxima sesión
-    try { localStorage.setItem(LS_COMBOS, JSON.stringify(combos)); } catch {}
-    // Sincronizar catálogo simplificado para que Turnos lo lea
-    guardarCombos(combos);
-    // Nota: el webhook n8n es opcional — los combos ya están en localStorage.
-    // Disparar sin await para no bloquear si n8n está caído.
-    fetch('/api/webhook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accion: 'actualizar_combos', combos }),
-    }).catch(() => { /* silencioso si n8n está offline */ });
-    setGuardando(false);
+    setEstado('');
+    try {
+      // 1. localStorage
+      try { localStorage.setItem(LS_COMBOS, JSON.stringify(combos)); } catch { /* silencioso */ }
+      // 2. Catálogo simplificado para Turnos
+      guardarCombos(combos);
+      invalidarCatalogoCache();
+      // 3. Servidor
+      const res = await fetch('/api/combos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datos: combos }),
+      });
+      const data = await res.json() as { ok: boolean };
+      setEstado(data.ok ? 'ok' : 'error');
+    } catch {
+      setEstado('error');
+    } finally {
+      setGuardando(false);
+      setTimeout(() => setEstado(''), 3000);
+    }
   };
 
   return (
@@ -84,7 +107,13 @@ export default function PromocionesPage() {
           <h2 className="text-2xl font-bold">🎁 Combos</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Promociones con múltiples servicios</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {estado === 'ok' && (
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ guardado en servidor</span>
+          )}
+          {estado === 'error' && (
+            <span className="text-xs font-medium text-red-500">✗ error al guardar</span>
+          )}
           <button onClick={agregarCombo} className="px-3 py-1.5 rounded-lg font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition-colors">
             + Nuevo Combo
           </button>
@@ -152,7 +181,6 @@ export default function PromocionesPage() {
             <div>
               <label className="text-xs text-slate-400 block mb-1 font-semibold">Servicios incluidos</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {/* Depilación */}
                 <label className="flex items-center gap-2 p-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
                   <input
                     type="checkbox"
@@ -163,7 +191,6 @@ export default function PromocionesPage() {
                   <span className="text-sm font-medium">✨ Depilación</span>
                 </label>
 
-                {/* Uñas */}
                 <label className="flex items-center gap-2 p-3 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors">
                   <input
                     type="checkbox"
@@ -174,7 +201,6 @@ export default function PromocionesPage() {
                   <span className="text-sm font-medium">💅 Uñas</span>
                 </label>
 
-                {/* Estética */}
                 <label className="flex items-center gap-2 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
                   <input
                     type="checkbox"
@@ -185,7 +211,6 @@ export default function PromocionesPage() {
                   <span className="text-sm font-medium">🌟 Estética</span>
                 </label>
 
-                {/* Pestañas */}
                 <label className="flex items-center gap-2 p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors">
                   <input
                     type="checkbox"
