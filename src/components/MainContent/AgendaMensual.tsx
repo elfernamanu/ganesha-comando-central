@@ -282,6 +282,19 @@ export function AgendaMensual() {
     return turnosPorDia[fechaKey(fecha)] ?? 0;
   }, [turnosPorDia]);
 
+  // ── Resolver nombre de tratamiento desde catálogo actual (Opción 2) ──
+  const resolverTratamiento = (t: string): string => {
+    const i = t.indexOf(': ');
+    if (i === -1) return t;
+    const prefix = t.substring(0, i);
+    for (const cat of servicios) {
+      for (const sub of cat.subservicios) {
+        if (typeof sub.nombre === 'string' && sub.nombre.startsWith(prefix + ': ')) return sub.nombre;
+      }
+    }
+    return t;
+  };
+
   const keySeleccionado = diaSeleccionado ? fechaKey(diaSeleccionado) : null;
 
   // ── Solo los días del mes que tienen servicio O turnos cargados ───────────
@@ -472,7 +485,7 @@ export function AgendaMensual() {
                     </p>
                     {(turno.tratamiento || turno.detalle) && (
                       <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate min-w-0">
-                        {turno.tratamiento}{turno.detalle ? ` — ${turno.detalle}` : ''}
+                        {resolverTratamiento(turno.tratamiento)}{turno.detalle ? ` — ${turno.detalle}` : ''}
                       </p>
                     )}
                   </div>

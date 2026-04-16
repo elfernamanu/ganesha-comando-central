@@ -64,6 +64,24 @@ function CajaContent() {
     totalPendientePersonal,
   } = useGastosFijos(fecha);
 
+  // ── Resolver nombre de tratamiento desde catálogo actual (Opción 2) ──
+  const resolverTratamiento = (t: string): string => {
+    const i = t.indexOf(': ');
+    if (i === -1) return t;
+    const prefix = t.substring(0, i);
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('ganesha_config_servicios') : null;
+      if (!raw) return t;
+      const cats = JSON.parse(raw) as Array<{ subservicios: Array<{ nombre: string }> }>;
+      for (const cat of cats) {
+        for (const sub of cat.subservicios ?? []) {
+          if (typeof sub.nombre === 'string' && sub.nombre.startsWith(prefix + ': ')) return sub.nombre;
+        }
+      }
+    } catch { /* silencioso */ }
+    return t;
+  };
+
   // ── Sugerencia de pago ──
   const [sugerencia, setSugerencia] = useState<{
     visible: boolean;
@@ -321,15 +339,15 @@ function CajaContent() {
                 }`}>
                   {/* Hora */}
                   <span className="font-mono text-xs text-slate-400 w-10 shrink-0">{formatearHora(t.horario)}</span>
-                  {/* Nombre + servicio */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{t.clienteNombre}</p>
+                  {/* Nombre + servicio — inline, sin flex-1 para no estirar */}
+                  <div className="min-w-0 flex items-baseline gap-1">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0">{t.clienteNombre}</p>
                     {(t.tratamiento && t.tratamiento !== 'Otro') && (
-                      <p className="text-[10px] text-slate-400 truncate">{t.tratamiento}</p>
+                      <p className="text-[10px] text-slate-400 truncate min-w-0">{resolverTratamiento(t.tratamiento)}</p>
                     )}
                   </div>
-                  {/* Cobrado + forma */}
-                  <div className="shrink-0 text-right">
+                  {/* Cobrado + forma — ml-auto empuja a la derecha sin columna vacía */}
+                  <div className="ml-auto shrink-0 text-right">
                     {t.asistencia === 'presente' ? (
                       <>
                         <p className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">{formatearDinero(t.seña_pagada)}</p>

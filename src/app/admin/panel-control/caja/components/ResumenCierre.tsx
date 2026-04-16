@@ -166,26 +166,28 @@ export default function ResumenCierre({
               const noVino = t.asistencia === 'no_vino';
               const pagado = t.estado_pago === 'completo';
               return (
-                <div key={t.id} className={`grid grid-cols-[1fr_auto_auto_auto] gap-x-2 items-center px-3 py-1 ${
+                <div key={t.id} className={`flex items-center gap-x-2 px-3 py-1 ${
                   noVino ? 'opacity-50 bg-red-50 dark:bg-red-900/10' : pagado ? 'bg-green-50/50 dark:bg-green-900/10' : ''
                 }`}>
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-bold text-slate-700 dark:text-slate-200 truncate leading-tight">{t.clienteNombre || '—'}</p>
-                    <p className="text-[9px] text-slate-400 truncate leading-tight">{t.tratamiento || 'sin servicio'}</p>
+                  <div className="min-w-0 flex items-baseline gap-1">
+                    <p className="text-[12px] font-bold text-slate-700 dark:text-slate-200 truncate leading-tight shrink-0">{t.clienteNombre || '—'}</p>
+                    {t.tratamiento && t.tratamiento !== 'sin servicio' && (
+                      <p className="text-[9px] text-slate-400 truncate leading-tight min-w-0">{t.tratamiento}</p>
+                    )}
                   </div>
-                  <span className="text-[11px] font-mono text-slate-500 whitespace-nowrap">{fmt(t.monto_total)}</span>
-                  <span className={`text-[11px] font-mono font-bold whitespace-nowrap ${
+                  <span className="ml-auto text-[11px] font-mono text-slate-500 whitespace-nowrap shrink-0">{fmt(t.monto_total)}</span>
+                  <span className={`text-[11px] font-mono font-bold whitespace-nowrap shrink-0 ${
                     noVino ? 'text-red-500' : pagado ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
                   }`}>
                     {noVino
                       ? (t.seña_pagada ?? 0) > 0
-                          ? `✗ ${fmt(t.seña_pagada ?? 0)}`   // seña perdida — contabilizada como ingreso
+                          ? `✗ ${fmt(t.seña_pagada ?? 0)}`
                           : 'No vino'
                       : pagado
                           ? `✓ ${fmt(t.seña_pagada ?? 0)}`
                           : `⏳ ${fmt(t.seña_pagada ?? 0)}`}
                   </span>
-                  <span className="text-[10px] font-bold">
+                  <span className="text-[10px] font-bold shrink-0">
                     {noVino ? '' : t.metodo_pago === 'efectivo' ? '💵' : t.metodo_pago === 'transferencia' ? '🏦' : '📱'}
                   </span>
                 </div>
