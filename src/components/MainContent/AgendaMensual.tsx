@@ -466,14 +466,15 @@ export function AgendaMensual() {
                   </span>
 
                   {/* Datos */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                  <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0">
                       {turno.clienteNombre}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {turno.tratamiento}
-                      {turno.detalle ? ` — ${turno.detalle}` : ''}
-                    </p>
+                    {(turno.tratamiento || turno.detalle) && (
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate min-w-0">
+                        {turno.tratamiento}{turno.detalle ? ` — ${turno.detalle}` : ''}
+                      </p>
+                    )}
                   </div>
 
                   {/* Estado de pago */}
