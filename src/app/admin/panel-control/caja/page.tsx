@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
 import { useGastosFijos } from './hooks/useGastosFijos';
@@ -64,23 +64,30 @@ function CajaContent() {
     totalPendientePersonal,
   } = useGastosFijos(fecha);
 
-  // ── Resolver nombre de tratamiento desde catálogo actual (Opción 2) ──
-  const resolverTratamiento = (t: string): string => {
-    const i = t.indexOf(': ');
-    if (i === -1) return t;
-    const prefix = t.substring(0, i);
+  // ── Catálogo de promos: parsea localStorage UNA sola vez ──────────────────
+  const catalogoNombres = useMemo<Map<string, string>>(() => {
+    const mapa = new Map<string, string>();
+    if (typeof window === 'undefined') return mapa;
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem('ganesha_config_servicios') : null;
-      if (!raw) return t;
+      const raw = localStorage.getItem('ganesha_config_servicios');
+      if (!raw) return mapa;
       const cats = JSON.parse(raw) as Array<{ subservicios: Array<{ nombre: string }> }>;
       for (const cat of cats) {
         for (const sub of cat.subservicios ?? []) {
-          if (typeof sub.nombre === 'string' && sub.nombre.startsWith(prefix + ': ')) return sub.nombre;
+          if (typeof sub.nombre === 'string') {
+            const i = sub.nombre.indexOf(': ');
+            if (i > -1) mapa.set(sub.nombre.substring(0, i), sub.nombre);
+          }
         }
       }
     } catch { /* silencioso */ }
-    return t;
-  };
+    return mapa;
+  }, []); // solo en mount
+
+  const resolverTratamiento = useCallback((t: string): string => {
+    const i = t.indexOf(': ');
+    return i > -1 ? (catalogoNombres.get(t.substring(0, i)) ?? t) : t;
+  }, [catalogoNombres]);
 
   // ── Sugerencia de pago ──
   const [sugerencia, setSugerencia] = useState<{

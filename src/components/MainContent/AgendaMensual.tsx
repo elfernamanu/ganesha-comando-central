@@ -282,18 +282,24 @@ export function AgendaMensual() {
     return turnosPorDia[fechaKey(fecha)] ?? 0;
   }, [turnosPorDia]);
 
-  // ── Resolver nombre de tratamiento desde catálogo actual (Opción 2) ──
-  const resolverTratamiento = (t: string): string => {
-    const i = t.indexOf(': ');
-    if (i === -1) return t;
-    const prefix = t.substring(0, i);
+  // ── Catálogo de promos memoizado — evita re-parsear en cada turno ──────────
+  const catalogoNombres = useMemo<Map<string, string>>(() => {
+    const mapa = new Map<string, string>();
     for (const cat of servicios) {
       for (const sub of cat.subservicios) {
-        if (typeof sub.nombre === 'string' && sub.nombre.startsWith(prefix + ': ')) return sub.nombre;
+        if (typeof sub.nombre === 'string') {
+          const i = sub.nombre.indexOf(': ');
+          if (i > -1) mapa.set(sub.nombre.substring(0, i), sub.nombre);
+        }
       }
     }
-    return t;
-  };
+    return mapa;
+  }, [servicios]);
+
+  const resolverTratamiento = useCallback((t: string): string => {
+    const i = t.indexOf(': ');
+    return i > -1 ? (catalogoNombres.get(t.substring(0, i)) ?? t) : t;
+  }, [catalogoNombres]);
 
   const keySeleccionado = diaSeleccionado ? fechaKey(diaSeleccionado) : null;
 
