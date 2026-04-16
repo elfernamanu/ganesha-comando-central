@@ -204,7 +204,7 @@ function CajaContent() {
   };
 
   return (
-    <div className="space-y-2 max-w-3xl mx-auto">
+    <div className="space-y-2 max-w-2xl mx-auto">
 
       {/* ── Header ── */}
       <div className="flex justify-between items-start">
@@ -346,13 +346,15 @@ function CajaContent() {
                       <p className="text-[10px] text-slate-400 truncate min-w-0">{resolverTratamiento(t.tratamiento)}</p>
                     )}
                   </div>
-                  {/* Cobrado + forma — ml-auto empuja a la derecha sin columna vacía */}
-                  <div className="ml-auto shrink-0 text-right">
+                  {/* Cobrado + forma — una sola línea, ml-auto a la derecha */}
+                  <div className="ml-auto shrink-0">
                     {t.asistencia === 'presente' ? (
-                      <>
-                        <p className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">{formatearDinero(t.seña_pagada)}</p>
-                        <p className="text-[9px] text-slate-400">{t.metodo_pago === 'efectivo' ? 'Efect.' : t.metodo_pago === 'transferencia' ? 'Transf.' : 'Otro'}</p>
-                      </>
+                      <span className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">
+                        {formatearDinero(t.seña_pagada)}
+                        <span className="text-[9px] font-normal text-slate-400 ml-1">
+                          {t.metodo_pago === 'efectivo' ? 'Efect.' : t.metodo_pago === 'transferencia' ? 'Transf.' : 'Otro'}
+                        </span>
+                      </span>
                     ) : t.asistencia === 'no_vino' ? (
                       <span className="text-[10px] text-red-500 font-bold">No vino</span>
                     ) : (
