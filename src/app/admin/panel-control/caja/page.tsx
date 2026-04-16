@@ -186,7 +186,7 @@ function CajaContent() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
 
       {/* ── Header ── */}
       <div className="flex justify-between items-start">
@@ -270,21 +270,21 @@ function CajaContent() {
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
 
       {/* ── Estadísticas — franja compacta ── */}
       <div className="flex divide-x divide-slate-200 dark:divide-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
-        <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
+        <div className="flex-1 flex items-center gap-2 px-3 py-1">
           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase shrink-0">💰 Ingresos</span>
           <span className="text-xs font-bold font-mono text-emerald-800 dark:text-emerald-200">{formatearDinero(totales.ingresos_totales)}</span>
           <span className="text-[10px] text-slate-400 ml-auto">{totales.turnos_presentes} cob.</span>
         </div>
-        <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
+        <div className="flex-1 flex items-center gap-2 px-3 py-1">
           <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase shrink-0">💸 Gastos</span>
           <span className="text-xs font-bold font-mono text-red-800 dark:text-red-200">{formatearDinero(totalGastosCompleto)}</span>
           <span className="text-[10px] text-slate-400 ml-auto">{gastos.length} gs.</span>
         </div>
-        <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
+        <div className="flex-1 flex items-center gap-2 px-3 py-1">
           <span className={`text-[10px] font-bold uppercase shrink-0 ${gananciaNeta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
           <span className={`text-xs font-bold font-mono ${gananciaNeta >= 0 ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(gananciaNeta)}</span>
         </div>
@@ -312,7 +312,7 @@ function CajaContent() {
           <div className="rounded-lg border border-slate-100 dark:border-slate-700 overflow-hidden">
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
               {turnos.slice().sort((a, b) => a.horario.localeCompare(b.horario)).map((t) => (
-                <div key={t.id} className={`flex items-center gap-3 px-3 py-1.5 ${
+                <div key={t.id} className={`flex items-center gap-2 px-3 py-0.5 ${
                   t.asistencia === 'no_vino'
                     ? 'bg-red-50 dark:bg-red-900/10 opacity-60'
                     : t.asistencia === 'presente'

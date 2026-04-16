@@ -72,7 +72,7 @@ export default function ResumenCierre({
     <div className="rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden shadow-md">
 
       {/* ── Encabezado ── */}
-      <div className={`px-4 py-3 ${estadoCaja === 'cerrada' ? 'bg-slate-800 dark:bg-slate-900' : 'bg-violet-700 dark:bg-violet-800'}`}>
+      <div className={`px-3 py-2 ${estadoCaja === 'cerrada' ? 'bg-slate-800 dark:bg-slate-900' : 'bg-violet-700 dark:bg-violet-800'}`}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-white font-black text-sm tracking-wide uppercase">
@@ -90,25 +90,25 @@ export default function ResumenCierre({
         </div>
       </div>
 
-      <div className="p-3 space-y-3">
+      <div className="p-2 space-y-2">
 
         {/* ── Bloque 1: Totales en 3 columnas ── */}
         <div className="grid grid-cols-3 gap-1.5">
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center border border-green-200 dark:border-green-800">
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-1.5 text-center border border-green-200 dark:border-green-800">
             <p className="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wide">Ingresos</p>
-            <p className="text-xl font-black text-green-700 dark:text-green-300 font-mono leading-tight mt-0.5">
+            <p className="text-base font-black text-green-700 dark:text-green-300 font-mono leading-tight mt-0.5">
               {fmt(totales.ingresos_totales)}
             </p>
             <p className="text-[9px] text-green-500">{cobradosCount} cobrado{cobradosCount !== 1 ? 's' : ''}</p>
           </div>
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center border border-red-200 dark:border-red-800">
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-1.5 text-center border border-red-200 dark:border-red-800">
             <p className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Gastos Día</p>
-            <p className="text-xl font-black text-red-700 dark:text-red-300 font-mono leading-tight mt-0.5">
+            <p className="text-base font-black text-red-700 dark:text-red-300 font-mono leading-tight mt-0.5">
               {fmt(totales.gastos_totales)}
             </p>
             <p className="text-[9px] text-red-500">{gastos.length} concepto{gastos.length !== 1 ? 's' : ''}</p>
           </div>
-          <div className={`rounded-lg p-2 text-center border ${
+          <div className={`rounded-lg p-1.5 text-center border ${
             totales.ganancia_neta >= 0
               ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
               : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
@@ -116,7 +116,7 @@ export default function ResumenCierre({
             <p className={`text-[9px] font-bold uppercase tracking-wide ${
               totales.ganancia_neta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'
             }`}>Ganancia</p>
-            <p className={`text-xl font-black font-mono leading-tight mt-0.5 ${
+            <p className={`text-base font-black font-mono leading-tight mt-0.5 ${
               totales.ganancia_neta >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-orange-700 dark:text-orange-300'
             }`}>
               {fmt(totales.ganancia_neta)}

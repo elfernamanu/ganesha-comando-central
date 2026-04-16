@@ -346,7 +346,7 @@ export function AgendaMensual() {
                   prev && fechaKey(prev) === key ? null : fecha
                 )}
                 className={[
-                  'relative flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border-2 transition-all shrink-0 min-w-[76px] active:scale-95',
+                  'relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border-2 transition-all shrink-0 min-w-[68px] active:scale-95',
                   esPasado
                     ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 opacity-50'
                     : esSel
@@ -368,7 +368,7 @@ export function AgendaMensual() {
                 </span>
 
                 {/* Número */}
-                <span className={`text-xl font-black leading-none ${
+                <span className={`text-lg font-black leading-none ${
                   esPasado
                     ? 'text-slate-400 dark:text-slate-600'
                     : esSel
@@ -458,7 +458,7 @@ export function AgendaMensual() {
               {turnos.map(turno => (
                 <li
                   key={turno.id}
-                  className="flex items-start gap-3 px-4 py-1.5"
+                  className="flex items-start gap-3 px-3 py-0.5"
                 >
                   {/* Hora */}
                   <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 w-10 shrink-0 pt-0.5">
