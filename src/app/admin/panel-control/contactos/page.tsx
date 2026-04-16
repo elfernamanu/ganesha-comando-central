@@ -20,6 +20,11 @@ interface ClienteStats {
 
 type ClienteRow = ClienteData & ClienteStats;
 
+// ── Title case para nombres en mayúsculas ─────────────────────────────────
+function titleCase(str: string): string {
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ── Stats + género desde localStorage ─────────────────────────────────────
 function calcularStatsLS(): Map<string, ClienteStats> {
   const acum = new Map<string, {
@@ -100,7 +105,7 @@ function FilaCliente({ c, onEdit, onDelete }: {
       ${falta ? 'bg-red-50/70 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
 
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 shrink-0">{c.nombre}</span>
+        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 shrink-0">{titleCase(c.nombre)}</span>
 
         {c.celular
           ? <span className="text-[10px] font-mono text-slate-500 shrink-0">{c.celular}</span>
