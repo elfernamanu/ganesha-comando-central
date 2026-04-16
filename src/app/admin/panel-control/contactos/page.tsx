@@ -189,6 +189,15 @@ export default function ContactosPage() {
   const serverRef = useRef<ClienteData[]>([]);
   useEffect(() => { serverRef.current = serverClientes; }, [serverClientes]);
 
+  // Lista negra: nombres borrados por la usuaria que no deben volver aunque estén en localStorage
+  const [blacklist, setBlacklist] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ganesha_clientes_borrados');
+      if (raw) setBlacklist(new Set(JSON.parse(raw) as string[]));
+    } catch { /* silencioso */ }
+  }, []);
+
   useEffect(() => { setStatsMap(calcularStatsLS()); }, []);
 
   useEffect(() => {
@@ -209,11 +218,11 @@ export default function ContactosPage() {
       if (c.originalNombre) byLow.set(c.originalNombre.toLowerCase(), c);
     }
 
-    // Extra: clientes solo en localStorage (nunca guardados en servidor)
+    // Extra: clientes solo en localStorage, excluyendo borrados
     const extra: ClienteData[] = [];
     for (const [nombre, stats] of statsMap) {
       const low = nombre.toLowerCase();
-      if (!byLow.has(low)) {
+      if (!byLow.has(low) && !blacklist.has(low)) {
         extra.push({ id: `ls_${nombre}`, nombre, celular: '', notas: '', genero: stats.generoDetectado });
       }
     }
@@ -235,7 +244,7 @@ export default function ContactosPage() {
         ...buscarStats(statsMap, c.nombre),
       } as ClienteRow)).filter(c => c.totalTurnos > 0),
     ].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [serverClientes, statsMap]);
+  }, [serverClientes, statsMap, blacklist]);
 
   const mujeres = rows.filter(c => c.genero !== 'm');
   const hombres = rows.filter(c => c.genero === 'm');
@@ -297,6 +306,16 @@ export default function ContactosPage() {
   }, [editId, editNombre, editCelular, editNotas, editGenero, persistir]);
 
   const eliminar = useCallback(async (c: ClienteRow) => {
+    // 1. Agregar a lista negra para que no vuelva desde localStorage
+    const nuevaBlacklist = new Set([
+      ...blacklist,
+      c.nombre.toLowerCase(),
+      ...(c.originalNombre ? [c.originalNombre.toLowerCase()] : []),
+    ]);
+    setBlacklist(nuevaBlacklist);
+    try { localStorage.setItem('ganesha_clientes_borrados', JSON.stringify([...nuevaBlacklist])); } catch { /* silencioso */ }
+
+    // 2. Quitar del servidor
     const nueva = serverRef.current.filter(x =>
       x.id !== c.id &&
       x.nombre.toLowerCase() !== c.nombre.toLowerCase()
@@ -304,7 +323,7 @@ export default function ContactosPage() {
     setServerClientes(nueva);
     serverRef.current = nueva;
     await persistir(nueva);
-  }, [persistir]);
+  }, [blacklist, persistir]);
 
   const agregarManual = () => {
     const id = crypto.randomUUID();
