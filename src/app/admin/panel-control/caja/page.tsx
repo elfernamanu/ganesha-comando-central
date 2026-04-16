@@ -330,7 +330,7 @@ function CajaContent() {
           <div className="rounded-lg border border-slate-100 dark:border-slate-700 overflow-hidden">
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
               {turnos.slice().sort((a, b) => a.horario.localeCompare(b.horario)).map((t) => (
-                <div key={t.id} className={`flex items-center gap-2 px-3 py-0.5 ${
+                <div key={t.id} className={`flex items-center gap-2 px-3 py-px ${
                   t.asistencia === 'no_vino'
                     ? 'bg-red-50 dark:bg-red-900/10 opacity-60'
                     : t.asistencia === 'presente'
@@ -341,7 +341,7 @@ function CajaContent() {
                   <span className="font-mono text-xs text-slate-400 w-10 shrink-0">{formatearHora(t.horario)}</span>
                   {/* Nombre + servicio — inline, sin flex-1 para no estirar */}
                   <div className="min-w-0 flex items-baseline gap-1">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0">{t.clienteNombre}</p>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0 leading-tight">{t.clienteNombre}</p>
                     {(t.tratamiento && t.tratamiento !== 'Otro') && (
                       <p className="text-[10px] text-slate-400 truncate min-w-0">{resolverTratamiento(t.tratamiento)}</p>
                     )}
