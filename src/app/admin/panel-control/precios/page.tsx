@@ -284,48 +284,79 @@ function JornadasPanel({
 const FilaSubServicio = React.memo(function FilaSubServicio({
   s,
   catId,
+  promoNumero,
   onActualizar,
   onEliminar,
 }: {
   s: SubServicio;
   catId: string;
+  promoNumero?: number; // número auto-asignado si es promo
   onActualizar: (catId: string, id: number, campo: keyof SubServicio, valor: string | number | boolean) => void;
   onEliminar: (catId: string, id: number) => void;
 }) {
-  const [nombre, setNombre] = React.useState(s.nombre);
+  const esPromo = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
+
+  // Separar código y descripción: "PROMO DEPI 1: Rostro completo" → ["PROMO DEPI 1", "Rostro completo"]
+  const colonIdx = s.nombre.indexOf(':');
+  const codigoPromoOriginal = colonIdx > -1 ? s.nombre.slice(0, colonIdx).trim() : s.nombre;
+  const descPromoOriginal   = colonIdx > -1 ? s.nombre.slice(colonIdx + 1).trim() : '';
+
+  // Si tenemos número auto-asignado, reconstruir el prefijo con él
+  // "PROMO DEPI 3: ..." con promoNumero=2 → mostramos "PROMO DEPI 2"
+  // Reemplaza el último número en el código original si lo hay, o lo agrega
+  // Siempre quitar el número viejo y poner el auto-asignado
+  const codigoBase    = codigoPromoOriginal.replace(/\s*\d+$/, '').trim();
+  const codigoDisplay = promoNumero != null ? `${codigoBase} ${promoNumero}` : codigoPromoOriginal;
+
   const [precio, setPrecio] = React.useState(formatPrecio(s.precio));
+  const [desc, setDesc]     = React.useState(descPromoOriginal);
+  const [nombre, setNombre] = React.useState(s.nombre);
 
   // Sincronizar si el padre cambia (ej: nueva carga desde localStorage)
-  React.useEffect(() => { setNombre(s.nombre); }, [s.nombre]);
+  React.useEffect(() => {
+    const ci = s.nombre.indexOf(':');
+    setDesc(ci > -1 ? s.nombre.slice(ci + 1).trim() : '');
+    setNombre(s.nombre);
+  }, [s.nombre]);
   React.useEffect(() => { setPrecio(formatPrecio(s.precio)); }, [s.precio]);
 
-  const esPromo = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
-  const [editando, setEditando] = React.useState(false);
-  // Separar código y descripción: "PROMO DEPI 1: Rostro completo" → ["PROMO DEPI 1", "Rostro completo"]
-  const colonIdx = nombre.indexOf(':');
-  const codigoPromo = colonIdx > -1 ? nombre.slice(0, colonIdx).trim() : nombre;
-  const descPromo   = colonIdx > -1 ? nombre.slice(colonIdx + 1).trim() : '';
+  // Cuando el usuario termina de editar la descripción, reconstruir el nombre completo
+  // usando el código tal como está almacenado (el número real del stored nombre)
+  const handleDescBlur = () => {
+    // Usar codigoDisplay (con número auto-asignado) para que el número se grabe correctamente
+    const nombreCompleto = desc.trim()
+      ? `${codigoDisplay}: ${desc.trim()}`
+      : codigoDisplay;
+    onActualizar(catId, s.id, 'nombre', nombreCompleto);
+  };
 
   return (
     <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
-      {esPromo && !editando ? (
-        <div
-          className="flex-1 min-w-0 flex flex-col cursor-text py-0.5"
-          onClick={() => setEditando(true)}
-          title={nombre}
-        >
-          <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 leading-tight">{codigoPromo}</span>
-          {descPromo && <span className="text-[9px] text-amber-600 dark:text-amber-500 leading-tight truncate">{descPromo}</span>}
+      {esPromo ? (
+        <div className="flex-1 min-w-0 flex items-center gap-1 py-0.5">
+          {/* Código fijo (número auto-asignado) */}
+          <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 leading-tight shrink-0 select-none">
+            {codigoDisplay}:
+          </span>
+          {/* Descripción editable */}
+          <input
+            value={desc}
+            title={s.nombre}
+            onFocus={e => e.target.select()}
+            onChange={e => setDesc(e.target.value)}
+            onBlur={handleDescBlur}
+            placeholder="descripción"
+            className="flex-1 min-w-0 text-[10px] text-amber-600 dark:text-amber-500 bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 truncate"
+          />
         </div>
       ) : (
         <input
           value={nombre}
           title={nombre}
-          autoFocus={editando}
           onFocus={e => e.target.select()}
           onChange={e => setNombre(e.target.value)}
-          onBlur={() => { onActualizar(catId, s.id, 'nombre', nombre); setEditando(false); }}
-          className={`flex-1 min-w-0 text-[11px] font-semibold bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 truncate ${esPromo ? 'text-amber-700 dark:text-amber-400' : ''}`}
+          onBlur={() => onActualizar(catId, s.id, 'nombre', nombre)}
+          className="flex-1 min-w-0 text-[11px] font-semibold bg-transparent outline-none focus:bg-slate-100 dark:focus:bg-slate-700 rounded px-0.5 truncate"
         />
       )}
       <span className="text-[9px] text-slate-400 shrink-0">$</span>
@@ -477,10 +508,14 @@ function ListaPrecios({
                   </div>
                   {/* Items de esta columna — lista vertical */}
                   <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                    {grupo.items.map((s) => (
-                      <FilaSubServicio key={s.id} s={s} catId={catId}
-                        onActualizar={onActualizar} onEliminar={onEliminar} />
-                    ))}
+                    {grupo.items.map((s, idx) => {
+                      const esPromoGrupo = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
+                      return (
+                        <FilaSubServicio key={s.id} s={s} catId={catId}
+                          promoNumero={esPromoGrupo ? idx + 1 : undefined}
+                          onActualizar={onActualizar} onEliminar={onEliminar} />
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -572,18 +607,62 @@ export default function ConfiguracionServiciosPage() {
   const agregarSubConPrefijo = (catId: string, prefijo: string) =>
     setCategorias(prev => prev.map(c => {
       if (c.id !== catId) return c;
+
+      // Detectar si es una promo (prefijo con "PROMO")
+      const esPrefijoPromo = prefijo.startsWith('PROMO');
+
+      let nombreNuevo: string;
+      if (esPrefijoPromo) {
+        // Calcular próximo número: contar promos existentes del mismo grupo
+        // Grupo Mujer: PROMO ... sin "Hombre"; Grupo Hombre: PROMO ... con "Hombre"
+        const esGrupoHombre = prefijo.includes('Hombre');
+        const promosDelGrupo = c.subservicios.filter(s =>
+          (s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁')) &&
+          (esGrupoHombre ? s.nombre.includes('Hombre') : !s.nombre.includes('Hombre'))
+        );
+        const siguienteNumero = promosDelGrupo.length + 1;
+        // Detectar la raíz del código: "PROMO DEPI: (Mujer)" → "PROMO DEPI"
+        // Quitar el sufijo de género para quedarnos con la raíz
+        const raiz = prefijo.replace(/\s*[:(]\s*(Mujer|Hombre)\)?/gi, '').trim();
+        // Incluir "(Hombre)" en el nombre para que catalogoPromos pueda clasificarlo
+        const sufijogenero = esGrupoHombre ? ' (Hombre)' : '';
+        nombreNuevo = `${raiz} ${siguienteNumero}: Nueva promo${sufijogenero}`;
+      } else {
+        nombreNuevo = `${prefijo} Nuevo`;
+      }
+
       const nuevo: SubServicio = {
         id: Math.max(0, ...c.subservicios.map(s => s.id)) + 1,
-        nombre: `${prefijo} Nuevo`,
+        nombre: nombreNuevo,
         precio: 0,
         activo: true,
       };
+
       const subs = [...c.subservicios];
-      const primerIdx = subs.findIndex(s => s.nombre.startsWith(prefijo));
-      if (primerIdx >= 0) {
-        subs.splice(primerIdx, 0, nuevo); // al tope del grupo
+      // Para promos, agregar al FINAL del grupo (para que el número sea el último)
+      if (esPrefijoPromo) {
+        const esGrupoHombre = prefijo.includes('Hombre');
+        // Encontrar el último ítem del grupo promo correspondiente
+        let ultimoIdx = -1;
+        subs.forEach((s, i) => {
+          const esPromoS = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
+          if (esPromoS) {
+            const esHombreS = s.nombre.includes('Hombre');
+            if (esGrupoHombre === esHombreS) ultimoIdx = i;
+          }
+        });
+        if (ultimoIdx >= 0) {
+          subs.splice(ultimoIdx + 1, 0, nuevo); // después del último del grupo
+        } else {
+          subs.push(nuevo);
+        }
       } else {
-        subs.unshift(nuevo); // si no hay ninguno aún, al tope de todo
+        const primerIdx = subs.findIndex(s => s.nombre.startsWith(prefijo));
+        if (primerIdx >= 0) {
+          subs.splice(primerIdx, 0, nuevo); // al tope del grupo
+        } else {
+          subs.unshift(nuevo);
+        }
       }
       return { ...c, subservicios: subs };
     }));

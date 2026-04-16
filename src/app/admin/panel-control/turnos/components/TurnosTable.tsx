@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { TurnosTableProps } from '../types';
-import { leerCatalogo, buscarEnCatalogo, type CatalogoPromos } from '../../_shared/catalogoPromos';
+import { leerCatalogo, buscarEnCatalogo, invalidarCatalogoCache, type CatalogoPromos } from '../../_shared/catalogoPromos';
 
 // ── Autocompleta horario al salir del campo ────────────────────────────
 // "16"   → "16:00" | "9"   → "09:00"
@@ -123,7 +123,20 @@ export default function TurnosTable({
   const [catalogo, setCatalogo] = useState<CatalogoPromos>({});
 
   useEffect(() => {
-    const cargar = () => setCatalogo(leerCatalogo());
+    const cargar = async () => {
+      // 1. Inmediato desde localStorage
+      setCatalogo(leerCatalogo());
+      // 2. Siempre actualizar desde servidor para tener promos recientes
+      try {
+        const r = await fetch('/api/admin/config', { cache: 'no-store' });
+        const data = await r.json();
+        if (data.ok && Array.isArray(data.datos) && data.datos.length > 0) {
+          try { localStorage.setItem('ganesha_config_servicios', JSON.stringify(data.datos)); } catch { /* silencioso */ }
+          invalidarCatalogoCache();
+          setCatalogo(leerCatalogo());
+        }
+      } catch { /* sin conexión — usamos localStorage */ }
+    };
     cargar();
     window.addEventListener('focus', cargar);
     return () => window.removeEventListener('focus', cargar);
@@ -191,16 +204,16 @@ export default function TurnosTable({
           <option value={tratamiento}>{tratamiento}</option>
         )}
         {opcionesDepiPromoMujer.length > 0 && (
-          <optgroup label="✨ Promos Depilación MUJER">
+          <optgroup label="🌸 Promos Depilación MUJER">
             {opcionesDepiPromoMujer.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
-              <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
+              <option key={item.nombre} value={item.nombre} style={{ color: '#dc2626', fontWeight: 'bold' }}>{item.nombreDisplay}</option>
             ))}
           </optgroup>
         )}
         {opcionesDepiPromoHombre.length > 0 && (
-          <optgroup label="✨ Promos Depilación HOMBRE">
+          <optgroup label="💪 Promos Depilación HOMBRE">
             {opcionesDepiPromoHombre.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(item => (
-              <option key={item.nombre} value={item.nombre}>{item.nombreDisplay}</option>
+              <option key={item.nombre} value={item.nombre} style={{ color: '#2563eb', fontWeight: 'bold' }}>{item.nombreDisplay}</option>
             ))}
           </optgroup>
         )}

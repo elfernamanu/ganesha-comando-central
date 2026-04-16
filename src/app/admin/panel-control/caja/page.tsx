@@ -133,6 +133,11 @@ function CajaContent() {
   const fijosEmpresaConPago  = gastosFijosEmpresa.map(g => ({ ...g, montoAcumulado: getPagoMes(g).montoAcumulado, pagado: getPagoMes(g).pagado }));
   const fijosPersonalConPago = gastosFijosPersonal.map(g => ({ ...g, montoAcumulado: getPagoMes(g).montoAcumulado, pagado: getPagoMes(g).pagado }));
 
+  const totalFijosEmpresa = fijosEmpresaConPago.reduce((sum, g) => sum + g.montoAcumulado, 0);
+  const totalFijosPersonal = fijosPersonalConPago.reduce((sum, g) => sum + g.montoAcumulado, 0);
+  const totalGastosCompleto = totales.gastos_totales + totalFijosEmpresa + totalFijosPersonal;
+  const gananciaNeta = totales.ingresos_totales - totalGastosCompleto;
+
   // Cerrar + guardar + descargar .txt — todo en uno
   // Los gastos fijos se pasan para guardar snapshot histórico en caja_diaria
   const handleCerrarYGuardar = async () => {
@@ -276,12 +281,12 @@ function CajaContent() {
         </div>
         <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
           <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase shrink-0">💸 Gastos</span>
-          <span className="text-xs font-bold font-mono text-red-800 dark:text-red-200">{formatearDinero(totales.gastos_totales)}</span>
+          <span className="text-xs font-bold font-mono text-red-800 dark:text-red-200">{formatearDinero(totalGastosCompleto)}</span>
           <span className="text-[10px] text-slate-400 ml-auto">{gastos.length} gs.</span>
         </div>
         <div className="flex-1 flex items-center gap-2 px-3 py-1.5">
-          <span className={`text-[10px] font-bold uppercase shrink-0 ${totales.ganancia_neta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
-          <span className={`text-xs font-bold font-mono ${totales.ganancia_neta >= 0 ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(totales.ganancia_neta)}</span>
+          <span className={`text-[10px] font-bold uppercase shrink-0 ${gananciaNeta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
+          <span className={`text-xs font-bold font-mono ${gananciaNeta >= 0 ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(gananciaNeta)}</span>
         </div>
       </div>
 

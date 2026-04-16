@@ -46,7 +46,7 @@ export async function GET() {
     const datos = rows[0]?.datos ?? [];
     return NextResponse.json({ ok: true, datos }, {
       headers: {
-        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        'Cache-Control': 'no-cache',
       },
     });
   } catch (err) {
