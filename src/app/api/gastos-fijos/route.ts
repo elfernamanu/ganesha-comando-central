@@ -15,14 +15,38 @@ import { query } from '@/lib/db';
 let tableReady = false;
 async function ensureTable() {
   if (tableReady) return;
-  await query(`
-    CREATE TABLE IF NOT EXISTS gastos_fijos (
-      tipo        TEXT        PRIMARY KEY,
-      datos       JSONB       NOT NULL DEFAULT '[]',
-      actualizado TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-  tableReady = true;
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS gastos_fijos (
+        tipo        TEXT        PRIMARY KEY,
+        datos       JSONB       NOT NULL DEFAULT '[]',
+        actualizado TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    tableReady = true;
+  } catch {
+    // Puede fallar por permisos (PostgreSQL 15+) — verificar si la tabla ya existe
+    try {
+      await query(`SELECT 1 FROM gastos_fijos LIMIT 0`);
+      tableReady = true; // tabla existe, podemos continuar
+    } catch {
+      // Tabla no existe y no tenemos permisos para crearla
+      // Intentar con SET SCHEMA y GRANT antes de crear
+      try {
+        await query(`SET search_path TO public`);
+        await query(`
+          CREATE TABLE IF NOT EXISTS gastos_fijos (
+            tipo        TEXT        PRIMARY KEY,
+            datos       JSONB       NOT NULL DEFAULT '[]',
+            actualizado TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `);
+        tableReady = true;
+      } catch (err2) {
+        throw new Error(`No se puede crear tabla gastos_fijos: ${String(err2)}`);
+      }
+    }
+  }
 }
 
 // ── GET: devuelve empresa y personal ──────────────────────────────────────────
