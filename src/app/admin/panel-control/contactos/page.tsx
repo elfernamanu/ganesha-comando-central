@@ -6,57 +6,89 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 interface ClienteData {
   id: string;
   nombre: string;
+  originalNombre?: string; // nombre como figura en los turnos (para buscar stats)
   celular: string;
   notas: string;
-  genero: 'm' | 'f'; // explícito — no depende del tratamiento
+  genero: 'm' | 'f';
 }
 
 interface ClienteStats {
   totalTurnos: number; presentes: number; ausentes: number;
   tratamientoFrecuente: string;
+  generoDetectado: 'm' | 'f'; // detectado desde el tratamiento del turno
 }
 
 type ClienteRow = ClienteData & ClienteStats;
 
-// ── Stats desde localStorage ───────────────────────────────────────────────
+// ── Stats + género desde localStorage ─────────────────────────────────────
 function calcularStatsLS(): Map<string, ClienteStats> {
-  const acum = new Map<string, { total: number; pres: number; aus: number; trats: Map<string, number> }>();
+  const acum = new Map<string, {
+    total: number; pres: number; aus: number;
+    trats: Map<string, number>; esHombre: boolean;
+  }>();
+
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key?.startsWith('ganesha_turnos_')) continue;
     const raw = localStorage.getItem(key);
     if (!raw) continue;
     try {
-      const turnos = JSON.parse(raw) as Array<{ clienteNombre?: string; asistencia?: string; tratamiento?: string }>;
+      const turnos = JSON.parse(raw) as Array<{
+        clienteNombre?: string; asistencia?: string; tratamiento?: string;
+      }>;
       for (const t of turnos) {
         const nombre = t.clienteNombre?.trim();
         if (!nombre) continue;
-        if (!acum.has(nombre)) acum.set(nombre, { total: 0, pres: 0, aus: 0, trats: new Map() });
+        if (!acum.has(nombre)) acum.set(nombre, { total: 0, pres: 0, aus: 0, trats: new Map(), esHombre: false });
         const s = acum.get(nombre)!;
         s.total++;
         if (t.asistencia === 'presente') s.pres++;
         if (t.asistencia === 'no_vino')  s.aus++;
-        if (t.tratamiento && t.tratamiento !== 'Otro')
+        if (t.tratamiento && t.tratamiento !== 'Otro') {
           s.trats.set(t.tratamiento, (s.trats.get(t.tratamiento) ?? 0) + 1);
+          // Detectar hombre desde el tratamiento del turno
+          const tl = t.tratamiento.toLowerCase();
+          if (tl.includes('hombre') || t.tratamiento.includes('💪')) s.esHombre = true;
+        }
       }
     } catch { /* skip */ }
   }
+
   const out = new Map<string, ClienteStats>();
   for (const [nombre, s] of acum) {
     let trat = ''; let max = 0;
     for (const [t, c] of s.trats) { if (c > max) { max = c; trat = t; } }
-    out.set(nombre, { totalTurnos: s.total, presentes: s.pres, ausentes: s.aus, tratamientoFrecuente: trat });
+    out.set(nombre, {
+      totalTurnos: s.total, presentes: s.pres, ausentes: s.aus,
+      tratamientoFrecuente: trat,
+      generoDetectado: s.esHombre ? 'm' : 'f',
+    });
   }
   return out;
 }
 
-// Género por defecto basado en tratamiento (solo para clientes nuevos de LS sin genero guardado)
-function generoDefault(trat: string): 'm' | 'f' {
-  const t = trat.toLowerCase();
-  return (t.includes('hombre') || trat.includes('💪')) ? 'm' : 'f';
+// Buscar stats por nombre o por originalNombre (si fue renombrado)
+function buscarStats(
+  mapa: Map<string, ClienteStats>,
+  nombre: string,
+  originalNombre?: string,
+): ClienteStats {
+  const vacio: ClienteStats = { totalTurnos: 0, presentes: 0, ausentes: 0, tratamientoFrecuente: '', generoDetectado: 'f' };
+  const low = nombre.toLowerCase();
+  const origLow = (originalNombre ?? '').toLowerCase();
+
+  // Buscar exacto
+  if (mapa.has(nombre)) return mapa.get(nombre)!;
+  if (originalNombre && mapa.has(originalNombre)) return mapa.get(originalNombre)!;
+
+  // Buscar case-insensitive
+  for (const [k, v] of mapa) {
+    if (k.toLowerCase() === low || k.toLowerCase() === origLow) return v;
+  }
+  return vacio;
 }
 
-// ── Fila compacta ──────────────────────────────────────────────────────────
+// ── Fila compacta — todo en una línea ─────────────────────────────────────
 function FilaCliente({ c, onEdit, onDelete }: {
   c: ClienteRow;
   onEdit: (c: ClienteRow) => void;
@@ -64,19 +96,31 @@ function FilaCliente({ c, onEdit, onDelete }: {
 }) {
   const falta = c.ausentes > 0;
   return (
-    <div className={`group px-2 py-0.5 flex items-center gap-1 border-b border-slate-100 dark:border-slate-700/50 last:border-0
+    <div className={`group px-2 py-0.5 flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/50 last:border-0
       ${falta ? 'bg-red-50/70 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
+
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
         <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 shrink-0">{c.nombre}</span>
+
         {c.celular
-          ? <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 shrink-0">{c.celular}</span>
+          ? <span className="text-[10px] font-mono text-slate-500 shrink-0">{c.celular}</span>
           : <span className="text-[10px] text-slate-300 dark:text-slate-600 shrink-0">sin tel.</span>
         }
-        <span className="text-[10px] font-mono text-slate-400 shrink-0">{c.totalTurnos}t</span>
-        {c.presentes > 0 && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">✓{c.presentes}</span>}
-        {falta            && <span className="text-[10px] font-bold text-red-500 shrink-0">✗{c.ausentes} ⚠️cobrar seña</span>}
-        {c.notas && !falta && <span className="text-[10px] text-amber-500 shrink-0">⚠️{c.notas}</span>}
+
+        {c.totalTurnos > 0 && (
+          <span className="text-[10px] font-mono text-slate-400 shrink-0">{c.totalTurnos}t</span>
+        )}
+        {c.presentes > 0 && (
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">✓{c.presentes}</span>
+        )}
+        {falta && (
+          <span className="text-[10px] font-bold text-red-500 shrink-0">✗{c.ausentes} ⚠️cobrar seña</span>
+        )}
+        {c.notas && !falta && (
+          <span className="text-[10px] text-amber-500 shrink-0">⚠️{c.notas}</span>
+        )}
       </div>
+
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(c)}   className="text-[10px] text-slate-400 hover:text-blue-500 px-0.5">✏️</button>
         <button onClick={() => onDelete(c)} className="text-[10px] text-slate-400 hover:text-red-500 px-0.5">🗑️</button>
@@ -101,7 +145,7 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete }: {
 
   const ausentes = items.filter(c => c.ausentes > 0).length;
   return (
-    <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden min-h-0">
+    <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
       <div className={`px-3 py-2 border-b border-slate-200 dark:border-slate-700 ${color}`}>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
@@ -113,13 +157,12 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete }: {
           </div>
         </div>
         <input
-          value={filtro}
-          onChange={e => setFiltro(e.target.value)}
+          value={filtro} onChange={e => setFiltro(e.target.value)}
           placeholder={`Buscar ${titulo.toLowerCase()}...`}
           className="w-full px-2 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 focus:outline-none focus:ring-1 focus:ring-violet-400"
         />
       </div>
-      <div className="overflow-y-auto flex-1" style={{ maxHeight: '65vh' }}>
+      <div className="overflow-y-auto" style={{ maxHeight: '65vh' }}>
         {filtrados.length === 0
           ? <p className="text-center py-6 text-[11px] text-slate-400">{filtro ? 'Sin resultados' : 'Sin registros'}</p>
           : filtrados.map(c => <FilaCliente key={c.id} c={c} onEdit={onEdit} onDelete={onDelete} />)
@@ -136,14 +179,13 @@ export default function ContactosPage() {
   const [guardando, setGuardando]           = useState(false);
   const [estado, setEstado]                 = useState<'ok' | 'error' | ''>('');
 
-  // Edición
   const [editId, setEditId]           = useState<string | null>(null);
   const [editNombre, setEditNombre]   = useState('');
   const [editCelular, setEditCelular] = useState('');
   const [editNotas, setEditNotas]     = useState('');
   const [editGenero, setEditGenero]   = useState<'m' | 'f'>('f');
 
-  // Ref siempre actualizado — evita stale closure al guardar varios seguidos
+  // Ref siempre actualizado — evita stale closure
   const serverRef = useRef<ClienteData[]>([]);
   useEffect(() => { serverRef.current = serverClientes; }, [serverClientes]);
 
@@ -162,27 +204,42 @@ export default function ContactosPage() {
   // Mezclar server + localStorage
   const rows = useMemo((): ClienteRow[] => {
     const byLow = new Map(serverClientes.map(c => [c.nombre.toLowerCase(), c]));
+    // También indexar por originalNombre
+    for (const c of serverClientes) {
+      if (c.originalNombre) byLow.set(c.originalNombre.toLowerCase(), c);
+    }
+
+    // Extra: clientes solo en localStorage (nunca guardados en servidor)
     const extra: ClienteData[] = [];
     for (const [nombre, stats] of statsMap) {
-      if (!byLow.has(nombre.toLowerCase()))
-        extra.push({ id: `ls_${nombre}`, nombre, celular: '', notas: '', genero: generoDefault(stats.tratamientoFrecuente) });
+      const low = nombre.toLowerCase();
+      if (!byLow.has(low)) {
+        extra.push({ id: `ls_${nombre}`, nombre, celular: '', notas: '', genero: stats.generoDetectado });
+      }
     }
-    return [...serverClientes, ...extra]
-      .map(c => {
-        const stats =
-          statsMap.get(c.nombre) ??
-          [...statsMap.entries()].find(([k]) => k.toLowerCase() === c.nombre.toLowerCase())?.[1] ??
-          { totalTurnos: 0, presentes: 0, ausentes: 0, tratamientoFrecuente: '' };
-        return { ...c, ...stats };
-      })
-      .filter(c => c.totalTurnos > 0 || c.celular)
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    return [
+      // Clientes del servidor — siempre se muestran (aunque no tengan turnos aún)
+      ...serverClientes.map(c => {
+        const stats = buscarStats(statsMap, c.nombre, c.originalNombre);
+        return {
+          ...c,
+          // Si no tiene genero explícito, usar el detectado del tratamiento
+          genero: c.genero ?? stats.generoDetectado,
+          ...stats,
+        } as ClienteRow;
+      }),
+      // Clientes solo de localStorage — solo si tienen turnos
+      ...extra.map(c => ({
+        ...c,
+        ...buscarStats(statsMap, c.nombre),
+      } as ClienteRow)).filter(c => c.totalTurnos > 0),
+    ].sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [serverClientes, statsMap]);
 
   const mujeres = rows.filter(c => c.genero !== 'm');
   const hombres = rows.filter(c => c.genero === 'm');
 
-  // Guardar en servidor — siempre usa serverRef para tener el estado más reciente
   const persistir = useCallback(async (lista: ClienteData[]) => {
     setGuardando(true);
     try {
@@ -196,44 +253,54 @@ export default function ContactosPage() {
     finally { setGuardando(false); setTimeout(() => setEstado(''), 2500); }
   }, []);
 
-  const abrirEdit = (c: ClienteRow) => {
+  const abrirEdit = useCallback((c: ClienteRow) => {
     setEditId(c.id);
     setEditNombre(c.nombre);
     setEditCelular(c.celular);
     setEditNotas(c.notas);
-    setEditGenero(c.genero ?? (generoDefault(c.tratamientoFrecuente)));
-  };
+    setEditGenero(c.genero ?? c.generoDetectado ?? 'f');
+  }, []);
 
   const guardarEdit = useCallback(async () => {
     if (!editId) return;
-    // Leer estado fresco desde ref (evita stale closure)
     const actual = serverRef.current;
-    const cOld = actual.find(x => x.id === editId) ??
-                 // buscar también por ls_ nombre
-                 { id: editId, nombre: editNombre, celular: '', notas: '', genero: editGenero };
+
+    // Buscar el cliente existente por id (puede ser ls_ o uuid)
+    const existente = actual.find(x => x.id === editId);
+    // Para ls_ que aún no están en server, buscar por nombre original
+    const nombreOriginal = editId.startsWith('ls_')
+      ? editId.replace(/^ls_/, '')
+      : (existente?.originalNombre ?? existente?.nombre ?? editNombre);
 
     const updated: ClienteData = {
-      id:      editId.startsWith('ls_') ? crypto.randomUUID() : editId,
-      nombre:  editNombre.trim() || cOld.nombre,
-      celular: editCelular.trim(),
-      notas:   editNotas.trim(),
-      genero:  editGenero,
+      id:             editId.startsWith('ls_') ? crypto.randomUUID() : editId,
+      nombre:         editNombre.trim() || nombreOriginal,
+      originalNombre: nombreOriginal !== (editNombre.trim() || nombreOriginal)
+                        ? nombreOriginal  // guardar nombre original si fue renombrado
+                        : undefined,
+      celular:        editCelular.trim(),
+      notas:          editNotas.trim(),
+      genero:         editGenero,
     };
 
+    // Quitar el registro anterior (por id O por nombre original)
     const sin = actual.filter(x =>
       x.id !== editId &&
-      x.nombre.toLowerCase() !== (editNombre.trim() || cOld.nombre).toLowerCase()
+      x.nombre.toLowerCase() !== nombreOriginal.toLowerCase()
     );
     const nueva = [...sin, updated];
 
     setServerClientes(nueva);
-    serverRef.current = nueva; // actualizar ref de inmediato
+    serverRef.current = nueva;
     setEditId(null);
     await persistir(nueva);
   }, [editId, editNombre, editCelular, editNotas, editGenero, persistir]);
 
   const eliminar = useCallback(async (c: ClienteRow) => {
-    const nueva = serverRef.current.filter(x => x.nombre.toLowerCase() !== c.nombre.toLowerCase());
+    const nueva = serverRef.current.filter(x =>
+      x.id !== c.id &&
+      x.nombre.toLowerCase() !== c.nombre.toLowerCase()
+    );
     setServerClientes(nueva);
     serverRef.current = nueva;
     await persistir(nueva);
@@ -254,7 +321,9 @@ export default function ContactosPage() {
           <p className="text-[11px] text-slate-400">
             {rows.length} total · {mujeres.length} mujeres · {hombres.length} hombres
             {rows.filter(c => c.ausentes > 0).length > 0 && (
-              <> · <span className="text-red-500 font-semibold">⚠️ {rows.filter(c => c.ausentes > 0).length} ausencias</span></>
+              <> · <span className="text-red-500 font-semibold">
+                ⚠️ {rows.filter(c => c.ausentes > 0).length} con ausencias
+              </span></>
             )}
           </p>
         </div>
@@ -273,26 +342,26 @@ export default function ContactosPage() {
       {editId && (
         <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 space-y-2">
           <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Editar contacto</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-center">
             <input value={editNombre}  onChange={e => setEditNombre(e.target.value)}
               placeholder="Nombre completo"
-              className="col-span-2 sm:col-span-1 px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700" />
+              className="px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700" />
             <input value={editCelular} onChange={e => setEditCelular(e.target.value)}
               placeholder="📱 Celular" inputMode="tel"
               className="px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-mono" />
             <input value={editNotas}   onChange={e => setEditNotas(e.target.value)}
               placeholder="Notas"
               className="px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700" />
-            {/* Género manual */}
-            <div className="flex items-center gap-1 text-xs">
-              <span className="text-slate-500 shrink-0">Género:</span>
+            {/* Género */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-slate-500 shrink-0">Género:</span>
               <button onClick={() => setEditGenero('f')}
-                className={`px-2 py-0.5 rounded font-semibold transition-colors ${editGenero === 'f' ? 'bg-pink-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'}`}>
-                👩 M
+                className={`px-2 py-0.5 text-xs rounded font-bold transition-colors ${editGenero === 'f' ? 'bg-pink-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
+                F
               </button>
               <button onClick={() => setEditGenero('m')}
-                className={`px-2 py-0.5 rounded font-semibold transition-colors ${editGenero === 'm' ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'}`}>
-                👨 H
+                className={`px-2 py-0.5 text-xs rounded font-bold transition-colors ${editGenero === 'm' ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
+                M
               </button>
             </div>
           </div>
