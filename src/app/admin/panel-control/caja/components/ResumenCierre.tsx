@@ -166,29 +166,30 @@ export default function ResumenCierre({
               const noVino = t.asistencia === 'no_vino';
               const pagado = t.estado_pago === 'completo';
               return (
-                <div key={t.id} className={`flex items-center gap-x-2 px-3 py-1 ${
+                <div key={t.id} className={`flex items-center gap-2 px-3 py-0.5 ${
                   noVino ? 'opacity-50 bg-red-50 dark:bg-red-900/10' : pagado ? 'bg-green-50/50 dark:bg-green-900/10' : ''
                 }`}>
-                  <div className="min-w-0 flex items-baseline gap-1">
-                    <p className="text-[12px] font-bold text-slate-700 dark:text-slate-200 truncate leading-tight shrink-0">{t.clienteNombre || '—'}</p>
+                  <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0">{t.clienteNombre || '—'}</p>
                     {t.tratamiento && t.tratamiento !== 'sin servicio' && (
-                      <p className="text-[9px] text-slate-400 truncate leading-tight min-w-0">{t.tratamiento}</p>
+                      <p className="text-[11px] text-slate-400 truncate min-w-0">{t.tratamiento}</p>
                     )}
                   </div>
-                  <span className="ml-auto text-[11px] font-mono text-slate-500 whitespace-nowrap shrink-0">{fmt(t.monto_total)}</span>
-                  <span className={`text-[11px] font-mono font-bold whitespace-nowrap shrink-0 ${
-                    noVino ? 'text-red-500' : pagado ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                  {!noVino && (
+                    <span className="shrink-0 text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">
+                      {fmt(t.seña_pagada ?? 0)}
+                      <span className="text-[9px] font-normal text-slate-400 ml-0.5">
+                        {t.metodo_pago === 'efectivo' ? 'Ef.' : t.metodo_pago === 'transferencia' ? 'Tr.' : 'Ot.'}
+                      </span>
+                    </span>
+                  )}
+                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    noVino  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                    pagado  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                    (t.seña_pagada ?? 0) > 0 ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-slate-100 text-slate-400 dark:bg-slate-700'
                   }`}>
-                    {noVino
-                      ? (t.seña_pagada ?? 0) > 0
-                          ? `✗ ${fmt(t.seña_pagada ?? 0)}`
-                          : 'No vino'
-                      : pagado
-                          ? `✓ ${fmt(t.seña_pagada ?? 0)}`
-                          : `⏳ ${fmt(t.seña_pagada ?? 0)}`}
-                  </span>
-                  <span className="text-[10px] font-bold shrink-0">
-                    {noVino ? '' : t.metodo_pago === 'efectivo' ? '💵' : t.metodo_pago === 'transferencia' ? '🏦' : '📱'}
+                    {noVino ? 'No vino' : pagado ? 'Completo' : (t.seña_pagada ?? 0) > 0 ? 'Seña' : 'Sin pago'}
                   </span>
                 </div>
               );

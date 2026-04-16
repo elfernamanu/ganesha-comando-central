@@ -338,41 +338,34 @@ function CajaContent() {
                     : 'bg-white dark:bg-slate-800'
                 }`}>
                   {/* Hora */}
-                  <span className="font-mono text-xs text-slate-400 w-10 shrink-0">{formatearHora(t.horario)}</span>
-                  {/* Nombre + servicio — inline, sin flex-1 para no estirar */}
-                  <div className="min-w-0 flex items-baseline gap-1">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0 leading-tight">{t.clienteNombre}</p>
+                  <span className="font-mono text-xs font-bold text-slate-400 w-10 shrink-0">{formatearHora(t.horario)}</span>
+                  {/* Nombre + servicio inline — mismo formato que Agenda */}
+                  <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0">{t.clienteNombre}</p>
                     {(t.tratamiento && t.tratamiento !== 'Otro') && (
-                      <p className="text-[10px] text-slate-400 truncate min-w-0">{resolverTratamiento(t.tratamiento)}</p>
+                      <p className="text-[11px] text-slate-400 truncate min-w-0">{resolverTratamiento(t.tratamiento)}</p>
                     )}
                   </div>
-                  {/* Cobrado + forma — una sola línea, ml-auto a la derecha */}
-                  <div className="ml-auto shrink-0">
-                    {t.asistencia === 'presente' ? (
-                      <span className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">
-                        {formatearDinero(t.seña_pagada)}
-                        <span className="text-[9px] font-normal text-slate-400 ml-1">
-                          {t.metodo_pago === 'efectivo' ? 'Efect.' : t.metodo_pago === 'transferencia' ? 'Transf.' : 'Otro'}
-                        </span>
+                  {/* Monto cobrado (solo si presente) */}
+                  {t.asistencia === 'presente' && (
+                    <span className="shrink-0 text-xs font-bold font-mono text-emerald-700 dark:text-emerald-300">
+                      {formatearDinero(t.seña_pagada)}
+                      <span className="text-[9px] font-normal text-slate-400 ml-0.5">
+                        {t.metodo_pago === 'efectivo' ? 'Ef.' : t.metodo_pago === 'transferencia' ? 'Tr.' : 'Ot.'}
                       </span>
-                    ) : t.asistencia === 'no_vino' ? (
-                      <span className="text-[10px] text-red-500 font-bold">No vino</span>
-                    ) : (
-                      <span className="text-[10px] text-slate-300">—</span>
-                    )}
-                  </div>
-                  {/* Estado */}
-                  <div className="shrink-0 w-6 flex justify-center">
-                    {t.asistencia === 'no_vino' ? (
-                      <span className="text-red-400 text-sm">✗</span>
-                    ) : t.estado_pago === 'completo' ? (
-                      <span className="text-emerald-500 text-sm font-bold">✓</span>
-                    ) : t.estado_pago === 'seña' ? (
-                      <span className="text-yellow-500 text-sm">⏳</span>
-                    ) : (
-                      <span className="text-slate-300 text-sm">○</span>
-                    )}
-                  </div>
+                    </span>
+                  )}
+                  {/* Badge estado — igual que Agenda */}
+                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    t.asistencia === 'no_vino'    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                    t.estado_pago === 'completo'  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                    t.estado_pago === 'seña'      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                    'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-400'
+                  }`}>
+                    {t.asistencia === 'no_vino'   ? 'No vino' :
+                     t.estado_pago === 'completo' ? 'Completo' :
+                     t.estado_pago === 'seña'     ? 'Seña' : 'Sin pago'}
+                  </span>
                 </div>
               ))}
             </div>
