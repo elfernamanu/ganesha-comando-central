@@ -187,7 +187,7 @@ function JornadasPanel({
       )}
 
       {/* Form agregar jornada — una sola línea */}
-      <div className="flex gap-1.5 items-center px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
+      <div className="flex flex-wrap gap-1.5 items-center px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide shrink-0">+ Jornada</span>
         <input
           type="date"
@@ -482,10 +482,10 @@ function ListaPrecios({
       </div>
 
       {mostrar && (
-        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden overflow-x-auto">
           {/* ── Con grupos: 3 columnas paralelas ── */}
           {(esDepilacion && grupos) || (!esDepilacion && gruposUnas) ? (
-            <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 ${
+            <div className={`grid divide-x divide-slate-100 dark:divide-slate-700 min-w-0 ${
               (esDepilacion ? grupos! : gruposUnas!).length === 4
                 ? 'grid-cols-4'
                 : (esDepilacion ? grupos! : gruposUnas!).length === 3

@@ -29,7 +29,7 @@ export default function PanelControlLayout({ children }: { children: React.React
   });
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 overflow-x-hidden">
       {/* Barra superior — Volver + Zoom (solo en páginas admin, no en Turnos) */}
       {!isHub && !isTurnos && (
         <div className="flex items-center justify-between">
@@ -63,7 +63,7 @@ export default function PanelControlLayout({ children }: { children: React.React
       {isTurnos ? (
         <>{children}</>
       ) : (
-        <div style={{ zoom }}>
+        <div style={{ zoom }} className="min-w-0">
           {children}
         </div>
       )}

@@ -43,7 +43,7 @@ function TurnosContent() {
   const nextStr   = nextDate.toISOString().split('T')[0];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0 overflow-x-hidden">
 
       {/* Encabezado */}
       <div className="flex justify-between items-start">
@@ -112,7 +112,7 @@ function TurnosContent() {
       </div>
 
       {/* Stats del día — cards nativas */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
           <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Turnos</p>
           <p className="font-extrabold text-xl leading-none text-slate-800 dark:text-white">{totales.total_turnos}</p>

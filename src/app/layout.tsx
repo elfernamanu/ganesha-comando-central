@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Blanco en lugar de violeta oscuro — evita la pantalla morada al cargar */}
         <meta name="theme-color" content="#ffffff" />
       </head>
-      <body className="antialiased">
+      <body className="antialiased overflow-x-hidden">
 
         <AccessibilityProvider>
           <ToastProvider>
