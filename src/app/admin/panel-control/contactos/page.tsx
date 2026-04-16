@@ -54,30 +54,20 @@ function FilaCliente({ c, onEdit, onDelete }: {
 }) {
   const falta = c.ausentes > 0;
   return (
-    <div className={`group px-2 py-1 flex items-start gap-1 border-b border-slate-100 dark:border-slate-700/50 last:border-0
+    <div className={`group px-2 py-0.5 flex items-center gap-1 border-b border-slate-100 dark:border-slate-700/50 last:border-0
       ${falta ? 'bg-red-50/70 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
 
-      {/* Info principal */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 leading-tight">
-            {c.nombre}
-          </span>
-          {c.celular
-            ? <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{c.celular}</span>
-            : <span className="text-[10px] text-slate-300 dark:text-slate-600">sin tel.</span>
-          }
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          {c.tratamientoFrecuente && (
-            <span className="text-[9px] text-slate-400 truncate max-w-[110px]">{c.tratamientoFrecuente}</span>
-          )}
-          {/* Stats */}
-          <span className="text-[10px] font-mono text-slate-400">{c.totalTurnos}t</span>
-          {c.presentes > 0 && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓{c.presentes}</span>}
-          {falta         && <span className="text-[10px] font-bold text-red-500">✗{c.ausentes} ⚠️cobrar seña</span>}
-          {c.notas && !falta && <span className="text-[10px] text-amber-500 truncate">⚠️{c.notas}</span>}
-        </div>
+      {/* Info — todo en una sola línea */}
+      <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 shrink-0">{c.nombre}</span>
+        {c.celular
+          ? <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 shrink-0">{c.celular}</span>
+          : <span className="text-[10px] text-slate-300 dark:text-slate-600 shrink-0">sin tel.</span>
+        }
+        <span className="text-[10px] font-mono text-slate-400 shrink-0">{c.totalTurnos}t</span>
+        {c.presentes > 0 && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">✓{c.presentes}</span>}
+        {falta            && <span className="text-[10px] font-bold text-red-500 shrink-0">✗{c.ausentes} ⚠️cobrar seña</span>}
+        {c.notas && !falta && <span className="text-[10px] text-amber-500 shrink-0">⚠️{c.notas}</span>}
       </div>
 
       {/* Acciones hover */}
