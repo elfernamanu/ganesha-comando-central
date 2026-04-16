@@ -13,6 +13,7 @@ import GastosList from './components/GastosList';
 import PanelGastosFijos from './components/PanelGastosFijos';
 import SugerenciaPago, { type GastoPendienteSugerencia } from './components/SugerenciaPago';
 import ResumenCierre from './components/ResumenCierre';
+import PanelContactosDia from './components/PanelContactosDia';
 import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
 
 function CajaContent() {
@@ -434,6 +435,11 @@ function CajaContent() {
         gastosFijosEmpresa={fijosEmpresaConPago}
         gastosFijosPersonal={fijosPersonalConPago}
       />
+
+      {/* ── Contactos del día — aparece solo cuando la caja está cerrada ── */}
+      {estadoCaja === 'cerrada' && turnos.length > 0 && (
+        <PanelContactosDia turnos={turnos} />
+      )}
 
       {/* ── Botones de acción — fuera del recuadro ── */}
       <div className="flex gap-2">
