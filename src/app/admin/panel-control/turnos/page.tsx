@@ -43,7 +43,7 @@ function TurnosContent() {
   const nextStr   = nextDate.toISOString().split('T')[0];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
 
       {/* Encabezado */}
       <div className="flex justify-between items-start">
@@ -113,19 +113,19 @@ function TurnosContent() {
 
       {/* Stats del día — cards nativas */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
           <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Turnos</p>
           <p className="font-extrabold text-xl leading-none text-slate-800 dark:text-white">{totales.total_turnos}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
           <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Presentes</p>
           <p className="font-extrabold text-xl leading-none text-green-600">{totales.asistencias}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
           <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">No vino</p>
           <p className="font-extrabold text-xl leading-none text-red-500">{totales.ausentes}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
           <p className="text-[11px] text-slate-400 font-medium leading-tight mb-1">Cobrado</p>
           <p className="font-extrabold text-xl leading-none text-violet-600">
             ${totales.ingresos_seña >= 1000

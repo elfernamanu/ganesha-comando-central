@@ -171,10 +171,10 @@ function JornadasPanel({
   const jornadasInactivas = jornadas.filter(j => !j.activa).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Resumen */}
       {jornadas.length > 0 && (
-        <div className="flex gap-3 text-xs">
+        <div className="flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
             ✓ {jornadasActivas} activa{jornadasActivas !== 1 ? 's' : ''}
           </span>
@@ -696,13 +696,13 @@ export default function ConfiguracionServiciosPage() {
   const cat = categorias.find(c => c.id === tabActiva)!;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h2 className="text-2xl font-bold">⚙️ Configuración de Servicios</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Jornadas · Precios · El bot y la agenda leen esto automáticamente
           </p>
         </div>
@@ -715,16 +715,15 @@ export default function ConfiguracionServiciosPage() {
         </button>
       </div>
 
-
       {/* Tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1.5 flex-wrap">
         {categorias.map(c => {
           const activas = c.jornadas.filter(j => j.activa).length;
           return (
             <button
               key={c.id}
               onClick={() => setTabActiva(c.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
                 tabActiva === c.id
                   ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -742,10 +741,10 @@ export default function ConfiguracionServiciosPage() {
       </div>
 
       {cat && (
-        <div className="space-y-5">
+        <div className="space-y-3">
           {/* Jornadas */}
-          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-            <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3">
+          <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-2">
               📅 Jornadas de {cat.icon} {cat.nombre}
             </h3>
             <JornadasPanel

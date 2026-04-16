@@ -78,25 +78,25 @@ export default function PromocionesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold">🎁 Combos</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Promociones con múltiples servicios</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Promociones con múltiples servicios</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={agregarCombo} className="px-4 py-2 rounded-lg font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition-colors">
+          <button onClick={agregarCombo} className="px-3 py-1.5 rounded-lg font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition-colors">
             + Nuevo Combo
           </button>
-          <button onClick={guardar} disabled={guardando} className="px-5 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          <button onClick={guardar} disabled={guardando} className="px-4 py-1.5 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors">
             {guardando ? 'Guardando...' : '💾 Guardar'}
           </button>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {combos.map((combo) => (
-          <div key={combo.numero} className="p-6 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-4">
+          <div key={combo.numero} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm space-y-2">
             {/* Header */}
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
@@ -110,18 +110,18 @@ export default function PromocionesPage() {
             </div>
 
             {/* Nombre y Descripción */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Nombre del combo</label>
+                <label className="text-xs text-slate-400 block mb-0.5">Nombre del combo</label>
                 <input
                   value={combo.nombre}
                   onChange={(e) => actualizarCombo(combo.numero, 'nombre', e.target.value)}
                   placeholder="Ej: Combo Depilación + Uñas"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"
+                  className="w-full px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Precio</label>
+                <label className="text-xs text-slate-400 block mb-0.5">Precio</label>
                 <div className="flex items-center gap-1">
                   <span className="text-sm text-slate-400">$</span>
                   <input
@@ -131,29 +131,29 @@ export default function PromocionesPage() {
                     onChange={(e) => actualizarCombo(combo.numero, 'precio', parseInt(e.target.value.replace(/\D/g, ''), 10) || 0)}
                     onFocus={(e) => e.currentTarget.select()}
                     placeholder="0"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-mono"
+                    className="w-full px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 font-mono text-sm"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Descripción</label>
+              <label className="text-xs text-slate-400 block mb-0.5">Descripción</label>
               <textarea
                 value={combo.descripcion}
                 onChange={(e) => actualizarCombo(combo.numero, 'descripcion', e.target.value)}
                 placeholder="Ej: Depilación completa + manicura"
                 rows={2}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 resize-none"
+                className="w-full px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 resize-none text-sm"
               />
             </div>
 
             {/* Servicios */}
             <div>
-              <label className="text-xs text-slate-400 block mb-3 font-semibold">Servicios incluidos</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <label className="text-xs text-slate-400 block mb-1 font-semibold">Servicios incluidos</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {/* Depilación */}
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
                   <input
                     type="checkbox"
                     checked={combo.servicios.depilacion}

@@ -29,7 +29,7 @@ export default function PanelControlLayout({ children }: { children: React.React
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Barra superior — Volver + Zoom (solo en páginas admin, no en Turnos) */}
       {!isHub && !isTurnos && (
         <div className="flex items-center justify-between">
