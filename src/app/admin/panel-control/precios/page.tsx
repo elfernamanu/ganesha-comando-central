@@ -313,6 +313,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
   onEliminar: (catId: string, id: number) => void;
 }) {
   const esPromo = s.nombre.startsWith('PROMO') || s.nombre.startsWith('🎁');
+  const esPromoHombre = esPromo && s.nombre.includes('(Hombre)');
 
   // Separar código y descripción: "PROMO DEPI 1: Rostro completo" → ["PROMO DEPI 1", "Rostro completo"]
   const colonIdx = s.nombre.indexOf(':');
@@ -349,11 +350,11 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
   };
 
   return (
-    <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
+    <div className={`flex items-center gap-1 px-2 py-0.5 group ${esPromoHombre ? 'bg-blue-50 dark:bg-blue-900/20' : esPromo ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}>
       {esPromo ? (
         <div className="flex-1 min-w-0 flex items-center gap-1 py-0.5">
           {/* Código fijo (número auto-asignado) */}
-          <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 leading-tight shrink-0 select-none">
+          <span className={`text-[10px] font-extrabold leading-tight shrink-0 select-none ${esPromoHombre ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'}`}>
             {codigoDisplay}:
           </span>
           {/* Descripción editable */}
@@ -364,7 +365,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
             onChange={e => setDesc(e.target.value)}
             onBlur={handleDescBlur}
             placeholder="descripción"
-            className="flex-1 min-w-0 text-[10px] text-amber-600 dark:text-amber-500 bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 truncate"
+            className={`flex-1 min-w-0 text-[10px] bg-transparent outline-none rounded px-0.5 truncate ${esPromoHombre ? 'text-blue-600 dark:text-blue-500 focus:bg-blue-100 dark:focus:bg-slate-700' : 'text-amber-600 dark:text-amber-500 focus:bg-amber-100 dark:focus:bg-slate-700'}`}
           />
         </div>
       ) : (
@@ -389,7 +390,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
           setPrecio(formatPrecio(n));
         }}
         placeholder="—"
-        className={`w-14 text-[11px] text-right font-mono bg-transparent outline-none focus:bg-amber-100 dark:focus:bg-slate-700 rounded px-0.5 shrink-0 ${esPromo ? 'text-amber-700 dark:text-amber-400 font-bold' : ''}`}
+        className={`w-14 text-[11px] text-right font-mono bg-transparent outline-none rounded px-0.5 shrink-0 ${esPromoHombre ? 'text-blue-700 dark:text-blue-400 font-bold focus:bg-blue-100 dark:focus:bg-slate-700' : esPromo ? 'text-amber-700 dark:text-amber-400 font-bold focus:bg-amber-100 dark:focus:bg-slate-700' : ''}`}
       />
       <button
         onClick={() => onEliminar(catId, s.id)}
