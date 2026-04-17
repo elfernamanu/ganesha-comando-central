@@ -121,11 +121,10 @@ export function leerCatalogo(): CatalogoPromos {
         const claveNueva = `PROMO H DEP ${hombreIdx}: ${desc}`;
         const item: ItemCatalogo = { nombre: claveNueva, nombreDisplay: claveNueva, detalle: '', precio: s.precio, categoria: 'depilacion_hombre' };
         catalogo[claveNueva] = item;
-        // Alias: nombre original (PROMO DEPI 4-8) para turnos viejos
-        if (claveOriginal !== claveNueva) catalogo[claveOriginal] = { ...item, nombre: claveOriginal };
-        // Alias: PROMO DEPI 1-5 (por si fue guardado con renumeración anterior)
+        // Alias para turnos viejos — categoria distinta para que NO aparezcan en el dropdown
+        if (claveOriginal !== claveNueva) catalogo[claveOriginal] = { ...item, nombre: claveOriginal, categoria: 'depilacion_hombre_alias' };
         const claveDepiIdx = `PROMO DEPI ${hombreIdx}: ${desc}`;
-        if (claveDepiIdx !== claveOriginal) catalogo[claveDepiIdx] = { ...item, nombre: claveDepiIdx };
+        if (claveDepiIdx !== claveOriginal) catalogo[claveDepiIdx] = { ...item, nombre: claveDepiIdx, categoria: 'depilacion_hombre_alias' };
       }
     }
   } else {
