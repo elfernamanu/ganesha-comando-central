@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/components/Toast';
 import { invalidarCatalogoCache } from '../_shared/catalogoPromos';
 
@@ -562,6 +562,7 @@ export default function ConfiguracionServiciosPage() {
   const [mensaje, setMensaje]       = useState('');
   const [cargado, setCargado]       = useState(false);
   const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
+  const ultimoGuardadoManual = useRef(0);
   const { mostrar } = useToast();
 
   useEffect(() => {
@@ -608,6 +609,7 @@ export default function ConfiguracionServiciosPage() {
     if (!cargado) return;
     setAutoGuardado('pendiente');
     const timer = setTimeout(async () => {
+      if (Date.now() - ultimoGuardadoManual.current < 5000) return;
       try {
         const res = await fetch('/api/admin/config', {
           method: 'POST',
@@ -720,6 +722,8 @@ export default function ConfiguracionServiciosPage() {
     ));
 
   const guardar = async () => {
+    ultimoGuardadoManual.current = Date.now();
+    setAutoGuardado('idle');
     setGuardando(true);
     try {
       const res = await fetch('/api/admin/config', {
