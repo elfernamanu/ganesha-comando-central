@@ -490,7 +490,11 @@ export function AgendaMensual() {
                       {turno.clienteNombre}
                     </p>
                     {(turno.tratamiento || turno.detalle) && (
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate min-w-0">
+                      <p className={`text-[11px] truncate min-w-0 ${
+                        turno.tratamiento?.includes('(Hombre)')
+                          ? 'text-blue-500 dark:text-blue-400'
+                          : 'text-slate-400 dark:text-slate-500'
+                      }`}>
                         {resolverTratamiento(turno.tratamiento)}{turno.detalle ? ` — ${turno.detalle}` : ''}
                       </p>
                     )}
