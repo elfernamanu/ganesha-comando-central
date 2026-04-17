@@ -324,7 +324,7 @@ const FilaSubServicio = React.memo(function FilaSubServicio({
   // "PROMO DEPI 3: ..." con promoNumero=2 → mostramos "PROMO DEPI 2"
   // Reemplaza el último número en el código original si lo hay, o lo agrega
   // Siempre quitar el número viejo y poner el auto-asignado
-  const codigoBase    = codigoPromoOriginal.replace(/\s*\d+$/, '').trim();
+  const codigoBase    = esPromoHombre ? 'PROMO H DEP' : codigoPromoOriginal.replace(/\s*\d+$/, '').trim();
   const codigoDisplay = promoNumero != null ? `${codigoBase} ${promoNumero}` : codigoPromoOriginal;
 
   const [precio, setPrecio] = React.useState(formatPrecio(s.precio));

@@ -115,17 +115,17 @@ export function leerCatalogo(): CatalogoPromos {
       } else if (esPromo && s.nombre.includes('Hombre')) {
         const claveOriginal = quitarEmoji(s.nombre);
         // Renumerar desde 1 contando solo las promos Hombre ya agregadas
-        const hombreIdx = Object.values(catalogo).filter(i => i.categoria === 'depilacion_hombre').length + 1;
+        const hombreIdx = Object.values(catalogo).filter(i => i.categoria === 'depilacion_hombre' && !i.nombre.startsWith('PROMO DEPI')).length + 1;
         const colonIdx  = claveOriginal.indexOf(':');
         const desc      = colonIdx > -1 ? claveOriginal.slice(colonIdx + 1).trim() : claveOriginal;
-        const claveBase = claveOriginal.replace(/\s*\d+\s*:.*$/, '').trim();
-        const claveNueva = `${claveBase} ${hombreIdx}: ${desc}`;
+        const claveNueva = `PROMO H DEP ${hombreIdx}: ${desc}`;
         const item: ItemCatalogo = { nombre: claveNueva, nombreDisplay: claveNueva, detalle: '', precio: s.precio, categoria: 'depilacion_hombre' };
         catalogo[claveNueva] = item;
-        // Alias con nombre original para que turnos viejos sigan resolviendo
-        if (claveOriginal !== claveNueva) {
-          catalogo[claveOriginal] = { ...item, nombre: claveOriginal };
-        }
+        // Alias: nombre original (PROMO DEPI 4-8) para turnos viejos
+        if (claveOriginal !== claveNueva) catalogo[claveOriginal] = { ...item, nombre: claveOriginal };
+        // Alias: PROMO DEPI 1-5 (por si fue guardado con renumeración anterior)
+        const claveDepiIdx = `PROMO DEPI ${hombreIdx}: ${desc}`;
+        if (claveDepiIdx !== claveOriginal) catalogo[claveDepiIdx] = { ...item, nombre: claveDepiIdx };
       }
     }
   } else {
