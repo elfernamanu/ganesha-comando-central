@@ -28,6 +28,50 @@ function normalizarHorario(val: string): string {
   return v;
 }
 
+// ── Detección y sincronización de celular desde campo detalle ────────────
+// Si la secretaria escribe un número de celular en el campo "Detalle adicional"
+// del turno, se guarda automáticamente en la base de clientes.
+function esNumeroCelular(str: string): boolean {
+  const clean = str.trim().replace(/[\s\-\(\)\+\.]/g, '');
+  return /^\d{8,15}$/.test(clean);
+}
+
+type ClienteRow = { id: string; nombre: string; celular: string; notas: string; [key: string]: unknown };
+
+async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Set<string>> {
+  const sincronizados = new Set<string>(); // keys (nombre lowercase) que tienen celular guardado
+  const candidatos = turnosList.filter(t =>
+    t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
+  );
+  if (candidatos.length === 0) return sincronizados;
+
+  try {
+    const resGet = await fetch('/api/clientes');
+    const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteRow[] };
+    if (!dataGet.ok) return sincronizados;
+
+    const byNombre = new Map((dataGet.datos ?? []).map(c => [c.nombre.toLowerCase(), { ...c }]));
+    let changed = false;
+
+    for (const t of candidatos) {
+      const key = t.clienteNombre.trim().toLowerCase();
+      const celularNuevo = t.detalle.trim().replace(/[\s\-\(\)\+\.]/g, '');
+      const existing = byNombre.get(key);
+      if (!existing?.celular || existing.celular !== celularNuevo) {
+        byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: t.clienteNombre.trim(), celular: celularNuevo, notas: existing?.notas ?? '' });
+        changed = true;
+      }
+      sincronizados.add(key); // confirmar guardado (nuevo o ya existente)
+    }
+
+    if (changed) {
+      await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: Array.from(byNombre.values()) }) });
+    }
+  } catch { /* silencioso — no bloquea el guardado de turnos */ }
+
+  return sincronizados;
+}
+
 // ── Migración de nombres viejos → nombres del catálogo actual ─────────────
 function migrarTratamiento(tratamiento: string, catalogo: CatalogoPromos): string {
   if (!tratamiento) return tratamiento;
@@ -52,6 +96,9 @@ export function useTurnos(fecha: string) {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
+  // Set de clienteNombre (lowercase) con celular sincronizado en esta sesión
+  const [celularesSync, setCelularesSync] = useState<Set<string>>(new Set());
   // Ref para cancelar el auto-sync si el usuario acaba de guardar manualmente
   const ultimoGuardadoManual = useRef(0);
   // Ref para evitar auto-sync en la carga inicial (no hay cambios del usuario)
@@ -61,6 +108,9 @@ export function useTurnos(fecha: string) {
   // después de la última interacción — evita que se borre lo que están escribiendo
   const ultimaInteraccion = useRef(0);
   const PROTECCION_MS = 60_000; // 60 segundos de protección post-edición
+  // Solo true si el usuario hizo algún cambio real (agregar/editar/eliminar)
+  // Evita que el spinner "Guardando..." aparezca en la carga inicial
+  const hayCambios = useRef(false);
 
   const lsKey = `ganesha_turnos_${fecha}`;
 
@@ -167,7 +217,9 @@ export function useTurnos(fecha: string) {
 
     cargaInicialCompleta.current = false; // nueva fecha = nueva carga
     ultimaInteraccion.current = 0;        // nueva fecha = sin interacciones previas
-    setTurnos([]); // limpiar día anterior antes de cargar nuevo
+    hayCambios.current = false;           // nueva fecha = sin cambios del usuario
+    setTurnos([]);           // limpiar día anterior antes de cargar nuevo
+    setCelularesSync(new Set()); // limpiar ojitos del día anterior
 
     // 1. localStorage primero (respuesta inmediata)
     try {
@@ -206,15 +258,34 @@ export function useTurnos(fecha: string) {
   // Auto-sync al servidor 3s después del último cambio DEL USUARIO
   useEffect(() => {
     if (turnos.length === 0) return;
-    if (!cargaInicialCompleta.current) return; // no auto-sync durante carga inicial
-    const timer = setTimeout(() => {
+    if (!cargaInicialCompleta.current) return;
+
+    // Sin cambios reales (ej: carga inicial) → solo sincronizar celulares, sin spinner ni POST
+    if (!hayCambios.current) {
+      sincronizarCelularesDesdeDetalle(turnos).then(sync => {
+        if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+      }).catch(() => {});
+      return;
+    }
+
+    setAutoGuardado('pendiente');
+    const timer = setTimeout(async () => {
       if (Date.now() - ultimoGuardadoManual.current < 5000) return;
-      fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha, datos: turnos }),
-      })
-        .catch(() => { /* sin conexión — se reintentará en el próximo cambio */ });
+      try {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fecha, datos: turnos }),
+        });
+        sincronizarCelularesDesdeDetalle(turnos).then(sync => {
+          if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+        }).catch(() => {});
+        setAutoGuardado('ok');
+        setTimeout(() => setAutoGuardado('idle'), 3000);
+      } catch {
+        setAutoGuardado('error');
+        setTimeout(() => setAutoGuardado('idle'), 4000);
+      }
     }, 3000);
     return () => clearTimeout(timer);
   }, [turnos, fecha]);
@@ -241,6 +312,7 @@ export function useTurnos(fecha: string) {
 
   const agregarTurno = () => {
     ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
     const nuevoTurno: Turno = {
       id: `turno_${Date.now()}`,
       horario: proximoHorario(),
@@ -261,6 +333,7 @@ export function useTurnos(fecha: string) {
 
   const actualizarTurno = (id: string, cambios: Partial<Turno>) => {
     ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
     setTurnos(prev => {
       const actualizado = prev.map(t => {
         if (t.id !== id) return t;
@@ -291,6 +364,7 @@ export function useTurnos(fecha: string) {
 
   const eliminarTurno = (id: string) => {
     ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
     setTurnos(prev => prev.filter(t => t.id !== id));
   };
 
@@ -349,6 +423,9 @@ export function useTurnos(fecha: string) {
 
       if (res.ok) {
         setTurnos(turnosOrdenados);    // aplicar el orden también localmente
+        sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
+          if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+        }).catch(() => {});
         setMensaje('✅ Guardado — visible en todos los dispositivos');
       } else {
         setMensaje('⚠️ Error al guardar en servidor');
@@ -366,6 +443,8 @@ export function useTurnos(fecha: string) {
     totales,
     mensaje,
     guardando,
+    autoGuardado,
+    celularesSync,
     agregarTurno,
     actualizarTurno,
     eliminarTurno,
