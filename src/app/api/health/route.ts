@@ -18,7 +18,6 @@ export async function GET() {
     const rows = await query<{ now: string }>('SELECT NOW() as now');
     resultado.postgres = {
       estado:      'conectado ✅',
-      servidor:    '209.38.111.153',
       hora_server: rows[0]?.now,
     };
   } catch (err) {
