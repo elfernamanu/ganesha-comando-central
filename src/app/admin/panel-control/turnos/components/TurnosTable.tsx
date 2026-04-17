@@ -670,7 +670,7 @@ export default function TurnosTable({
                     >
                       ✓
                     </button>
-                  ) : turno.monto_total > 0 ? (
+                  ) : turno.asistencia === 'presente' && turno.monto_total > 0 ? (
                     <button
                       onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
                       title={`Marcar cobrado: $${turno.monto_total.toLocaleString('es-AR')}`}
