@@ -145,6 +145,8 @@ function JornadasPanel({
   const [nuevaInicio, setNuevaInicio] = useState('08:00');
   const [nuevaFin,    setNuevaFin]    = useState('20:00');
 
+  const hoy = new Date().toISOString().split('T')[0];
+
   const agregar = () => {
     if (!nuevaFecha) return;
     const nueva: Jornada = {
@@ -167,14 +169,19 @@ function JornadasPanel({
   const actualizarHora = (id: string, campo: 'hora_inicio' | 'hora_fin', valor: string) =>
     onChange(jornadas.map(j => j.id === id ? { ...j, [campo]: valor } : j));
 
+  // Limpia automáticamente las fechas que ya pasaron
+  const limpiarPasadas = () =>
+    onChange(jornadas.filter(j => j.fecha >= hoy));
+
   const jornadasActivas   = jornadas.filter(j => j.activa).length;
   const jornadasInactivas = jornadas.filter(j => !j.activa).length;
+  const jornadasPasadas   = jornadas.filter(j => j.fecha < hoy).length;
 
   return (
     <div className="space-y-2">
-      {/* Resumen */}
+      {/* Resumen + botón limpiar pasadas */}
       {jornadas.length > 0 && (
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-2 text-xs items-center flex-wrap">
           <span className="px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
             ✓ {jornadasActivas} activa{jornadasActivas !== 1 ? 's' : ''}
           </span>
@@ -182,6 +189,12 @@ function JornadasPanel({
             <span className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 font-medium">
               {jornadasInactivas} inactiva{jornadasInactivas !== 1 ? 's' : ''}
             </span>
+          )}
+          {jornadasPasadas > 0 && (
+            <button onClick={limpiarPasadas}
+              className="px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold hover:bg-red-200 transition-colors">
+              🗑 Limpiar {jornadasPasadas} pasada{jornadasPasadas !== 1 ? 's' : ''}
+            </button>
           )}
         </div>
       )}
@@ -215,19 +228,23 @@ function JornadasPanel({
         </p>
       ) : (
         <div className="space-y-1">
-          {jornadas.map(j => (
+          {jornadas.map(j => {
+            const esPasada = j.fecha < hoy;
+            return (
             <div
               key={j.id}
               className={`flex flex-col sm:flex-row sm:items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
-                j.activa
+                esPasada
+                  ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 opacity-70'
+                  : j.activa
                   ? 'bg-white dark:bg-slate-800 border-green-200 dark:border-green-800'
                   : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60'
               }`}
             >
               {/* Fecha label */}
               <div className="flex-1 min-w-0">
-                <p className={`text-xs font-semibold capitalize ${j.activa ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400'}`}>
-                  🗓️ {formatFechaLabel(j.fecha)}
+                <p className={`text-xs font-semibold capitalize ${esPasada ? 'text-red-500 dark:text-red-400' : j.activa ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400'}`}>
+                  {esPasada ? '⚠️' : '🗓️'} {formatFechaLabel(j.fecha)}{esPasada ? ' — ya pasó' : ''}
                 </p>
                 <div className="flex gap-1.5 items-center mt-0.5">
                   <input
@@ -273,7 +290,8 @@ function JornadasPanel({
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

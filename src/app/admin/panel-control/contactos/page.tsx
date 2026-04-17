@@ -25,6 +25,94 @@ function titleCase(str: string): string {
   return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// ── Descarga TXT clásico (bloc de notas) ──────────────────────────────────
+function descargarContactosTxt(rows: ClienteRow[]) {
+  const fecha = new Date().toLocaleDateString('es-AR');
+  const sep   = '═'.repeat(52);
+  const lin   = '─'.repeat(52);
+  const lineas = [
+    sep,
+    '  GANESHA ESTHETIC — AGENDA DE CONTACTOS',
+    `  Exportado: ${fecha}   Total: ${rows.length} contactos`,
+    sep,
+    '',
+  ];
+
+  const mujeres = rows.filter(r => r.genero === 'f');
+  const hombres = rows.filter(r => r.genero === 'm');
+
+  for (const [titulo, lista] of [['MUJERES', mujeres], ['HOMBRES', hombres]] as const) {
+    if (lista.length === 0) continue;
+    lineas.push(`  ${titulo} (${lista.length})`);
+    lineas.push(`  ${lin}`);
+    for (const c of lista) {
+      const tel   = c.celular || '—';
+      const notas = c.notas   ? `   ${c.notas}` : '';
+      const stats = c.totalTurnos > 0 ? `   [${c.totalTurnos} turnos · ${c.presentes}✓ ${c.ausentes}✗]` : '';
+      lineas.push(`  ${titleCase(c.nombre).padEnd(28)} ${tel}${stats}${notas}`);
+    }
+    lineas.push('');
+  }
+
+  lineas.push(sep);
+
+  const blob = new Blob([lineas.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `GANESHA_CONTACTOS_${new Date().toISOString().split('T')[0]}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Descarga formato WhatsApp (para cargar en teléfono nuevo) ─────────────
+function descargarContactosWhatsapp(rows: ClienteRow[]) {
+  const fecha = new Date().toLocaleDateString('es-AR');
+  const lineas = [
+    `*GANESHA ESTHETIC — CONTACTOS*`,
+    `_Exportado: ${fecha}_`,
+    '',
+  ];
+
+  const mujeres = rows.filter(r => r.genero === 'f' && r.celular);
+  const hombres = rows.filter(r => r.genero === 'm' && r.celular);
+  const sinTel  = rows.filter(r => !r.celular);
+
+  if (mujeres.length > 0) {
+    lineas.push('👩 *MUJERES*');
+    for (const c of mujeres) {
+      const notas = c.notas ? ` — _${c.notas}_` : '';
+      lineas.push(`• ${titleCase(c.nombre)}: ${c.celular}${notas}`);
+    }
+    lineas.push('');
+  }
+
+  if (hombres.length > 0) {
+    lineas.push('👨 *HOMBRES*');
+    for (const c of hombres) {
+      const notas = c.notas ? ` — _${c.notas}_` : '';
+      lineas.push(`• ${titleCase(c.nombre)}: ${c.celular}${notas}`);
+    }
+    lineas.push('');
+  }
+
+  if (sinTel.length > 0) {
+    lineas.push(`⚠️ _Sin celular registrado: ${sinTel.map(c => titleCase(c.nombre)).join(', ')}_`);
+  }
+
+  const blob = new Blob([lineas.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `GANESHA_CONTACTOS_WHATSAPP_${new Date().toISOString().split('T')[0]}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ── Stats + género desde localStorage ─────────────────────────────────────
 function calcularStatsLS(): Map<string, ClienteStats> {
   const acum = new Map<string, {
@@ -351,10 +439,22 @@ export default function ContactosPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {estado === 'ok'    && <span className="text-[11px] text-emerald-600 dark:text-emerald-400">✓ guardado</span>}
           {estado === 'error' && <span className="text-[11px] text-red-500">✗ error</span>}
           {guardando          && <span className="text-[11px] text-slate-400">guardando…</span>}
+          {rows.length > 0 && (
+            <>
+              <button onClick={() => descargarContactosTxt(rows)}
+                className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 font-medium transition-colors">
+                📋 TXT
+              </button>
+              <button onClick={() => descargarContactosWhatsapp(rows)}
+                className="px-2 py-1 text-xs rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 font-medium transition-colors">
+                💬 WhatsApp
+              </button>
+            </>
+          )}
           <button onClick={agregarManual}
             className="px-2 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 font-medium">
             + Nuevo
