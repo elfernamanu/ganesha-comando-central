@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * GET  /api/panel-auth  → { pinRequerido: bool }
- * POST /api/panel-auth  → { pin } → { ok: bool }
+ * GET    /api/panel-auth  → { pinRequerido: bool }
+ * POST   /api/panel-auth  → { pin } → { ok: bool }  + setea cookie de sesión
+ * DELETE /api/panel-auth  → cierra sesión (borra cookie)
  */
 
 async function sessionToken(pin: string): Promise<string> {
@@ -21,7 +22,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const panelPin = process.env.PANEL_PIN;
 
-  // Sin PIN configurado → siempre OK (sin cookie necesaria)
   if (!panelPin) return NextResponse.json({ ok: true });
 
   try {
@@ -36,11 +36,23 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 8 * 60 * 60, // 8 horas
+      maxAge: 8 * 60 * 60,
       path: '/',
     });
     return res;
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
+}
+
+export async function DELETE() {
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set('ganesha_session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 0,
+    path: '/',
+  });
+  return res;
 }

@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { verificarToken } from '@/lib/auth';
 
 /**
  * GET /api/backup
  * Descarga un JSON con TODO el contenido de la base de datos.
- * Requiere token de autorización.
- * Uso: abrir en el navegador con el header o usar la herramienta de backup del Panel.
+ * Protegido por cookie de sesión vía middleware.
  */
-export async function GET(req: NextRequest) {
-  const err = verificarToken(req);
-  if (err) return err;
-
+export async function GET() {
   try {
     const [config, turnos, combos] = await Promise.all([
       query('SELECT * FROM config_servicios ORDER BY id'),
