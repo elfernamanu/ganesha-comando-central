@@ -111,6 +111,8 @@ export function useTurnos(fecha: string) {
   // Solo true si el usuario hizo algún cambio real (agregar/editar/eliminar)
   // Evita que el spinner "Guardando..." aparezca en la carga inicial
   const hayCambios = useRef(false);
+  // Evita llamar a sincronizarCelulares en cada polling (solo en carga inicial y guardados)
+  const celularInicialSync = useRef(false);
   // AbortController del auto-save en vuelo — permite cancelarlo si el usuario
   // hace click en "Guardar" antes de que el auto-save termine
   const autoSaveAbortRef = useRef<AbortController | null>(null);
@@ -224,6 +226,7 @@ export function useTurnos(fecha: string) {
     cargaInicialCompleta.current = false; // nueva fecha = nueva carga
     ultimaInteraccion.current = 0;        // nueva fecha = sin interacciones previas
     hayCambios.current = false;           // nueva fecha = sin cambios del usuario
+    celularInicialSync.current = false;   // nueva fecha = volver a sincronizar celulares una vez
     setTurnos([]);           // limpiar día anterior antes de cargar nuevo
     setCelularesSync(new Set()); // limpiar ojitos del día anterior
 
@@ -244,13 +247,17 @@ export function useTurnos(fecha: string) {
     });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Polling cada 30s + recarga al volver al foco → celular y PC sincronizados
+  // Polling cada 30s — solo cuando la pestaña es visible (no gasta recursos en reposo)
   useEffect(() => {
-    const interval = setInterval(cargarDesdeServidor, 30000);
+    const tick = () => { if (document.visibilityState === 'visible') cargarDesdeServidor(); };
+    const interval = setInterval(tick, 30000);
+    // Al volver al foco o al hacer visible la pestaña → recargar inmediatamente
     window.addEventListener('focus', cargarDesdeServidor);
+    document.addEventListener('visibilitychange', tick);
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', cargarDesdeServidor);
+      document.removeEventListener('visibilitychange', tick);
     };
   }, [cargarDesdeServidor]);
 
@@ -267,11 +274,14 @@ export function useTurnos(fecha: string) {
     if (turnos.length === 0) return;
     if (!cargaInicialCompleta.current) return;
 
-    // Sin cambios reales (ej: carga inicial) → solo sincronizar celulares, sin spinner ni POST
+    // Sin cambios reales → sincronizar celulares solo UNA VEZ al cargar (no en cada polling)
     if (!hayCambios.current) {
-      sincronizarCelularesDesdeDetalle(turnos).then(sync => {
-        if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
-      }).catch(() => {});
+      if (!celularInicialSync.current) {
+        celularInicialSync.current = true;
+        sincronizarCelularesDesdeDetalle(turnos).then(sync => {
+          if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+        }).catch(() => {});
+      }
       return;
     }
 

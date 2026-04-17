@@ -4,6 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { TurnosTableProps } from '../types';
 import { leerCatalogo, buscarEnCatalogo, invalidarCatalogoCache, type CatalogoPromos } from '../../_shared/catalogoPromos';
 
+// ── Detecta si un string es un número de celular ──────────────────────
+function esNumeroCelular(str: string): boolean {
+  const clean = (str ?? '').trim().replace(/[\s\-\(\)\+\.]/g, '');
+  return /^\d{8,15}$/.test(clean);
+}
+
 // ── Autocompleta horario al salir del campo ────────────────────────────
 // "16"   → "16:00" | "9"   → "09:00"
 // "1630" → "16:30" | "930" → "09:30"
@@ -116,6 +122,7 @@ function BotonesAsistencia({
 // ── Componente principal ───────────────────────────────────────────────
 export default function TurnosTable({
   turnos,
+  celularesSync,
   onActualizar,
   onEliminar,
   onAgregar,
@@ -370,13 +377,18 @@ export default function TurnosTable({
                   tratamiento={turno.tratamiento}
                   className="text-sm"
                 />
-                <input
-                  type="text"
-                  value={turno.detalle || ''}
-                  onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                  placeholder="Detalle adicional..."
-                  className="w-full px-3 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 italic"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={turno.detalle || ''}
+                    onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                    placeholder="Detalle adicional..."
+                    className="w-full px-3 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 italic"
+                  />
+                  {esNumeroCelular(turno.detalle) && celularesSync.has((turno.clienteNombre ?? '').toLowerCase()) && (
+                    <span title="Celular guardado en Contactos" className="absolute right-2 top-1/2 -translate-y-1/2 text-xs">👁</span>
+                  )}
+                </div>
               </div>
 
               {/* ── Asistencia ── */}
@@ -597,13 +609,18 @@ export default function TurnosTable({
                     tratamiento={turno.tratamiento}
                     className="text-xs py-1 rounded"
                   />
-                  <input
-                    type="text"
-                    value={turno.detalle || ''}
-                    onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                    placeholder="Detalle adicional..."
-                    className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={turno.detalle || ''}
+                      onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                      placeholder="Detalle adicional..."
+                      className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
+                    />
+                    {esNumeroCelular(turno.detalle) && celularesSync.has((turno.clienteNombre ?? '').toLowerCase()) && (
+                      <span title="Celular guardado en Contactos" className="absolute right-1 top-1/2 -translate-y-1/2 text-xs">👁</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Asistencia */}
