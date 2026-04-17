@@ -52,6 +52,7 @@ export function useTurnos(fecha: string) {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
   // Ref para cancelar el auto-sync si el usuario acaba de guardar manualmente
   const ultimoGuardadoManual = useRef(0);
   // Ref para evitar auto-sync en la carga inicial (no hay cambios del usuario)
@@ -206,15 +207,22 @@ export function useTurnos(fecha: string) {
   // Auto-sync al servidor 3s después del último cambio DEL USUARIO
   useEffect(() => {
     if (turnos.length === 0) return;
-    if (!cargaInicialCompleta.current) return; // no auto-sync durante carga inicial
-    const timer = setTimeout(() => {
+    if (!cargaInicialCompleta.current) return;
+    setAutoGuardado('pendiente');
+    const timer = setTimeout(async () => {
       if (Date.now() - ultimoGuardadoManual.current < 5000) return;
-      fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha, datos: turnos }),
-      })
-        .catch(() => { /* sin conexión — se reintentará en el próximo cambio */ });
+      try {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fecha, datos: turnos }),
+        });
+        setAutoGuardado('ok');
+        setTimeout(() => setAutoGuardado('idle'), 3000);
+      } catch {
+        setAutoGuardado('error');
+        setTimeout(() => setAutoGuardado('idle'), 4000);
+      }
     }, 3000);
     return () => clearTimeout(timer);
   }, [turnos, fecha]);
@@ -366,6 +374,7 @@ export function useTurnos(fecha: string) {
     totales,
     mensaje,
     guardando,
+    autoGuardado,
     agregarTurno,
     actualizarTurno,
     eliminarTurno,
