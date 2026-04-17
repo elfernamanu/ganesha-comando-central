@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { guardarCombos, invalidarCatalogoCache } from '../_shared/catalogoPromos';
 
 interface Combo {
@@ -23,6 +23,9 @@ export default function PromocionesPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [estado, setEstado] = useState<'ok' | 'error' | ''>('');
+  const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
+  const ultimoGuardadoManual = useRef(0);
+  const cargaCompleta = useRef(false);
 
   // Cargar: primero localStorage (inmediato), luego servidor (si tiene datos)
   useEffect(() => {
@@ -47,8 +50,28 @@ export default function PromocionesPage() {
           invalidarCatalogoCache();
         }
       })
-      .catch(() => { /* silencioso — usa localStorage */ });
+      .catch(() => { /* silencioso — usa localStorage */ })
+      .finally(() => { cargaCompleta.current = true; });
   }, []);
+
+  // Auto-guardado 3s después de cada cambio
+  useEffect(() => {
+    if (!cargaCompleta.current || combos.length === 0) return;
+    setAutoGuardado('pendiente');
+    const timer = setTimeout(async () => {
+      if (Date.now() - ultimoGuardadoManual.current < 5000) return;
+      try {
+        try { localStorage.setItem(LS_COMBOS, JSON.stringify(combos)); } catch { /* silencioso */ }
+        guardarCombos(combos);
+        invalidarCatalogoCache();
+        const res = await fetch('/api/combos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: combos }) });
+        const data = await res.json() as { ok: boolean };
+        if (data.ok) { setAutoGuardado('ok'); setTimeout(() => setAutoGuardado('idle'), 3000); }
+        else { setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); }
+      } catch { setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [combos]);
 
   const agregarCombo = () => {
     const nuevoNumero = Math.max(...combos.map(c => c.numero), 0) + 1;
@@ -76,6 +99,8 @@ export default function PromocionesPage() {
   };
 
   const guardar = async () => {
+    ultimoGuardadoManual.current = Date.now();
+    setAutoGuardado('idle');
     setGuardando(true);
     setEstado('');
     try {
@@ -108,7 +133,13 @@ export default function PromocionesPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Promociones con múltiples servicios</p>
         </div>
         <div className="flex items-center gap-2">
-          {estado === 'ok' && (
+          {autoGuardado !== 'idle' && (
+            <span className={`text-xs font-semibold flex items-center gap-1 ${autoGuardado === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : autoGuardado === 'error' ? 'text-amber-500' : 'text-slate-400'}`}>
+              {autoGuardado === 'pendiente' && <span className="w-2.5 h-2.5 rounded-full border-2 border-slate-400 border-t-transparent animate-spin inline-block" />}
+              {autoGuardado === 'ok' ? '✓ guardado' : autoGuardado === 'error' ? '⚠️ sin conexión' : 'guardando...'}
+            </span>
+          )}
+          {estado === 'ok' && autoGuardado === 'idle' && (
             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ guardado en servidor</span>
           )}
           {estado === 'error' && (
