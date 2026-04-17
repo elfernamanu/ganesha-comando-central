@@ -58,20 +58,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'datos debe ser un array' }, { status: 400 });
     }
 
-    await ensureTable();
+    const json = JSON.stringify(datos);
 
-    await query(
-      `INSERT INTO clientes_telefonos (id, datos, actualizado_at) VALUES (1, $1::jsonb, NOW())
-       ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
-      [JSON.stringify(datos)]
-    );
+    // Intentar guardar en clientes_telefonos; si la tabla no existe, usar config_servicios
+    let savedMain = false;
+    try {
+      await ensureTable();
+      await query(
+        `INSERT INTO clientes_telefonos (id, datos, actualizado_at) VALUES (1, $1::jsonb, NOW())
+         ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
+        [json]
+      );
+      savedMain = true;
+    } catch { /* tabla no existe todavía */ }
 
-    // Mantener también config_servicios como backup secundario
+    // config_servicios: tabla principal de fallback o backup secundario
     await query(
       `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES (-4, $1::jsonb, NOW())
        ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
-      [JSON.stringify(datos)]
-    ).catch(() => {}); // no falla si config_servicios tiene problemas
+      [json]
+    ).catch(err => { if (!savedMain) throw err; }); // solo propagar si tampoco se guardó en principal
 
     return NextResponse.json({ ok: true });
   } catch (err) {

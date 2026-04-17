@@ -106,7 +106,7 @@ export default function PanelContactosDia({ turnos }: Props) {
           const existing = byNombre.get(key);
           let notas = existing?.notas ?? '';
           if (e.ausente && !notas) notas = '⚠️ Cobrar seña — faltó turno';
-          byNombre.set(key, { id: existing?.id ?? crypto.randomUUID(), nombre: e.nombre, celular: e.celular.trim() || (existing?.celular ?? ''), notas });
+          byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: e.nombre, celular: e.celular.trim() || (existing?.celular ?? ''), notas });
         }
         const res = await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: Array.from(byNombre.values()) }) });
         const d = await res.json() as { ok: boolean };
@@ -146,6 +146,7 @@ export default function PanelContactosDia({ turnos }: Props) {
         }
 
         byNombre.set(key, {
+          ...existing,
           id:      existing?.id ?? crypto.randomUUID(),
           nombre:  e.nombre,
           celular: e.celular.trim() || (existing?.celular ?? ''),
@@ -161,8 +162,9 @@ export default function PanelContactosDia({ turnos }: Props) {
       });
       const d = await res.json() as { ok: boolean };
       if (d.ok) setGuardado(true);
-    } catch { /* silencioso */ }
-    finally { setGuardando(false); }
+      else setAutoGuardado('error');
+    } catch { setAutoGuardado('error'); }
+    finally { setGuardando(false); setTimeout(() => setAutoGuardado('idle'), 4000); }
   };
 
   if (cerrado || cargando || entradas.length === 0) return null;
