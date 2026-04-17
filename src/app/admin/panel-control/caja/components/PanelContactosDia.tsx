@@ -99,7 +99,9 @@ export default function PanelContactosDia({ turnos }: Props) {
       try {
         const resGet = await fetch('/api/clientes');
         const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteData[] };
-        const serverClientes: ClienteData[] = dataGet.ok ? (dataGet.datos ?? []) : [];
+        // Si el servidor no respondió OK, no hacer POST — evita borrar datos existentes
+        if (!dataGet.ok) { setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); return; }
+        const serverClientes: ClienteData[] = dataGet.datos ?? [];
         const byNombre = new Map(serverClientes.map(c => [c.nombre.toLowerCase(), { ...c }]));
         for (const e of entradas) {
           const key = e.nombre.toLowerCase();
@@ -130,7 +132,9 @@ export default function PanelContactosDia({ turnos }: Props) {
       // 1. Traer lista completa del servidor para no perder otros clientes
       const resGet = await fetch('/api/clientes');
       const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteData[] };
-      const serverClientes: ClienteData[] = dataGet.ok ? (dataGet.datos ?? []) : [];
+      // Si el servidor no responde OK, abortar — no borrar datos existentes con lista vacía
+      if (!dataGet.ok) { setGuardando(false); setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); return; }
+      const serverClientes: ClienteData[] = dataGet.datos ?? [];
 
       const byNombre = new Map(serverClientes.map(c => [c.nombre.toLowerCase(), { ...c }]));
 

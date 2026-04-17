@@ -563,6 +563,9 @@ export default function ConfiguracionServiciosPage() {
   const [cargado, setCargado]       = useState(false);
   const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
   const ultimoGuardadoManual = useRef(0);
+  // Solo true cuando el servidor respondió OK — bloquea auto-save si el servidor estaba caído
+  // y evita que localStorage viejo sobreescriba datos más recientes del servidor.
+  const servidorConfirmado = useRef(false);
   const { mostrar } = useToast();
 
   useEffect(() => {
@@ -581,6 +584,9 @@ export default function ConfiguracionServiciosPage() {
     fetch('/api/admin/config')
       .then(r => r.json())
       .then(data => {
+        // Servidor respondió OK → habilitar auto-guardado (aunque datos estén vacíos)
+        if (data.ok) servidorConfirmado.current = true;
+
         // Solo usa datos del servidor si son válidos (al menos 3 categorías con servicios reales)
         const valido = data.ok &&
           Array.isArray(data.datos) &&
@@ -590,7 +596,9 @@ export default function ConfiguracionServiciosPage() {
           setCategorias(data.datos.map((c: CategoriaServicio) => ({ ...c, jornadas: c.jornadas ?? [] })));
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        // Servidor caído — servidorConfirmado queda false, auto-save bloqueado
+      })
       .finally(() => setCargado(true));
   }, []);
 
@@ -607,6 +615,9 @@ export default function ConfiguracionServiciosPage() {
   // Auto-guardado al servidor 3s después del último cambio
   useEffect(() => {
     if (!cargado) return;
+    // Bloquear si el servidor no confirmó en esta sesión — evita sobreescribir
+    // datos frescos del servidor con localStorage potencialmente desactualizado
+    if (!servidorConfirmado.current) return;
     setAutoGuardado('pendiente');
     const timer = setTimeout(async () => {
       if (Date.now() - ultimoGuardadoManual.current < 5000) return;
@@ -732,6 +743,7 @@ export default function ConfiguracionServiciosPage() {
         body: JSON.stringify({ datos: categorias }),
       });
       if (res.ok) {
+        servidorConfirmado.current = true; // guardado manual confirma el servidor
         // Limpiar caché de fechas para que Turnos y Caja refresquen las jornadas al instante
         try { sessionStorage.removeItem('ganesha_fechas_cache'); } catch {}
         mostrar('Servicios guardados', 'exito', 'Los precios y jornadas llegaron al servidor ✓');

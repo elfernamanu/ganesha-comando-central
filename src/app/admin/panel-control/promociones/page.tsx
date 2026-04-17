@@ -26,6 +26,8 @@ export default function PromocionesPage() {
   const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
   const ultimoGuardadoManual = useRef(0);
   const cargaCompleta = useRef(false);
+  // Solo true cuando el servidor respondió OK — bloquea auto-save si el servidor estaba caído
+  const servidorConfirmado = useRef(false);
 
   // Cargar: primero localStorage (inmediato), luego servidor (si tiene datos)
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function PromocionesPage() {
     fetch('/api/combos')
       .then(r => r.json())
       .then((data: { ok: boolean; datos?: unknown }) => {
+        if (data.ok) servidorConfirmado.current = true; // servidor respondió OK
         if (data.ok && Array.isArray(data.datos) && (data.datos as unknown[]).length > 0) {
           const fromServer = data.datos as Combo[];
           setCombos(fromServer);
@@ -50,13 +53,13 @@ export default function PromocionesPage() {
           invalidarCatalogoCache();
         }
       })
-      .catch(() => { /* silencioso — usa localStorage */ })
+      .catch(() => { /* servidor caído — servidorConfirmado queda false */ })
       .finally(() => { cargaCompleta.current = true; });
   }, []);
 
   // Auto-guardado 3s después de cada cambio
   useEffect(() => {
-    if (!cargaCompleta.current || combos.length === 0) return;
+    if (!cargaCompleta.current || !servidorConfirmado.current || combos.length === 0) return;
     setAutoGuardado('pendiente');
     const timer = setTimeout(async () => {
       if (Date.now() - ultimoGuardadoManual.current < 5000) return;
@@ -116,6 +119,7 @@ export default function PromocionesPage() {
         body: JSON.stringify({ datos: combos }),
       });
       const data = await res.json() as { ok: boolean };
+      if (data.ok) servidorConfirmado.current = true;
       setEstado(data.ok ? 'ok' : 'error');
     } catch {
       setEstado('error');
