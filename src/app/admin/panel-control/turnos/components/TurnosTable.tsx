@@ -456,7 +456,7 @@ export default function TurnosTable({
                           : '—'}
                       </p>
                     </div>
-                    {saldo > 0 && (
+                    {saldo > 0 && turno.asistencia === 'presente' && (
                       <button
                         onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
                         className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold active:scale-95 transition-all shadow-sm"
@@ -647,7 +647,7 @@ export default function TurnosTable({
                     <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
                   ) : saldoDesk === 0 && turno.monto_total > 0 ? (
                     <span className="text-xs font-bold text-green-600 dark:text-green-400">✓ Pagó</span>
-                  ) : saldoDesk > 0 ? (
+                  ) : saldoDesk > 0 && turno.asistencia === 'presente' ? (
                     <button
                       onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
                       title="Click para marcar cobrado"
