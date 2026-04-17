@@ -28,6 +28,45 @@ function normalizarHorario(val: string): string {
   return v;
 }
 
+// ── Detección y sincronización de celular desde campo detalle ────────────
+// Si la secretaria escribe un número de celular en el campo "Detalle adicional"
+// del turno, se guarda automáticamente en la base de clientes.
+function esNumeroCelular(str: string): boolean {
+  const clean = str.trim().replace(/[\s\-\(\)\+\.]/g, '');
+  return /^\d{8,15}$/.test(clean);
+}
+
+type ClienteRow = { id: string; nombre: string; celular: string; notas: string; [key: string]: unknown };
+
+async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<void> {
+  const candidatos = turnosList.filter(t =>
+    t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
+  );
+  if (candidatos.length === 0) return;
+
+  try {
+    const resGet = await fetch('/api/clientes');
+    const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteRow[] };
+    if (!dataGet.ok) return;
+
+    const byNombre = new Map((dataGet.datos ?? []).map(c => [c.nombre.toLowerCase(), { ...c }]));
+    let changed = false;
+
+    for (const t of candidatos) {
+      const key = t.clienteNombre.trim().toLowerCase();
+      const celularNuevo = t.detalle.trim().replace(/[\s\-\(\)\+\.]/g, '');
+      const existing = byNombre.get(key);
+      if (!existing?.celular || existing.celular !== celularNuevo) {
+        byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: t.clienteNombre.trim(), celular: celularNuevo, notas: existing?.notas ?? '' });
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: Array.from(byNombre.values()) }) });
+  } catch { /* silencioso — no bloquea el guardado de turnos */ }
+}
+
 // ── Migración de nombres viejos → nombres del catálogo actual ─────────────
 function migrarTratamiento(tratamiento: string, catalogo: CatalogoPromos): string {
   if (!tratamiento) return tratamiento;
@@ -217,6 +256,7 @@ export function useTurnos(fecha: string) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fecha, datos: turnos }),
         });
+        sincronizarCelularesDesdeDetalle(turnos).catch(() => {});
         setAutoGuardado('ok');
         setTimeout(() => setAutoGuardado('idle'), 3000);
       } catch {
@@ -357,6 +397,7 @@ export function useTurnos(fecha: string) {
 
       if (res.ok) {
         setTurnos(turnosOrdenados);    // aplicar el orden también localmente
+        sincronizarCelularesDesdeDetalle(turnosOrdenados).catch(() => {});
         setMensaje('✅ Guardado — visible en todos los dispositivos');
       } else {
         setMensaje('⚠️ Error al guardar en servidor');
