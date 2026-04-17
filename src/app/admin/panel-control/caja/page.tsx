@@ -41,6 +41,8 @@ function CajaContent() {
     cargarTurnos,
     recuperarReporte,
     recargarDesdeServidor,
+    snapshotFijosEmpresa,
+    snapshotFijosPersonal,
   } = useCajaDiaria(fecha);
 
   const {
@@ -186,9 +188,14 @@ function CajaContent() {
     .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
     .replace(/^\w/, c => c.toUpperCase());
 
-  // Gastos fijos enriquecidos con el estado del mes actual (para ResumenCierre y reportes)
+  // Gastos fijos enriquecidos con el estado del mes actual (para panel editable — siempre actual)
   const fijosEmpresaConPago  = gastosFijosEmpresa.map(g => ({ ...g, montoAcumulado: getPagoMes(g).montoAcumulado, pagado: getPagoMes(g).pagado }));
   const fijosPersonalConPago = gastosFijosPersonal.map(g => ({ ...g, montoAcumulado: getPagoMes(g).montoAcumulado, pagado: getPagoMes(g).pagado }));
+
+  // Para ResumenCierre y reporte: si la caja está cerrada y hay snapshot histórico,
+  // usarlo en lugar de los fijos actuales (muestra los valores de cuando se cerró la caja)
+  const fijosEmpresaParaResumen  = estadoCaja === 'cerrada' && snapshotFijosEmpresa.length  > 0 ? snapshotFijosEmpresa  : fijosEmpresaConPago;
+  const fijosPersonalParaResumen = estadoCaja === 'cerrada' && snapshotFijosPersonal.length > 0 ? snapshotFijosPersonal : fijosPersonalConPago;
 
   const totalFijosEmpresa = fijosEmpresaConPago.reduce((sum, g) => sum + g.montoAcumulado, 0);
   const totalFijosPersonal = fijosPersonalConPago.reduce((sum, g) => sum + g.montoAcumulado, 0);
@@ -210,8 +217,9 @@ function CajaContent() {
   };
 
   // Solo descargar .txt del día actual (sin cerrar)
+  // Usa el snapshot histórico si la caja está cerrada (para que el reporte sea fiel a cuando se cerró)
   const handleDescargarHoy = () => {
-    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaConPago, fijosPersonalConPago);
+    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaParaResumen, fijosPersonalParaResumen);
     descargarReporte(contenido, fecha);
   };
 
@@ -485,8 +493,8 @@ function CajaContent() {
         totales={totales}
         turnos={turnos}
         gastos={gastos}
-        gastosFijosEmpresa={fijosEmpresaConPago}
-        gastosFijosPersonal={fijosPersonalConPago}
+        gastosFijosEmpresa={fijosEmpresaParaResumen}
+        gastosFijosPersonal={fijosPersonalParaResumen}
       />
 
       {/* ── Contactos del día — aparece solo cuando la caja está cerrada ── */}

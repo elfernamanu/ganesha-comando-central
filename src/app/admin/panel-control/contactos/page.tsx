@@ -28,11 +28,15 @@ function titleCase(str: string): string {
 // ── Descarga TXT clásico (bloc de notas) ──────────────────────────────────
 function descargarContactosTxt(rows: ClienteRow[]) {
   const fecha = new Date().toLocaleDateString('es-AR');
-  const sep   = '═'.repeat(58);
-  const lineas = [
+  const sep   = '='.repeat(58);
+  const lin   = '-'.repeat(58);
+  const conTel = rows.filter(r => r.celular).length;
+
+  // Formato simple: NOMBRE | CELULAR | NOTAS  (una línea por cliente)
+  const lineas: string[] = [
     sep,
-    '  GANESHA ESTHETIC — AGENDA DE CONTACTOS',
-    `  Exportado: ${fecha}   Total: ${rows.length} contactos`,
+    'GANESHA ESTHETIC - AGENDA DE CONTACTOS',
+    `Exportado: ${fecha}   Total: ${rows.length} contactos   Con numero: ${conTel}`,
     sep,
     '',
   ];
@@ -42,21 +46,25 @@ function descargarContactosTxt(rows: ClienteRow[]) {
 
   for (const [titulo, lista] of [['MUJERES', mujeres], ['HOMBRES', hombres]] as const) {
     if (lista.length === 0) continue;
-    lineas.push(`  ${titulo} (${lista.length})`);
-    lineas.push('  ' + '─'.repeat(56));
+    lineas.push(`${titulo} (${lista.length})`);
+    lineas.push(lin);
     for (const c of lista) {
-      const nombre = titleCase(c.nombre).padEnd(30);
-      const tel    = (c.celular || 'sin número').padEnd(18);
-      const notas  = c.notas ? `  ${c.notas}` : '';
-      lineas.push(`  ${nombre} ${tel}${notas}`);
+      // Nombre limpio sin padding especial (evita problemas con acentos en Windows)
+      const nombre = titleCase(c.nombre);
+      const tel    = c.celular ? c.celular : '(sin numero)';
+      const notas  = c.notas  ? `  [${c.notas}]` : '';
+      lineas.push(`${nombre} | ${tel}${notas}`);
     }
     lineas.push('');
   }
 
   lineas.push(sep);
-  lineas.push(`  ${rows.filter(r => r.celular).length} con número · ${rows.filter(r => !r.celular).length} sin número`);
+  lineas.push(`Con numero: ${conTel} | Sin numero: ${rows.length - conTel}`);
 
-  const blob = new Blob([lineas.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+  // BOM + contenido: el BOM (\uFEFF) hace que Windows Bloc de Notas muestre bien los acentos
+  const bom      = '\uFEFF';
+  const contenido = bom + lineas.join('\r\n');
+  const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;

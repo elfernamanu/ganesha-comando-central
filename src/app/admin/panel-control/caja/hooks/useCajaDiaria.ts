@@ -94,6 +94,11 @@ export function useCajaDiaria(fecha: string) {
   const [guardando,  setGuardando]  = useState(false);
   const [mensaje,    setMensaje]    = useState('');
 
+  // Snapshot histórico de gastos fijos (se carga del servidor cuando la caja está cerrada)
+  // Permite mostrar los valores que existían cuando se cerró la caja, no los actuales
+  const [snapshotFijosEmpresa,  setSnapshotFijosEmpresa]  = useState<GastoFijo[]>([]);
+  const [snapshotFijosPersonal, setSnapshotFijosPersonal] = useState<GastoFijo[]>([]);
+
   // Estado visual de sincronización de gastos
   const [syncGastos, setSyncGastos] = useState<'idle' | 'guardando' | 'guardado' | 'error'>('idle');
   // Ref: bloquea auto-save hasta que el servidor respondió (evita sobrescribir con [] vacío)
@@ -107,7 +112,7 @@ export function useCajaDiaria(fecha: string) {
   // Ref: timer para limpiar el ✓ guardado después de mostrarlo
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cargar gastos + estado de caja desde el servidor al montar
+  // Cargar gastos + estado de caja + snapshot fijos desde el servidor al montar
   useEffect(() => {
     serverCargado.current = false;
 
@@ -123,6 +128,12 @@ export function useCajaDiaria(fecha: string) {
           if (data.cerrada) {
             setEstadoCaja('cerrada');
             estadoCajaRef.current = 'cerrada';
+            // Cargar snapshot histórico de gastos fijos del servidor
+            // (los valores que existían cuando se cerró la caja, no los actuales)
+            if (Array.isArray(data.gastosFijosEmpresa)  && data.gastosFijosEmpresa.length  > 0)
+              setSnapshotFijosEmpresa(data.gastosFijosEmpresa);
+            if (Array.isArray(data.gastosFijosPersonal) && data.gastosFijosPersonal.length > 0)
+              setSnapshotFijosPersonal(data.gastosFijosPersonal);
           }
         }
         // Si no existe en el servidor todavía, nos quedamos con localStorage (o [])
@@ -372,5 +383,8 @@ export function useCajaDiaria(fecha: string) {
     cargarTurnos,
     recuperarReporte,
     recargarDesdeServidor,
+    // Snapshot histórico — solo disponible cuando estadoCaja === 'cerrada'
+    snapshotFijosEmpresa,
+    snapshotFijosPersonal,
   };
 }
