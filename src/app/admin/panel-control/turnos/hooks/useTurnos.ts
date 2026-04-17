@@ -113,6 +113,8 @@ export function useTurnos(fecha: string) {
   const hayCambios = useRef(false);
   // Evita llamar a sincronizarCelulares en cada polling (solo en carga inicial y guardados)
   const celularInicialSync = useRef(false);
+  // Último actualizado_at conocido del servidor — evita actualizar estado si no hubo cambios
+  const ultimaActualizacionServidor = useRef<string | null>(null);
   // AbortController del auto-save en vuelo — permite cancelarlo si el usuario
   // hace click en "Guardar" antes de que el auto-save termine
   const autoSaveAbortRef = useRef<AbortController | null>(null);
@@ -144,7 +146,17 @@ export function useTurnos(fecha: string) {
   const cargarDesdeServidor = useCallback(async () => {
     try {
       const r = await fetch(`/api/sync?fecha=${fecha}`);
-      const { ok, datos } = await r.json();
+      const { ok, datos, actualizado_at } = await r.json() as { ok: boolean; datos: unknown; actualizado_at: string | null };
+
+      // Si el servidor tiene el mismo timestamp que ya tenemos → nada cambió, no tocar estado
+      if (
+        actualizado_at &&
+        ultimaActualizacionServidor.current &&
+        actualizado_at === ultimaActualizacionServidor.current &&
+        cargaInicialCompleta.current // solo en polling, no en carga inicial
+      ) return;
+
+      if (actualizado_at) ultimaActualizacionServidor.current = actualizado_at;
 
       if (!ok) return; // error de red/servidor → no tocar nada local
 
@@ -223,10 +235,11 @@ export function useTurnos(fecha: string) {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
-    cargaInicialCompleta.current = false; // nueva fecha = nueva carga
-    ultimaInteraccion.current = 0;        // nueva fecha = sin interacciones previas
-    hayCambios.current = false;           // nueva fecha = sin cambios del usuario
-    celularInicialSync.current = false;   // nueva fecha = volver a sincronizar celulares una vez
+    cargaInicialCompleta.current = false;          // nueva fecha = nueva carga
+    ultimaInteraccion.current = 0;                 // nueva fecha = sin interacciones previas
+    hayCambios.current = false;                    // nueva fecha = sin cambios del usuario
+    celularInicialSync.current = false;            // nueva fecha = volver a sincronizar celulares una vez
+    ultimaActualizacionServidor.current = null;    // nueva fecha = no hay timestamp conocido
     setTurnos([]);           // limpiar día anterior antes de cargar nuevo
     setCelularesSync(new Set()); // limpiar ojitos del día anterior
 
@@ -247,17 +260,15 @@ export function useTurnos(fecha: string) {
     });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Polling cada 30s — solo cuando la pestaña es visible (no gasta recursos en reposo)
+  // Sin polling constante — solo sincroniza cuando el usuario vuelve a la pestaña/ventana
+  // El servidor devuelve actualizado_at: si no cambió nada, cargarDesdeServidor no toca el estado
   useEffect(() => {
-    const tick = () => { if (document.visibilityState === 'visible') cargarDesdeServidor(); };
-    const interval = setInterval(tick, 30000);
-    // Al volver al foco o al hacer visible la pestaña → recargar inmediatamente
+    const alVolver = () => { if (document.visibilityState === 'visible') cargarDesdeServidor(); };
     window.addEventListener('focus', cargarDesdeServidor);
-    document.addEventListener('visibilitychange', tick);
+    document.addEventListener('visibilitychange', alVolver);
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', cargarDesdeServidor);
-      document.removeEventListener('visibilitychange', tick);
+      document.removeEventListener('visibilitychange', alVolver);
     };
   }, [cargarDesdeServidor]);
 
