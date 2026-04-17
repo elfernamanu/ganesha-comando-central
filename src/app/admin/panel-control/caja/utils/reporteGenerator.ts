@@ -1,128 +1,215 @@
 import type { TurnoSecretaria, TotalesCaja } from '../hooks/useCajaDiaria';
 import type { Gasto } from '../types/index';
 import type { GastoFijo } from '../hooks/useGastosFijos';
-import { formatearDinero, formatearFecha, formatearHora } from './formatters';
-import { desglosarGastos } from './calculosCaja';
+import { formatearFecha, formatearHora } from './formatters';
+
+// ─── helpers internos ────────────────────────────────────────────────────────
+
+/** Moneda en pesos argentinos, alineada a la derecha en `ancho` caracteres */
+function m(n: number, ancho = 10): string {
+  const s = n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
+  return s.padStart(ancho);
+}
+
+/** Trunca o rellena un string a `ancho` caracteres */
+function col(s: string, ancho: number): string {
+  if (!s) return ' '.repeat(ancho);
+  if (s.length > ancho) return s.slice(0, ancho - 1) + '…';
+  return s.padEnd(ancho);
+}
+
+const LN  = '═'.repeat(55);
+const ln  = '─'.repeat(55);
+const LN2 = '─'.repeat(55);
+
+function encabezado(titulo: string) {
+  return `  ${titulo}`;
+}
+
+// ─── generarReporteTxt ───────────────────────────────────────────────────────
 
 /**
- * Genera el contenido del reporte en formato texto
- * Trabaja con los datos tal como los guarda la secretaria
+ * Genera el cierre de caja en formato .txt profesional.
+ *
+ * CÁLCULO CORRECTO:
+ *   Total gastos  = gastos_del_día + fijos_empresa_pagados + fijos_personal_pagados
+ *   Ganancia neta = ingresos – total_gastos
  */
 export function generarReporteTxt(
   fecha: string,
   turnos: TurnoSecretaria[],
   gastos: Gasto[],
   totales: TotalesCaja,
-  gastosEmpresa?: GastoFijo[],
-  gastosPersonal?: GastoFijo[]
+  gastosEmpresa: GastoFijo[] = [],
+  gastosPersonal: GastoFijo[] = [],
 ): string {
-  const fechaFormateada = formatearFecha(new Date(fecha + 'T00:00:00'));
-  const desglose = desglosarGastos(gastos);
+  // ── Fecha ──────────────────────────────────────────────────────────────────
+  const fechaLabel = formatearFecha(new Date(fecha + 'T12:00:00'))
+    .replace(/^\w/, c => c.toUpperCase());
 
-  const linea  = '═══════════════════════════════════════════════════';
-  const sublin = '───────────────────────────────────────────────────';
+  // ── Turnos ─────────────────────────────────────────────────────────────────
+  const sorted = [...turnos].sort((a, b) => a.horario.localeCompare(b.horario));
+  const presentes = sorted.filter(t => t.asistencia === 'presente');
+  const ausentes  = sorted.filter(t => t.asistencia === 'no_vino');
+  const cobradosCount = presentes.filter(t => (t.seña_pagada ?? 0) > 0).length;
 
-  // Lista de turnos
-  const turnosTxt = turnos.length === 0
-    ? '   (Sin turnos registrados)'
-    : turnos
-        .sort((a, b) => a.horario.localeCompare(b.horario))
-        .map((t, i) => {
-          const asistIcon = t.asistencia === 'presente' ? '✓' : '✗';
-          const estadoTxt =
-            t.estado_pago === 'completo' ? 'Pagado completo' :
-            t.estado_pago === 'seña'     ? 'Seña pagada'     :
-                                           'Sin pago';
-          const detalleTxt = t.detalle ? ` — ${t.detalle}` : '';
+  // Cabecera de tabla
+  const tabTurnos = [
+    `  ${'N°'.padEnd(3)} ${'HORA'.padEnd(6)} ${'CLIENTA'.padEnd(22)} ${'SERVICIO'.padEnd(22)} ${'COBRADO'.padStart(10)}  ESTADO`,
+    `  ${LN2}`,
+    ...sorted.map((t, i) => {
+      const noVino   = t.asistencia === 'no_vino';
+      const cobrado  = noVino ? 0 : (t.seña_pagada ?? 0);
+      const estadoTxt =
+        noVino                        ? 'No vino ✗' :
+        t.estado_pago === 'completo'  ? 'Completo  ✓' :
+        (t.seña_pagada ?? 0) > 0      ? 'Seña ⏳' :
+                                        'Sin pago';
+      return (
+        `  ${String(i + 1).padStart(2)}. ` +
+        `${formatearHora(t.horario).padEnd(6)} ` +
+        `${col(t.clienteNombre || '—', 22)} ` +
+        `${col(t.tratamiento  || '—', 22)} ` +
+        `${m(cobrado)}  ${estadoTxt}`
+      );
+    }),
+    `  ${LN2}`,
+    `  Presentes: ${presentes.length}   No vinieron: ${ausentes.length}   Total: ${sorted.length}`,
+  ].join('\n');
 
-          return [
-            `${i + 1}. ${t.clienteNombre} (${formatearHora(t.horario)}) ${asistIcon}`,
-            `   Servicio: ${t.tratamiento}${detalleTxt}`,
-            `   Total: ${formatearDinero(t.monto_total)} | Seña cobrada: ${formatearDinero(t.seña_pagada)}`,
-            `   Estado pago: ${estadoTxt} | Método: ${t.metodo_pago}`,
-          ].join('\n');
-        })
-        .join('\n\n');
+  // ── Formas de cobro ────────────────────────────────────────────────────────
+  const tabCobro = [
+    `  💵 Efectivo:         ${m(totales.efectivo)}`,
+    `  🏦 Transferencia:    ${m(totales.transferencia)}`,
+    ...(totales.otro > 0 ? [`  📱 Otro:             ${m(totales.otro)}`] : []),
+  ].join('\n');
 
-  // Lista de gastos
-  const gastosTxt = gastos.length === 0
-    ? '   (Sin gastos registrados)'
-    : gastos
-        .map((g, i) => `${i + 1}. ${g.concepto}: ${formatearDinero(g.monto)}`)
-        .join('\n');
+  // ── Gastos del día ─────────────────────────────────────────────────────────
+  const gastosdiaTxt = gastos.length === 0
+    ? '  (Sin gastos del día)'
+    : gastos.map(g => `    · ${col(g.concepto, 36)} ${m(g.monto)}`).join('\n');
 
-  // Secciones de gastos fijos (opcionales)
-  const seccionEmpresa = gastosEmpresa && gastosEmpresa.length > 0
-    ? [
-        '',
-        `${linea}`,
-        '💼 GASTOS EMPRESA (FIJOS)',
-        sublin,
-        ...gastosEmpresa.map(g => {
-          const pagado = g.pagado ?? false;
-          const acum   = g.montoAcumulado ?? 0;
-          const estado = pagado
-            ? '✓ PAGADO'
-            : `${formatearDinero(acum)} pagado / ${formatearDinero(g.montoTotal)} total`;
-          return `  ${g.nombre}: ${estado}`;
-        }),
-      ].join('\n')
-    : '';
+  // ── Gastos fijos pagados ───────────────────────────────────────────────────
+  const gEmpresa  = gastosEmpresa.filter(g => g.activo);
+  const gPersonal = gastosPersonal.filter(g => g.activo);
 
-  const seccionPersonal = gastosPersonal && gastosPersonal.length > 0
-    ? [
-        '',
-        '🏠 GASTOS PERSONALES — Mirian G. Francolino',
-        sublin,
-        ...gastosPersonal.map(g => {
-          const pagado = g.pagado ?? false;
-          const acum   = g.montoAcumulado ?? 0;
-          const estado = pagado
-            ? '✓ PAGADO'
-            : `${formatearDinero(acum)} pagado / ${formatearDinero(g.montoTotal)} total`;
-          return `  ${g.nombre}: ${estado}`;
-        }),
-        linea,
-      ].join('\n')
-    : '';
+  const fijosEmpresaPagados  = gEmpresa.filter(g => g.pagado ?? false);
+  const fijosPersonalPagados = gPersonal.filter(g => g.pagado ?? false);
+  const fijosEmpresaPendientes  = gEmpresa.filter(g => !(g.pagado ?? false));
+  const fijosPersonalPendientes = gPersonal.filter(g => !(g.pagado ?? false));
 
-  return `
-${linea}
-   GANESHA ESTHETIC — CIERRE DE CAJA
-   ${fechaFormateada}
-${linea}
+  const totalFijosEmpresaPagado  = fijosEmpresaPagados.reduce((s, g)  => s + (g.montoAcumulado ?? 0), 0);
+  const totalFijosPersonalPagado = fijosPersonalPagados.reduce((s, g) => s + (g.montoAcumulado ?? 0), 0);
+  const totalFijosPagados        = totalFijosEmpresaPagado + totalFijosPersonalPagado;
 
-📋 TURNOS DEL DÍA
-${sublin}
-${turnosTxt}
+  const totalFijosPendiente =
+    fijosEmpresaPendientes.reduce((s, g)  => s + Math.max(0, g.montoTotal - (g.montoAcumulado ?? 0)), 0) +
+    fijosPersonalPendientes.reduce((s, g) => s + Math.max(0, g.montoTotal - (g.montoAcumulado ?? 0)), 0);
 
-${sublin}
-Resumen de asistencia:
-  Presentes:  ${totales.turnos_presentes}
-  No vinieron: ${totales.turnos_ausentes}
-  Total:       ${totales.turnos_total}
+  // Sección fijos pagados
+  const fijosPagadosTxt = ((): string => {
+    const lineas: string[] = [];
+    if (fijosEmpresaPagados.length > 0) {
+      lineas.push('  [Empresa]');
+      fijosEmpresaPagados.forEach(g =>
+        lineas.push(`    ✓ ${col(g.nombre, 34)} ${m(g.montoAcumulado ?? 0)}`)
+      );
+    }
+    if (fijosPersonalPagados.length > 0) {
+      lineas.push('  [Personal — Mirian G. Francolino]');
+      fijosPersonalPagados.forEach(g =>
+        lineas.push(`    ✓ ${col(g.nombre, 34)} ${m(g.montoAcumulado ?? 0)}`)
+      );
+    }
+    return lineas.length > 0 ? lineas.join('\n') : '  (Sin fijos pagados este mes)';
+  })();
 
-💸 GASTOS DEL DÍA
-${sublin}
-${gastosTxt}
+  // Sección fijos pendientes
+  const fijosPendientesTxt = ((): string => {
+    const lineas: string[] = [];
+    if (fijosEmpresaPendientes.length > 0) {
+      lineas.push('  [Empresa]');
+      fijosEmpresaPendientes.forEach(g => {
+        const pendiente = Math.max(0, g.montoTotal - (g.montoAcumulado ?? 0));
+        lineas.push(`    ⏳ ${col(g.nombre, 34)} ${m(pendiente)}`);
+      });
+    }
+    if (fijosPersonalPendientes.length > 0) {
+      lineas.push('  [Personal — Mirian G. Francolino]');
+      fijosPersonalPendientes.forEach(g => {
+        const pendiente = Math.max(0, g.montoTotal - (g.montoAcumulado ?? 0));
+        lineas.push(`    ⏳ ${col(g.nombre, 34)} ${m(pendiente)}`);
+      });
+    }
+    return lineas.join('\n');
+  })();
 
-${sublin}
-Desglose de gastos:
-  Alquiler:  ${formatearDinero(desglose.alquiler)}
-  Servicios: ${formatearDinero(desglose.servicios)}
-  Otros:     ${formatearDinero(desglose.otros)}
-${seccionEmpresa}${seccionPersonal}
+  // ── Números finales ────────────────────────────────────────────────────────
+  const totalGastosTodos = totales.gastos_totales + totalFijosPagados;
+  const gananciaNeta     = totales.ingresos_totales - totalGastosTodos;
+  const gananciaReal     = gananciaNeta - totalFijosPendiente;
 
-${linea}
-📊 RESUMEN FINANCIERO
-${sublin}
-INGRESOS:      ${formatearDinero(totales.ingresos_totales)}
-GASTOS:        ${formatearDinero(totales.gastos_totales)}
-${sublin}
-GANANCIA NETA: ${formatearDinero(totales.ganancia_neta)}  ${totales.ganancia_neta >= 0 ? '✓' : '⚠'}
-${linea}
-`.trimStart();
+  // ── Armar documento ────────────────────────────────────────────────────────
+  const partes: string[] = [
+    LN,
+    `   GANESHA ESTHETIC — CIERRE DE CAJA`,
+    `   ${fechaLabel}`,
+    LN,
+    '',
+    encabezado('📋 DETALLE DE TURNOS'),
+    tabTurnos,
+    '',
+    encabezado('💳 FORMAS DE COBRO'),
+    `  ${ln}`,
+    tabCobro,
+    '',
+    `${LN}`,
+    encabezado('💰 RESUMEN FINANCIERO'),
+    LN,
+    '',
+    `  INGRESOS DEL DÍA                         ${m(totales.ingresos_totales)}`,
+    `  (${cobradosCount} cliente${cobradosCount !== 1 ? 's' : ''} · Ef. ${m(totales.efectivo, 0).trim()} · Tr. ${m(totales.transferencia, 0).trim()})`,
+    '',
+    `  GASTOS:`,
+    `  ${ln}`,
+    `  Gastos del día:                      ${m(-totales.gastos_totales)}`,
+    gastosdiaTxt,
+    '',
+    `  Gastos fijos pagados este mes:       ${m(-totalFijosPagados)}`,
+    fijosPagadosTxt,
+    '',
+    `  ${ln}`,
+    `  TOTAL GASTOS:                        ${m(-totalGastosTodos)}`,
+    '',
+    `${LN}`,
+    `  ${gananciaNeta >= 0 ? '✅' : '⚠️'} GANANCIA NETA:                       ${m(gananciaNeta)}`,
+    `${LN}`,
+  ];
+
+  // Fijos pendientes (bloque opcional)
+  if (totalFijosPendiente > 0) {
+    partes.push(
+      '',
+      `  ⚠️  Fijos aún no pagados este mes:    ${m(-totalFijosPendiente)}`,
+      fijosPendientesTxt,
+      `  ${ln}`,
+      `  Ganancia real (si se pagan todos):   ${m(gananciaReal)}`,
+    );
+  }
+
+  partes.push(
+    '',
+    LN,
+    `  Responsable: Mirian G. Francolino`,
+    `  Generado:    ${fecha}`,
+    LN,
+    '',
+  );
+
+  return partes.join('\n');
 }
+
+// ─── descargarReporte ────────────────────────────────────────────────────────
 
 /**
  * Descarga el reporte como archivo .txt (cliente-side, sin servidor)
