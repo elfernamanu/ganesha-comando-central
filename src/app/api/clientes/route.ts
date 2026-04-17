@@ -1,25 +1,52 @@
 /**
- * /api/clientes — usa config_servicios con id=-4 (reservado para clientes)
+ * /api/clientes — tabla dedicada clientes_telefonos
  *
- * Guarda el array ClienteData[] como JSONB.
- * Mismo patrón que gastos-fijos (-1, -2) y combos (-3).
- * Sin autenticación Bearer — misma política que /api/admin/config y /api/sync.
+ * Tabla propia, completamente separada de config_servicios.
+ * No puede ser afectada por ninguna operación sobre otras tablas.
+ *
+ * SQL para crear la tabla (ejecutar en el servidor PostgreSQL):
+ *   CREATE TABLE IF NOT EXISTS clientes_telefonos (
+ *     id INTEGER PRIMARY KEY DEFAULT 1,
+ *     datos JSONB NOT NULL DEFAULT '[]',
+ *     actualizado_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ *   );
+ *   INSERT INTO clientes_telefonos (id, datos) VALUES (1, '[]') ON CONFLICT DO NOTHING;
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-const ID_CLIENTES = -4;
+let tableReady = false;
+async function ensureTable() {
+  if (tableReady) return;
+  const rows = await query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'clientes_telefonos'
+     ) AS exists`
+  );
+  if (!rows[0]?.exists) {
+    throw new Error('TABLA_FALTANTE: crear clientes_telefonos en PostgreSQL (ver comentario en route.ts)');
+  }
+  tableReady = true;
+}
 
 export async function GET() {
   try {
+    await ensureTable();
     const rows = await query<{ datos: unknown }>(
-      'SELECT datos FROM config_servicios WHERE id = $1',
-      [ID_CLIENTES]
+      'SELECT datos FROM clientes_telefonos WHERE id = 1'
     );
     return NextResponse.json({ ok: true, datos: rows[0]?.datos ?? [] });
   } catch (err) {
     console.error('[GET /api/clientes]', err);
-    return NextResponse.json({ ok: false, datos: [] }, { status: 500 });
+    // Fallback a config_servicios mientras se migra
+    try {
+      const fallback = await query<{ datos: unknown }>(
+        'SELECT datos FROM config_servicios WHERE id = -4'
+      );
+      return NextResponse.json({ ok: true, datos: fallback[0]?.datos ?? [] });
+    } catch {
+      return NextResponse.json({ ok: false, datos: [] }, { status: 500 });
+    }
   }
 }
 
@@ -31,11 +58,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'datos debe ser un array' }, { status: 400 });
     }
 
+    await ensureTable();
+
     await query(
-      `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES ($1, $2::jsonb, NOW())
+      `INSERT INTO clientes_telefonos (id, datos, actualizado_at) VALUES (1, $1::jsonb, NOW())
        ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
-      [ID_CLIENTES, JSON.stringify(datos)]
+      [JSON.stringify(datos)]
     );
+
+    // Mantener también config_servicios como backup secundario
+    await query(
+      `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES (-4, $1::jsonb, NOW())
+       ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
+      [JSON.stringify(datos)]
+    ).catch(() => {}); // no falla si config_servicios tiene problemas
 
     return NextResponse.json({ ok: true });
   } catch (err) {
