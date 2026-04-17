@@ -14,226 +14,182 @@ interface Props {
   gastosFijosPersonal: GastoFijo[];
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
-}
+const f = (n: number) =>
+  n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
 
 export default function ResumenCierre({
-  fecha,
-  estadoCaja,
-  totales,
-  turnos,
-  gastos,
-  gastosFijosEmpresa,
-  gastosFijosPersonal,
+  fecha, estadoCaja, totales, turnos, gastos, gastosFijosEmpresa, gastosFijosPersonal,
 }: Props) {
   const fechaLabel = new Date(fecha + 'T12:00:00')
     .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     .replace(/^\w/, c => c.toUpperCase());
 
-  const presentes = turnos.filter(t => t.asistencia === 'presente');
-  const ausentes  = turnos.filter(t => t.asistencia === 'no_vino');
+  const presentes = turnos.filter(t => t.asistencia === 'presente').length;
+  const ausentes  = turnos.filter(t => t.asistencia === 'no_vino').length;
 
-  // Normalizar fijos
-  const gEmpresa  = gastosFijosEmpresa.map(g => ({ ...g, montoAcumulado: g.montoAcumulado ?? 0, pagado: g.pagado ?? false }));
-  const gPersonal = gastosFijosPersonal.map(g => ({ ...g, montoAcumulado: g.montoAcumulado ?? 0, pagado: g.pagado ?? false }));
+  const gEmp = gastosFijosEmpresa.map(g => ({ ...g, montoAcumulado: g.montoAcumulado ?? 0, pagado: g.pagado ?? false }));
+  const gPer = gastosFijosPersonal.map(g => ({ ...g, montoAcumulado: g.montoAcumulado ?? 0, pagado: g.pagado ?? false }));
 
-  // Pagados
-  const empPagados = gEmpresa.filter(g => g.activo && g.pagado);
-  const perPagados = gPersonal.filter(g => g.activo && g.pagado);
-  const totalFijosPagados =
-    empPagados.reduce((s, g) => s + g.montoAcumulado, 0) +
-    perPagados.reduce((s, g) => s + g.montoAcumulado, 0);
+  const empPag = gEmp.filter(g => g.activo && g.pagado);
+  const perPag = gPer.filter(g => g.activo && g.pagado);
+  const empPen = gEmp.filter(g => g.activo && !g.pagado);
+  const perPen = gPer.filter(g => g.activo && !g.pagado);
 
-  // Pendientes (solo los que tienen algo por cobrar)
-  const saldoPendiente = (g: typeof gEmpresa[0]) => Math.max(0, g.montoTotal - g.montoAcumulado);
-  const empPendientes = gEmpresa.filter(g => g.activo && !g.pagado);
-  const perPendientes = gPersonal.filter(g => g.activo && !g.pagado);
-  const totalFijosPendiente =
-    empPendientes.reduce((s, g) => s + saldoPendiente(g), 0) +
-    perPendientes.reduce((s, g) => s + saldoPendiente(g), 0);
+  const saldo = (g: typeof gEmp[0]) => Math.max(0, g.montoTotal - g.montoAcumulado);
 
-  // Ganancia del día (solo ingresos − gastos del día)
-  const gananciaDia = totales.ingresos_totales - totales.gastos_totales;
+  const totalPagados   = [...empPag, ...perPag].reduce((s, g) => s + g.montoAcumulado, 0);
+  const totalPendiente = [...empPen, ...perPen].reduce((s, g) => s + saldo(g), 0);
+  const gananciaDia    = totales.ingresos_totales - totales.gastos_totales;
+
+  // ── fila compacta ──────────────────────────────────────────────────────────
+  const Row = ({ label, valor, sub, red }: { label: string; valor: string; sub?: string; red?: boolean }) => (
+    <div className="flex justify-between items-center py-[3px]">
+      <div>
+        <span className={`text-[11px] ${red ? 'text-red-700 dark:text-red-300 font-semibold' : 'text-slate-600 dark:text-slate-300'}`}>{label}</span>
+        {sub && <span className="ml-1.5 text-[9px] text-slate-400">{sub}</span>}
+      </div>
+      <span className={`text-[11px] font-mono font-bold tabular-nums ${red ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>{valor}</span>
+    </div>
+  );
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden text-[11px]">
 
-      {/* ── Encabezado ─────────────────────────────────────────────────────── */}
-      <div className={`px-3 py-2 flex items-center justify-between ${
-        estadoCaja === 'cerrada' ? 'bg-slate-800 dark:bg-slate-900' : 'bg-violet-700 dark:bg-violet-800'
+      {/* Encabezado */}
+      <div className={`px-3 py-1.5 flex items-center justify-between ${
+        estadoCaja === 'cerrada' ? 'bg-slate-800 dark:bg-slate-900' : 'bg-violet-700'
       }`}>
         <div>
-          <p className="text-white font-black text-sm tracking-wide uppercase">
-            {estadoCaja === 'cerrada' ? '🔒 Caja Cerrada' : '📋 Resumen de Caja'}
+          <p className="text-white font-bold text-[11px] uppercase tracking-wide">
+            {estadoCaja === 'cerrada' ? '🔒 Caja Cerrada' : '📋 Resumen'} — {fechaLabel}
           </p>
-          <p className="text-white/60 text-[10px] mt-0.5">Ganesha Esthetic — {fechaLabel}</p>
         </div>
-        <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ${
+        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
           estadoCaja === 'cerrada' ? 'bg-red-500 text-white' : 'bg-white/20 text-white'
         }`}>
           {estadoCaja === 'cerrada' ? 'CERRADA' : 'ABIERTA'}
         </span>
       </div>
 
-      <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+      <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
 
-        {/* ── 1. INGRESOS ──────────────────────────────────────────────────── */}
-        <div className="px-3 py-2.5">
-          <div className="flex justify-between items-start">
+        {/* ── Ingresos ────────────────────────────────────────────────────── */}
+        <div className="px-3 py-1.5">
+          <div className="flex justify-between items-center">
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">💰 Ingresos del día</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                {presentes.length} pres{presentes.length !== 1 ? 'entes' : 'ente'}
-                {ausentes.length > 0 && ` · ${ausentes.length} no vino${ausentes.length !== 1 ? 'n' : ''}`}
-                {' · '}{turnos.length} turno{turnos.length !== 1 ? 's' : ''}
-              </p>
-              <div className="flex gap-3 mt-1">
-                {totales.efectivo > 0 && (
-                  <span className="text-[10px] text-slate-500">💵 {fmt(totales.efectivo)}</span>
-                )}
-                {totales.transferencia > 0 && (
-                  <span className="text-[10px] text-slate-500">🏦 {fmt(totales.transferencia)}</span>
-                )}
-                {totales.otro > 0 && (
-                  <span className="text-[10px] text-slate-500">📱 {fmt(totales.otro)}</span>
-                )}
-              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">💰 Ingresos del día</span>
+              <span className="ml-2 text-[9px] text-slate-400">
+                {presentes} pres · {ausentes} no vino · {turnos.length} turnos
+              </span>
             </div>
-            <p className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tabular-nums">
-              {fmt(totales.ingresos_totales)}
-            </p>
+            <span className="text-base font-black text-slate-800 dark:text-slate-100 font-mono tabular-nums">{f(totales.ingresos_totales)}</span>
+          </div>
+          <div className="flex gap-3 mt-0.5">
+            {totales.efectivo      > 0 && <span className="text-[9px] text-slate-400">💵 {f(totales.efectivo)}</span>}
+            {totales.transferencia > 0 && <span className="text-[9px] text-slate-400">🏦 {f(totales.transferencia)}</span>}
+            {totales.otro          > 0 && <span className="text-[9px] text-slate-400">📱 {f(totales.otro)}</span>}
           </div>
         </div>
 
-        {/* ── 2. GASTOS DEL DÍA ────────────────────────────────────────────── */}
+        {/* ── Gastos del día ──────────────────────────────────────────────── */}
         {gastos.length > 0 && (
-          <div className="px-3 py-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-1">💸 Gastos del día</p>
+          <div className="px-3 py-1">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide mb-0.5">💸 Gastos del día</p>
             {gastos.map(g => (
-              <div key={g.id} className="flex justify-between items-center py-0.5">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate flex-1">· {g.concepto}</span>
-                <span className="text-[11px] font-mono font-bold text-red-500 ml-3 shrink-0">− {fmt(g.monto)}</span>
+              <div key={g.id} className="flex justify-between py-[2px]">
+                <span className="text-[10px] text-slate-500 truncate flex-1">· {g.concepto}</span>
+                <span className="text-[10px] font-mono text-red-500 ml-2 shrink-0">−{f(g.monto)}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── 3. GANANCIA DEL DÍA ──────────────────────────────────────────── */}
-        <div className="px-3 py-2.5 flex justify-between items-center">
+        {/* ── Ganancia del día ─────────────────────────────────────────────── */}
+        <div className="px-3 py-1.5 flex justify-between items-center">
           <div>
-            <p className={`text-xs font-black uppercase tracking-wide ${
-              gananciaDia >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            <span className={`text-[11px] font-black uppercase tracking-wide ${
+              gananciaDia >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600'
             }`}>
               {gananciaDia >= 0 ? '✅ Ganancia del día' : '⚠️ Resultado del día'}
-            </p>
-            <p className="text-[9px] text-slate-400 mt-0.5">Ingresos menos gastos de hoy</p>
+            </span>
+            <span className="ml-1.5 text-[9px] text-slate-400">ingresos − gastos de hoy</span>
           </div>
-          <p className={`text-xl font-black font-mono tabular-nums ${
-            gananciaDia >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+          <span className={`text-base font-black font-mono tabular-nums ${
+            gananciaDia >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600'
           }`}>
-            {fmt(gananciaDia)}
-          </p>
+            {f(gananciaDia)}
+          </span>
         </div>
 
-        {/* ── 4. A PAGAR ESTE MES — sección roja prominente ────────────────── */}
-        {totalFijosPendiente > 0 && (
-          <div>
-            {/* Cabecera roja */}
-            <div className="flex items-center justify-between px-3 py-2 bg-red-600 dark:bg-red-700">
-              <div>
-                <p className="text-white font-black text-sm uppercase tracking-wide">⚠️ A pagar este mes</p>
-                <p className="text-red-200 text-[9px] mt-0.5">Gastos fijos aún no pagados</p>
-              </div>
-              <p className="text-white font-black text-xl font-mono tabular-nums">{fmt(totalFijosPendiente)}</p>
+        {/* ── A PAGAR ESTE MES ─────────────────────────────────────────────── */}
+        {totalPendiente > 0 && (
+          <>
+            {/* Cabecera roja compacta */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-red-600 dark:bg-red-700">
+              <span className="text-[11px] font-black text-white uppercase tracking-wide">⚠️ A pagar este mes</span>
+              <span className="text-sm font-black text-white font-mono tabular-nums">{f(totalPendiente)}</span>
             </div>
-            {/* Lista */}
-            <div className="bg-red-50 dark:bg-red-900/15 divide-y divide-red-100 dark:divide-red-900/30">
-              {/* Empresa pendiente */}
-              {empPendientes.length > 0 && (
+            {/* Lista pendientes */}
+            <div className="px-3 py-1 bg-red-50 dark:bg-red-900/15 space-y-0">
+              {empPen.length > 0 && (
                 <>
-                  <div className="px-3 py-0.5 bg-red-100/60 dark:bg-red-900/20">
-                    <p className="text-[9px] font-black text-red-500 uppercase tracking-wide">💼 Empresa</p>
-                  </div>
-                  {empPendientes.map(g => {
-                    const saldo = saldoPendiente(g);
-                    const parcial = g.montoAcumulado > 0;
-                    return (
-                      <div key={g.id} className="flex justify-between items-center px-3 py-1 pl-5">
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[11px] text-red-800 dark:text-red-200 font-semibold truncate block">{g.nombre}</span>
-                          {parcial && (
-                            <span className="text-[9px] text-red-400">
-                              Pagó {fmt(g.montoAcumulado)} de {fmt(g.montoTotal)}
-                            </span>
-                          )}
-                        </div>
-                        <span className={`text-sm font-black font-mono ml-3 shrink-0 ${
-                          saldo > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'
-                        }`}>
-                          {saldo > 0 ? fmt(saldo) : '—'}
-                        </span>
+                  <p className="text-[9px] font-black text-red-400 uppercase tracking-wide pt-0.5">💼 Empresa</p>
+                  {empPen.map(g => (
+                    <div key={g.id} className="flex justify-between items-center py-[2px] pl-2">
+                      <div>
+                        <span className="text-[11px] text-red-800 dark:text-red-200 font-medium">{g.nombre}</span>
+                        {g.montoAcumulado > 0 && (
+                          <span className="ml-1.5 text-[9px] text-red-400">pagó {f(g.montoAcumulado)} de {f(g.montoTotal)}</span>
+                        )}
                       </div>
-                    );
-                  })}
+                      <span className={`text-[11px] font-mono font-bold ml-2 shrink-0 ${saldo(g) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>
+                        {saldo(g) > 0 ? f(saldo(g)) : '—'}
+                      </span>
+                    </div>
+                  ))}
                 </>
               )}
-              {/* Personal pendiente */}
-              {perPendientes.length > 0 && (
+              {perPen.length > 0 && (
                 <>
-                  <div className="px-3 py-0.5 bg-red-100/60 dark:bg-red-900/20">
-                    <p className="text-[9px] font-black text-red-500 uppercase tracking-wide">🏠 Personal — Mirian G. Francolino</p>
-                  </div>
-                  {perPendientes.map(g => {
-                    const saldo = saldoPendiente(g);
-                    const parcial = g.montoAcumulado > 0;
-                    return (
-                      <div key={g.id} className="flex justify-between items-center px-3 py-1 pl-5">
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[11px] text-red-800 dark:text-red-200 font-semibold truncate block">{g.nombre}</span>
-                          {parcial && (
-                            <span className="text-[9px] text-red-400">
-                              Pagó {fmt(g.montoAcumulado)} de {fmt(g.montoTotal)}
-                            </span>
-                          )}
-                        </div>
-                        <span className={`text-sm font-black font-mono ml-3 shrink-0 ${
-                          saldo > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'
-                        }`}>
-                          {saldo > 0 ? fmt(saldo) : '—'}
-                        </span>
+                  <p className="text-[9px] font-black text-red-400 uppercase tracking-wide pt-0.5">🏠 Personal</p>
+                  {perPen.map(g => (
+                    <div key={g.id} className="flex justify-between items-center py-[2px] pl-2">
+                      <div>
+                        <span className="text-[11px] text-red-800 dark:text-red-200 font-medium">{g.nombre}</span>
+                        {g.montoAcumulado > 0 && (
+                          <span className="ml-1.5 text-[9px] text-red-400">pagó {f(g.montoAcumulado)} de {f(g.montoTotal)}</span>
+                        )}
                       </div>
-                    );
-                  })}
+                      <span className={`text-[11px] font-mono font-bold ml-2 shrink-0 ${saldo(g) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>
+                        {saldo(g) > 0 ? f(saldo(g)) : '—'}
+                      </span>
+                    </div>
+                  ))}
                 </>
               )}
             </div>
-          </div>
+          </>
         )}
 
-        {/* ── 5. YA PAGADOS — compacto, al pie como referencia ─────────────── */}
-        {totalFijosPagados > 0 && (
-          <div className="px-3 py-2">
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">✓ Fijos del mes ya pagados</p>
-              <p className="text-[11px] font-black text-green-600 dark:text-green-400 font-mono">{fmt(totalFijosPagados)}</p>
+        {/* ── Fijos ya pagados — referencia compacta ───────────────────────── */}
+        {totalPagados > 0 && (
+          <div className="px-3 py-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">✓ Fijos del mes pagados</span>
+              <span className="text-[10px] font-black text-green-600 dark:text-green-400 font-mono">{f(totalPagados)}</span>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-              {[...empPagados, ...perPagados].map(g => (
-                <span key={g.id} className="text-[10px] text-slate-400">
-                  ✓ {g.nombre} <span className="font-mono">{fmt(g.montoAcumulado)}</span>
-                </span>
+            <div className="flex flex-wrap gap-x-3 mt-0.5">
+              {[...empPag, ...perPag].map(g => (
+                <span key={g.id} className="text-[9px] text-slate-400">✓ {g.nombre} <span className="font-mono">{f(g.montoAcumulado)}</span></span>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── Pie ──────────────────────────────────────────────────────────── */}
-        <div className="px-3 py-1.5 flex items-center justify-between bg-slate-50 dark:bg-slate-700/30">
-          <p className="text-[10px] text-slate-400">
-            Resp.: <span className="font-bold text-slate-500 dark:text-slate-300">Mirian G. Francolino</span>
-          </p>
-          <p className="text-[10px] text-slate-400 font-mono">{fecha}</p>
+        {/* Pie */}
+        <div className="px-3 py-1 flex justify-between items-center bg-slate-50 dark:bg-slate-700/20">
+          <span className="text-[9px] text-slate-400">Resp.: <span className="font-semibold text-slate-500 dark:text-slate-300">Mirian G. Francolino</span></span>
+          <span className="text-[9px] text-slate-400 font-mono">{fecha}</span>
         </div>
 
       </div>
