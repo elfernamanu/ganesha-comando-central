@@ -331,8 +331,28 @@ export default function ContactosPage() {
     fetch('/api/clientes')
       .then(r => r.json())
       .then((d: { ok: boolean; datos?: ClienteData[] }) => {
-        if (d.ok && Array.isArray(d.datos) && d.datos.length > 0)
+        if (d.ok && Array.isArray(d.datos) && d.datos.length > 0) {
           setServerClientes(d.datos);
+          // Backup local — copia de seguridad cada vez que el servidor tiene datos
+          try { localStorage.setItem('ganesha_clientes_backup', JSON.stringify(d.datos)); } catch { /* silencioso */ }
+        } else {
+          // Servidor vacío — restaurar desde backup local automáticamente
+          try {
+            const raw = localStorage.getItem('ganesha_clientes_backup');
+            if (raw) {
+              const backup = JSON.parse(raw) as ClienteData[];
+              if (Array.isArray(backup) && backup.length > 0) {
+                setServerClientes(backup);
+                // Restaurar al servidor sin intervención del usuario
+                fetch('/api/clientes', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ datos: backup }),
+                }).catch(() => {});
+              }
+            }
+          } catch { /* silencioso */ }
+        }
       })
       .catch(() => {});
   }, []);
@@ -377,6 +397,8 @@ export default function ContactosPage() {
   const hombres = rows.filter(c => c.genero === 'm');
 
   const persistir = useCallback(async (lista: ClienteData[]) => {
+    // Backup inmediato en localStorage antes de enviar al servidor
+    try { localStorage.setItem('ganesha_clientes_backup', JSON.stringify(lista)); } catch { /* silencioso */ }
     setGuardando(true);
     try {
       const res = await fetch('/api/clientes', {
