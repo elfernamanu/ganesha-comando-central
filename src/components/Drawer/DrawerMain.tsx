@@ -7,11 +7,6 @@ import { EstadoSistema } from '@/components/EstadoSistema';
 const NAV_ITEMS = [
   { label: '📅 Agenda', href: '#' },
   { label: '🕒 Turnos', href: '/admin/panel-control/turnos' },
-  { label: '✨ Depilación', href: '#' },
-  { label: '💅 Uñas', href: '#' },
-  { label: '👁️ Pestañas', href: '#' },
-  { label: '⚡ Estética', href: '#' },
-  { label: '📢 Promocionar contactos', href: '#' },
 ];
 
 export function DrawerMain() {
