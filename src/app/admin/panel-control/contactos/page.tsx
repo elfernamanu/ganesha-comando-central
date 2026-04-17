@@ -202,12 +202,17 @@ function FilaCliente({ c, onEdit, onDelete, onSaveCelular }: {
 }) {
   const falta = c.ausentes > 0;
   const [tel, setTel] = useState(c.celular);
+  const [guardadoLocal, setGuardadoLocal] = useState(false);
   // sincronizar si el dato cambia desde afuera (ej: guardado del servidor)
   useEffect(() => { setTel(c.celular); }, [c.celular]);
 
   const handleBlur = () => {
     const nuevo = tel.trim();
-    if (nuevo !== c.celular) onSaveCelular(c, nuevo);
+    if (nuevo !== c.celular) {
+      onSaveCelular(c, nuevo);
+      setGuardadoLocal(true);
+      setTimeout(() => setGuardadoLocal(false), 3000);
+    }
   };
 
   return (
@@ -233,6 +238,7 @@ function FilaCliente({ c, onEdit, onDelete, onSaveCelular }: {
             : 'text-slate-300 dark:text-slate-600 border-dashed border-slate-200 dark:border-slate-700 placeholder:text-slate-300'
           }`}
       />
+      {guardadoLocal && <span className="text-[10px] font-bold text-green-600 dark:text-green-400 shrink-0">✓</span>}
 
       {/* Stats + alertas */}
       <div className="flex items-center gap-1 flex-1 min-w-0">

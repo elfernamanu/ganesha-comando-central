@@ -561,6 +561,7 @@ export default function ConfiguracionServiciosPage() {
   const [guardando, setGuardando]   = useState(false);
   const [mensaje, setMensaje]       = useState('');
   const [cargado, setCargado]       = useState(false);
+  const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
   const { mostrar } = useToast();
 
   useEffect(() => {
@@ -600,6 +601,33 @@ export default function ConfiguracionServiciosPage() {
       localStorage.setItem(LS_VERSION, 'ok');
       invalidarCatalogoCache(); // precio nuevo disponible de inmediato en turnos
     } catch {}
+  }, [categorias, cargado]);
+
+  // Auto-guardado al servidor 3s después del último cambio
+  useEffect(() => {
+    if (!cargado) return;
+    setAutoGuardado('pendiente');
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/admin/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ datos: categorias }),
+        });
+        if (res.ok) {
+          try { sessionStorage.removeItem('ganesha_fechas_cache'); } catch {}
+          setAutoGuardado('ok');
+          setTimeout(() => setAutoGuardado('idle'), 3000);
+        } else {
+          setAutoGuardado('error');
+          setTimeout(() => setAutoGuardado('idle'), 4000);
+        }
+      } catch {
+        setAutoGuardado('error');
+        setTimeout(() => setAutoGuardado('idle'), 4000);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [categorias, cargado]);
 
   const actualizarJornadas = (catId: string, jornadas: Jornada[]) =>
@@ -725,13 +753,27 @@ export default function ConfiguracionServiciosPage() {
             Jornadas · Precios · El bot y la agenda leen esto automáticamente
           </p>
         </div>
-        <button
-          onClick={guardar}
-          disabled={guardando}
-          className="px-5 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {guardando ? 'Guardando...' : '💾 Guardar todo'}
-        </button>
+        <div className="flex items-center gap-2">
+          {autoGuardado !== 'idle' && (
+            <span className={`text-xs font-semibold flex items-center gap-1 ${
+              autoGuardado === 'ok' ? 'text-green-600 dark:text-green-400'
+              : autoGuardado === 'error' ? 'text-amber-600 dark:text-amber-400'
+              : 'text-slate-400'
+            }`}>
+              {autoGuardado === 'pendiente' && <span className="w-3 h-3 rounded-full border-2 border-slate-400 border-t-transparent animate-spin inline-block" />}
+              {autoGuardado === 'ok' && '✓'}
+              {autoGuardado === 'error' && '⚠️'}
+              {autoGuardado === 'pendiente' ? 'Guardando...' : autoGuardado === 'ok' ? 'Guardado' : 'Sin conexión'}
+            </span>
+          )}
+          <button
+            onClick={guardar}
+            disabled={guardando}
+            className="px-5 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {guardando ? 'Guardando...' : '💾 Guardar todo'}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
