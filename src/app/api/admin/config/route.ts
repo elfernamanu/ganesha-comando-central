@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
       [json]
     );
 
-    // Limpia filas basura que no son id=1 (acumuladas por bugs anteriores)
-    await query('DELETE FROM config_servicios WHERE id != 1');
+    // Solo limpia filas positivas que no son id=1 (basura de versiones anteriores)
+    // IMPORTANTE: NO borrar filas con id negativo — son datos del sistema:
+    //   id=-1 gastos fijos empresa, id=-2 gastos fijos personal,
+    //   id=-3 combos, id=-4 clientes con teléfonos
+    await query('DELETE FROM config_servicios WHERE id > 1');
 
     return NextResponse.json({ ok: true });
   } catch (err) {
