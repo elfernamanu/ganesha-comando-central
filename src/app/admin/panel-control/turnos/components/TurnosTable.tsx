@@ -516,9 +516,9 @@ export default function TurnosTable({
           Visible en pantallas ≥ md (768px)
       ══════════════════════════════════════════════════ */}
       <div className="hidden md:block overflow-x-auto rounded-lg">
-        <div className="min-w-[700px] max-w-5xl space-y-1">
+        <div className="min-w-[730px] max-w-5xl space-y-1">
           {/* Header */}
-          <div className="grid grid-cols-[56px_110px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+          <div className="grid grid-cols-[56px_140px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             <span>Hora</span>
             <span>Clienta</span>
             <span>Promo / Detalle</span>
@@ -542,7 +542,7 @@ export default function TurnosTable({
             return (
               <div
                 key={turno.id}
-                className={`grid grid-cols-[56px_110px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 items-center px-3 py-2 rounded-lg border transition-colors ${
+                className={`grid grid-cols-[56px_140px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 items-center px-3 py-2 rounded-lg border transition-colors ${
                   noVinoDesk
                     ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 opacity-70'
                     : listaDesk
