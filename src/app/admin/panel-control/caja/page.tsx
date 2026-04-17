@@ -132,17 +132,8 @@ function CajaContent() {
 
   const fechasHabilitadas = useFechasHabilitadas();
 
-  // ── Auto-redirigir a la próxima fecha habilitada si hoy no tiene jornada ──
-  // Igual que en Turnos — así ambas páginas siempre muestran la misma fecha
-  useEffect(() => {
-    if (params.get('fecha')) return;          // ya tiene fecha en URL → no tocar
-    if (fechasHabilitadas.length === 0) return; // todavía cargando
-    const tieneFechaHoy = fechasHabilitadas.some(f => f.fecha === hoy);
-    if (!tieneFechaHoy) {
-      const proxima = fechasHabilitadas.find(f => f.fecha >= hoy);
-      if (proxima) router.replace(`/admin/panel-control/caja?fecha=${proxima.fecha}`);
-    }
-  }, [fechasHabilitadas, hoy, params, router]);
+  // ── Caja siempre muestra HOY por defecto — no redirigir aunque no haya jornada ──
+  // (a diferencia de Turnos, la caja se usa todos los días sin importar el calendario de jornadas)
 
   // Fecha anterior y siguiente
   const fechaObj = new Date(fecha + 'T12:00:00');
@@ -309,12 +300,12 @@ function CajaContent() {
         </div>
         <div className="flex-1 flex items-center gap-2 px-3 py-1">
           <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase shrink-0">💸 Gastos</span>
-          <span className="text-xs font-bold font-mono text-red-800 dark:text-red-200">{formatearDinero(totalGastosCompleto)}</span>
+          <span className="text-xs font-bold font-mono text-red-800 dark:text-red-200">{formatearDinero(totales.gastos_totales)}</span>
           <span className="text-[10px] text-slate-400 ml-auto">{gastos.length} gs.</span>
         </div>
         <div className="flex-1 flex items-center gap-2 px-3 py-1">
-          <span className={`text-[10px] font-bold uppercase shrink-0 ${gananciaNeta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
-          <span className={`text-xs font-bold font-mono ${gananciaNeta >= 0 ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(gananciaNeta)}</span>
+          <span className={`text-[10px] font-bold uppercase shrink-0 ${totales.ganancia_neta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>📈 Ganancia</span>
+          <span className={`text-xs font-bold font-mono ${totales.ganancia_neta >= 0 ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}`}>{formatearDinero(totales.ganancia_neta)}</span>
         </div>
       </div>
 
