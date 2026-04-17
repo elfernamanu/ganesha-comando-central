@@ -63,24 +63,26 @@ function TurnosContent() {
         {/* Sin link al Panel — Turnos es solo para la secretaria */}
       </div>
 
-      {/* ── Fechas habilitadas — acceso rápido ── */}
-      {fechasHabilitadas.length > 0 && (
+      {/* ── Fechas habilitadas — acceso rápido (solo hoy en adelante) ── */}
+      {fechasHabilitadas.filter(({ fecha: f }) => f >= hoy).length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
-          {fechasHabilitadas.map(({ fecha: f, servicios }) => {
-            const esSeleccionada = f === fecha;
-            const label = new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-            return (
-              <Link key={f} href={`/admin/panel-control/turnos?fecha=${f}`}
-                className={`flex flex-col items-center px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                  esSeleccionada
-                    ? 'bg-violet-600 text-white border-violet-600 shadow'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-violet-400'
-                }`}>
-                <span className="text-[11px] font-extrabold">{label}</span>
-                <span className="text-[9px] font-medium opacity-80">{servicios.join(' · ')}</span>
-              </Link>
-            );
-          })}
+          {fechasHabilitadas
+            .filter(({ fecha: f }) => f >= hoy)
+            .map(({ fecha: f, servicios }) => {
+              const esSeleccionada = f === fecha;
+              const label = new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+              return (
+                <Link key={f} href={`/admin/panel-control/turnos?fecha=${f}`}
+                  className={`flex flex-col items-center px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                    esSeleccionada
+                      ? 'bg-violet-600 text-white border-violet-600 shadow'
+                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-violet-400'
+                  }`}>
+                  <span className="text-[11px] font-extrabold">{label}</span>
+                  <span className="text-[9px] font-medium opacity-80">{servicios.join(' · ')}</span>
+                </Link>
+              );
+            })}
         </div>
       )}
 
