@@ -40,6 +40,7 @@ function CajaContent() {
     reabrirDia,
     cargarTurnos,
     recuperarReporte,
+    recargarDesdeServidor,
   } = useCajaDiaria(fecha);
 
   const {
@@ -129,6 +130,23 @@ function CajaContent() {
   const [fechaRecuperar, setFechaRecuperar] = useState('');
   const [recuperando, setRecuperando] = useState(false);
   const [mensajeRecuperar, setMensajeRecuperar] = useState('');
+
+  // ── Estado para recuperar TODO del servidor (botón de rescate) ──
+  const [rescatando, setRescatando] = useState(false);
+  const [mensajeRescate, setMensajeRescate] = useState('');
+
+  const handleRescatarServidor = async () => {
+    setRescatando(true);
+    setMensajeRescate('');
+    const { turnosRecuperados, gastosRecuperados, cerrada } = await recargarDesdeServidor();
+    if (turnosRecuperados > 0 || gastosRecuperados > 0) {
+      setMensajeRescate(`✅ Recuperado del servidor: ${turnosRecuperados} turno${turnosRecuperados !== 1 ? 's' : ''} · ${gastosRecuperados} gasto${gastosRecuperados !== 1 ? 's' : ''} del día${cerrada ? ' · Caja CERRADA' : ''}`);
+    } else {
+      setMensajeRescate('⚠️ No se encontraron datos en el servidor para esta fecha. Revisá la conexión o la fecha.');
+    }
+    setRescatando(false);
+    setTimeout(() => setMensajeRescate(''), 10000);
+  };
 
   // ── Estado para limpieza de datos viejos ──
   const [limpiandoViejos, setLimpiandoViejos] = useState(false);
@@ -261,6 +279,26 @@ function CajaContent() {
             ← Panel
           </Link>
         </div>
+      </div>
+
+      {/* ── Botón de recuperación del servidor ── */}
+      <div className="rounded-xl border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 flex items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-black text-amber-800 dark:text-amber-300">🛟 ¿Faltan datos? — Recuperar del servidor</p>
+          <p className="text-[10px] text-amber-600 dark:text-amber-400">Trae todos los turnos y gastos del día que estén guardados en el servidor</p>
+          {mensajeRescate && (
+            <p className={`text-[10px] font-semibold mt-0.5 ${mensajeRescate.startsWith('✅') ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>
+              {mensajeRescate}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={handleRescatarServidor}
+          disabled={rescatando}
+          className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-xs transition-colors"
+        >
+          {rescatando ? '⏳ Recuperando...' : '🛟 Recuperar todo'}
+        </button>
       </div>
 
       {/* ── Fechas habilitadas — acceso rápido (solo hoy en adelante) ── */}

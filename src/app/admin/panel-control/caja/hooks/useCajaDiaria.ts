@@ -285,6 +285,50 @@ export function useCajaDiaria(fecha: string) {
   };
 
   // ========================================
+  // RECARGAR TODO DESDE EL SERVIDOR (turnos + gastos + estado caja)
+  // Útil cuando los datos en pantalla parecen incompletos o incorrectos
+  // ========================================
+  const recargarDesdeServidor = async (): Promise<{ turnosRecuperados: number; gastosRecuperados: number; cerrada: boolean }> => {
+    // 1. Turnos desde el sync API
+    let turnosRec = 0;
+    try {
+      const r = await fetch(`/api/sync?fecha=${fecha}`);
+      const d = await r.json();
+      if (d.ok && Array.isArray(d.datos) && d.datos.length > 0) {
+        setTurnos(d.datos as Turno[]);
+        try { localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(d.datos)); } catch { /* silencioso */ }
+        turnosRec = d.datos.length;
+      }
+    } catch { /* sin conexión */ }
+
+    // 2. Gastos + estado de caja desde el caja API
+    let gastosRec = 0;
+    let cerradaRec = false;
+    try {
+      const r = await fetch(`/api/caja?fecha=${fecha}`);
+      const d = await r.json();
+      if (d.ok && d.encontrado) {
+        if (Array.isArray(d.gastos)) {
+          setGastos(d.gastos);
+          try { localStorage.setItem(lsGastosKey, JSON.stringify(d.gastos)); } catch { /* silencioso */ }
+          gastosRec = d.gastos.length;
+        }
+        cerradaRec = !!d.cerrada;
+        if (d.cerrada) {
+          setEstadoCaja('cerrada');
+          estadoCajaRef.current = 'cerrada';
+        } else {
+          setEstadoCaja('abierta');
+          estadoCajaRef.current = 'abierta';
+          isClosing.current = false;
+        }
+      }
+    } catch { /* sin conexión */ }
+
+    return { turnosRecuperados: turnosRec, gastosRecuperados: gastosRec, cerrada: cerradaRec };
+  };
+
+  // ========================================
   // RECUPERAR REPORTE HISTÓRICO DE POSTGRESQL
   // ========================================
   const recuperarReporte = async (fechaBuscar: string): Promise<{
@@ -327,5 +371,6 @@ export function useCajaDiaria(fecha: string) {
     reabrirDia,
     cargarTurnos,
     recuperarReporte,
+    recargarDesdeServidor,
   };
 }
