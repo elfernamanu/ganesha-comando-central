@@ -171,16 +171,32 @@ export default function ResumenCierre({
           </>
         )}
 
-        {/* ── Fijos ya pagados — referencia compacta ───────────────────────── */}
+        {/* ── Fijos ya pagados — amarillo si hay pendientes, verde si está todo al día ── */}
         {totalPagados > 0 && (
-          <div className="px-3 py-1.5">
+          <div className={`px-3 py-1.5 ${
+            totalPendiente === 0
+              ? 'bg-green-50 dark:bg-green-900/15'
+              : 'bg-amber-50 dark:bg-amber-900/15'
+          }`}>
             <div className="flex justify-between items-center">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">✓ Fijos del mes pagados</span>
-              <span className="text-[10px] font-black text-green-600 dark:text-green-400 font-mono">{f(totalPagados)}</span>
+              <span className={`text-[9px] font-black uppercase tracking-wide ${
+                totalPendiente === 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-amber-600 dark:text-amber-400'
+              }`}>
+                {totalPendiente === 0 ? '✅ Todo al día — fijos del mes pagados' : '⏳ Fijos del mes pagados (quedan pendientes)'}
+              </span>
+              <span className={`text-[10px] font-black font-mono ${
+                totalPendiente === 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-amber-600 dark:text-amber-400'
+              }`}>{f(totalPagados)}</span>
             </div>
             <div className="flex flex-wrap gap-x-3 mt-0.5">
               {[...empPag, ...perPag].map(g => (
-                <span key={g.id} className="text-[9px] text-slate-400">✓ {g.nombre} <span className="font-mono">{f(g.montoAcumulado)}</span></span>
+                <span key={g.id} className={`text-[9px] ${
+                  totalPendiente === 0 ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500'
+                }`}>✓ {g.nombre} <span className="font-mono">{f(g.montoAcumulado)}</span></span>
               ))}
             </div>
           </div>
