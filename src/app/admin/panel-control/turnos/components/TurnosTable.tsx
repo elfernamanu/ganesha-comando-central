@@ -119,6 +119,7 @@ export default function TurnosTable({
   onActualizar,
   onEliminar,
   onAgregar,
+  celularesSync,
 }: TurnosTableProps) {
   const [catalogo, setCatalogo] = useState<CatalogoPromos>({});
 
@@ -354,6 +355,15 @@ export default function TurnosTable({
                   placeholder="Nombre de la clienta"
                   className="flex-1 px-3 py-1.5 rounded-lg text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-semibold"
                 />
+                {celularesSync?.has((turno.clienteNombre ?? '').toLowerCase()) && (
+                  <span title="📱 Celular guardado en Clientes y Caja"
+                    className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold leading-none">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    📱
+                  </span>
+                )}
                 <span className="shrink-0 text-xs text-slate-400 font-bold">#{idx + 1}</span>
                 <button
                   onClick={() => onEliminar(turno.id)}
@@ -580,7 +590,7 @@ export default function TurnosTable({
                 </div>
 
                 {/* Clienta */}
-                <div>
+                <div className="flex flex-col gap-0.5">
                   <input
                     type="text"
                     value={turno.clienteNombre}
@@ -588,6 +598,15 @@ export default function TurnosTable({
                     placeholder="Nombre y apellido"
                     className="w-full px-2 py-1 rounded text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-medium"
                   />
+                  {celularesSync?.has((turno.clienteNombre ?? '').toLowerCase()) && (
+                    <span title="Celular guardado en Clientes y Caja"
+                      className="flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 leading-none">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      📱 guardado
+                    </span>
+                  )}
                 </div>
 
                 {/* Tratamiento + Detalle */}

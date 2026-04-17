@@ -24,4 +24,5 @@ export interface TurnosTableProps {
   onActualizar: (id: string, cambios: Partial<Turno>) => void;
   onEliminar: (id: string) => void;
   onAgregar: () => void;
+  celularesSync?: Set<string>; // clienteNombre lowercase con celular confirmado guardado
 }

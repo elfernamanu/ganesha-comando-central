@@ -38,16 +38,17 @@ function esNumeroCelular(str: string): boolean {
 
 type ClienteRow = { id: string; nombre: string; celular: string; notas: string; [key: string]: unknown };
 
-async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<void> {
+async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Set<string>> {
+  const sincronizados = new Set<string>(); // keys (nombre lowercase) que tienen celular guardado
   const candidatos = turnosList.filter(t =>
     t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
   );
-  if (candidatos.length === 0) return;
+  if (candidatos.length === 0) return sincronizados;
 
   try {
     const resGet = await fetch('/api/clientes');
     const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteRow[] };
-    if (!dataGet.ok) return;
+    if (!dataGet.ok) return sincronizados;
 
     const byNombre = new Map((dataGet.datos ?? []).map(c => [c.nombre.toLowerCase(), { ...c }]));
     let changed = false;
@@ -60,11 +61,15 @@ async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<vo
         byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: t.clienteNombre.trim(), celular: celularNuevo, notas: existing?.notas ?? '' });
         changed = true;
       }
+      sincronizados.add(key); // confirmar guardado (nuevo o ya existente)
     }
 
-    if (!changed) return;
-    await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: Array.from(byNombre.values()) }) });
+    if (changed) {
+      await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: Array.from(byNombre.values()) }) });
+    }
   } catch { /* silencioso — no bloquea el guardado de turnos */ }
+
+  return sincronizados;
 }
 
 // ── Migración de nombres viejos → nombres del catálogo actual ─────────────
@@ -92,6 +97,8 @@ export function useTurnos(fecha: string) {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
+  // Set de clienteNombre (lowercase) con celular sincronizado en esta sesión
+  const [celularesSync, setCelularesSync] = useState<Set<string>>(new Set());
   // Ref para cancelar el auto-sync si el usuario acaba de guardar manualmente
   const ultimoGuardadoManual = useRef(0);
   // Ref para evitar auto-sync en la carga inicial (no hay cambios del usuario)
@@ -207,7 +214,8 @@ export function useTurnos(fecha: string) {
 
     cargaInicialCompleta.current = false; // nueva fecha = nueva carga
     ultimaInteraccion.current = 0;        // nueva fecha = sin interacciones previas
-    setTurnos([]); // limpiar día anterior antes de cargar nuevo
+    setTurnos([]);           // limpiar día anterior antes de cargar nuevo
+    setCelularesSync(new Set()); // limpiar ojitos del día anterior
 
     // 1. localStorage primero (respuesta inmediata)
     try {
@@ -256,7 +264,9 @@ export function useTurnos(fecha: string) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fecha, datos: turnos }),
         });
-        sincronizarCelularesDesdeDetalle(turnos).catch(() => {});
+        sincronizarCelularesDesdeDetalle(turnos).then(sync => {
+          if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+        }).catch(() => {});
         setAutoGuardado('ok');
         setTimeout(() => setAutoGuardado('idle'), 3000);
       } catch {
@@ -397,7 +407,9 @@ export function useTurnos(fecha: string) {
 
       if (res.ok) {
         setTurnos(turnosOrdenados);    // aplicar el orden también localmente
-        sincronizarCelularesDesdeDetalle(turnosOrdenados).catch(() => {});
+        sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
+          if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+        }).catch(() => {});
         setMensaje('✅ Guardado — visible en todos los dispositivos');
       } else {
         setMensaje('⚠️ Error al guardar en servidor');
@@ -416,6 +428,7 @@ export function useTurnos(fecha: string) {
     mensaje,
     guardando,
     autoGuardado,
+    celularesSync,
     agregarTurno,
     actualizarTurno,
     eliminarTurno,

@@ -16,7 +16,7 @@ function TurnosContent() {
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
-  const { turnos, totales, mensaje, guardando, autoGuardado, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(fecha);
+  const { turnos, totales, mensaje, guardando, autoGuardado, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(fecha);
 
   const fechasHabilitadas = useFechasHabilitadas();
 
@@ -169,6 +169,7 @@ function TurnosContent() {
         onActualizar={actualizarTurno}
         onEliminar={eliminarTurno}
         onAgregar={agregarTurno}
+        celularesSync={celularesSync}
       />
 
       <button
