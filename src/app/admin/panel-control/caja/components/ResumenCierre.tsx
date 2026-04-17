@@ -92,40 +92,69 @@ export default function ResumenCierre({
 
       <div className="p-2 space-y-2">
 
-        {/* ── Bloque 1: Totales en 3 columnas ── */}
-        <div className="grid grid-cols-3 gap-1.5">
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-1.5 text-center border border-green-200 dark:border-green-800">
-            <p className="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wide">Ingresos</p>
-            <p className="text-base font-black text-green-700 dark:text-green-300 font-mono leading-tight mt-0.5">
-              {fmt(totales.ingresos_totales)}
-            </p>
-            <p className="text-[9px] text-green-500">{cobradosCount} cobrado{cobradosCount !== 1 ? 's' : ''}</p>
-          </div>
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-1.5 text-center border border-red-200 dark:border-red-800">
-            <p className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Gastos Día</p>
-            <p className="text-base font-black text-red-700 dark:text-red-300 font-mono leading-tight mt-0.5">
-              {fmt(totales.gastos_totales)}
-            </p>
-            <p className="text-[9px] text-red-500">{gastos.length} concepto{gastos.length !== 1 ? 's' : ''}</p>
-          </div>
-          <div className={`rounded-lg p-1.5 text-center border ${
-            totales.ganancia_neta >= 0
-              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
-              : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
-          }`}>
-            <p className={`text-[9px] font-bold uppercase tracking-wide ${
-              totales.ganancia_neta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'
-            }`}>Ganancia</p>
-            <p className={`text-base font-black font-mono leading-tight mt-0.5 ${
-              totales.ganancia_neta >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-orange-700 dark:text-orange-300'
-            }`}>
-              {fmt(totales.ganancia_neta)}
-            </p>
-            <p className={`text-[9px] ${totales.ganancia_neta >= 0 ? 'text-emerald-500' : 'text-orange-500'}`}>
-              {totales.ganancia_neta >= 0 ? '✓ positiva' : '⚠ negativa'}
-            </p>
-          </div>
-        </div>
+        {/* ── Bloque 1: Cuenta clara — cobrado → gastos → ganancia ── */}
+        {(() => {
+          const totalFijosEmpresaPagado  = gEmpresa.filter(g => g.activo).reduce((s, g) => s + g.montoAcumulado, 0);
+          const totalFijosPersonalPagado = gPersonal.filter(g => g.activo).reduce((s, g) => s + g.montoAcumulado, 0);
+          const totalFijosPagados = totalFijosEmpresaPagado + totalFijosPersonalPagado;
+          const gananciaFinal = totales.ingresos_totales - totales.gastos_totales - totalFijosPagados;
+          return (
+            <div className="rounded-xl border-2 border-slate-200 dark:border-slate-600 overflow-hidden">
+              {/* Cobrado */}
+              <div className="flex items-center justify-between px-3 py-2 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
+                <div>
+                  <p className="text-[10px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">💰 Lo que cobró hoy</p>
+                  <p className="text-[9px] text-green-600 dark:text-green-500">
+                    {cobradosCount} cliente{cobradosCount !== 1 ? 's' : ''} pagaron
+                    {totales.efectivo > 0 && ` · Ef. ${fmt(totales.efectivo)}`}
+                    {totales.transferencia > 0 && ` · Tr. ${fmt(totales.transferencia)}`}
+                  </p>
+                </div>
+                <p className="text-xl font-black text-green-700 dark:text-green-300 font-mono">{fmt(totales.ingresos_totales)}</p>
+              </div>
+
+              {/* Gastos del día */}
+              {totales.gastos_totales > 0 && (
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-200 dark:border-slate-700">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    💸 Gastos del día <span className="text-slate-400">({gastos.length} concepto{gastos.length !== 1 ? 's' : ''})</span>
+                  </p>
+                  <p className="text-sm font-bold font-mono text-red-600 dark:text-red-400">− {fmt(totales.gastos_totales)}</p>
+                </div>
+              )}
+
+              {/* Gastos fijos pagados */}
+              {totalFijosPagados > 0 && (
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-200 dark:border-slate-700">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    📋 Fijos del mes pagados <span className="text-slate-400">(alquiler, servicios...)</span>
+                  </p>
+                  <p className="text-sm font-bold font-mono text-red-600 dark:text-red-400">− {fmt(totalFijosPagados)}</p>
+                </div>
+              )}
+
+              {/* Fijos pendientes */}
+              {totalFijosPendiente > 0 && (
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                    ⚠️ Fijos aún no pagados este mes
+                  </p>
+                  <p className="text-sm font-bold font-mono text-amber-600 dark:text-amber-400">− {fmt(totalFijosPendiente)}</p>
+                </div>
+              )}
+
+              {/* Resultado final */}
+              <div className={`flex items-center justify-between px-3 py-2.5 ${
+                gananciaFinal >= 0 ? 'bg-emerald-600 dark:bg-emerald-700' : 'bg-red-600 dark:bg-red-700'
+              }`}>
+                <p className="text-sm font-black text-white uppercase tracking-wide">
+                  {gananciaFinal >= 0 ? '✅ Ganancia neta' : '⚠️ Resultado'}
+                </p>
+                <p className="text-2xl font-black text-white font-mono">{fmt(gananciaFinal)}</p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Bloque 2: Formas de cobro ── */}
         <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
