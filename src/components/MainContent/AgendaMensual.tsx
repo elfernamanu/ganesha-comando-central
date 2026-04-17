@@ -282,25 +282,6 @@ export function AgendaMensual() {
     return turnosPorDia[fechaKey(fecha)] ?? 0;
   }, [turnosPorDia]);
 
-  // ── Catálogo de promos memoizado — evita re-parsear en cada turno ──────────
-  const catalogoNombres = useMemo<Map<string, string>>(() => {
-    const mapa = new Map<string, string>();
-    for (const cat of servicios) {
-      for (const sub of cat.subservicios) {
-        if (typeof sub.nombre === 'string') {
-          const i = sub.nombre.indexOf(': ');
-          if (i > -1) mapa.set(sub.nombre.substring(0, i), sub.nombre);
-        }
-      }
-    }
-    return mapa;
-  }, [servicios]);
-
-  const resolverTratamiento = useCallback((t: string): string => {
-    const i = t.indexOf(': ');
-    return i > -1 ? (catalogoNombres.get(t.substring(0, i)) ?? t) : t;
-  }, [catalogoNombres]);
-
   const keySeleccionado = diaSeleccionado ? fechaKey(diaSeleccionado) : null;
 
   // ── Solo los días del mes que tienen servicio O turnos cargados ───────────
@@ -495,7 +476,7 @@ export function AgendaMensual() {
                           ? 'text-blue-500 dark:text-blue-400'
                           : 'text-slate-400 dark:text-slate-500'
                       }`}>
-                        {resolverTratamiento(turno.tratamiento)}{turno.detalle ? ` — ${turno.detalle}` : ''}
+                        {turno.tratamiento}{turno.detalle ? ` — ${turno.detalle}` : ''}
                       </p>
                     )}
                   </div>
