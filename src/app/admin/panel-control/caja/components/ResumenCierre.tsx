@@ -53,10 +53,10 @@ export default function ResumenCierre({
     empPendientes.reduce((s, g) => s + Math.max(0, g.montoTotal - g.montoAcumulado), 0) +
     perPendientes.reduce((s, g) => s + Math.max(0, g.montoTotal - g.montoAcumulado), 0);
 
-  // Cálculos finales
-  const totalGastos   = totales.gastos_totales + totalFijosPagados;
-  const gananciaNeta  = totales.ingresos_totales - totalGastos;
-  const gananciaReal  = gananciaNeta - totalFijosPendiente;
+  // Ganancia del día = solo ingresos del día menos gastos del día
+  // Los gastos fijos son del mes — se muestran como información, no se restan del día
+  const gananciaDia  = totales.ingresos_totales - totales.gastos_totales;
+  const totalGastos  = totales.gastos_totales; // alias para la sección "total gastos del día"
 
   return (
     <div className="rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden shadow-md">
@@ -169,75 +169,111 @@ export default function ResumenCierre({
           </div>
         )}
 
-        {/* ══ 4. TOTAL GASTOS + GANANCIA NETA ═══════════════════════════════ */}
+        {/* ══ 4. GANANCIA DEL DÍA ═══════════════════════════════════════════ */}
         <div className="rounded-xl border-2 border-slate-300 dark:border-slate-600 overflow-hidden">
-          {/* Total gastos (solo si hay alguno) */}
+          {/* Total gastos del día (si hay) */}
           {totalGastos > 0 && (
             <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-600">
-              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total gastos</p>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total gastos del día</p>
               <p className="text-sm font-black text-red-600 dark:text-red-400 font-mono">− {fmt(totalGastos)}</p>
             </div>
           )}
-          {/* Ganancia neta — barra grande */}
+          {/* Ganancia del día — barra grande */}
           <div className={`flex items-center justify-between px-3 py-3 ${
-            gananciaNeta >= 0 ? 'bg-emerald-600 dark:bg-emerald-700' : 'bg-red-600 dark:bg-red-700'
+            gananciaDia >= 0 ? 'bg-emerald-600 dark:bg-emerald-700' : 'bg-red-600 dark:bg-red-700'
           }`}>
-            <p className="text-sm font-black text-white uppercase tracking-wide">
-              {gananciaNeta >= 0 ? '✅ GANANCIA NETA' : '⚠️ RESULTADO'}
-            </p>
-            <p className="text-2xl font-black text-white font-mono">{fmt(gananciaNeta)}</p>
+            <div>
+              <p className="text-sm font-black text-white uppercase tracking-wide">
+                {gananciaDia >= 0 ? '✅ GANANCIA DEL DÍA' : '⚠️ RESULTADO DEL DÍA'}
+              </p>
+              <p className="text-[10px] text-white/70 mt-0.5">Ingresos menos gastos de hoy</p>
+            </div>
+            <p className="text-2xl font-black text-white font-mono">{fmt(gananciaDia)}</p>
           </div>
         </div>
 
-        {/* ══ 5. FIJOS PENDIENTES (si los hay) ══════════════════════════════ */}
-        {totalFijosPendiente > 0 && (
-          <div className="rounded-lg border-2 border-amber-300 dark:border-amber-700 overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
-              <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wide">⚠️ FIJOS AÚN NO PAGADOS ESTE MES</p>
-              <p className="text-sm font-black text-amber-600 dark:text-amber-400 font-mono">− {fmt(totalFijosPendiente)}</p>
+        {/* ══ 5. GASTOS FIJOS DEL MES — solo informativo ════════════════════ */}
+        {(totalFijosPagados > 0 || totalFijosPendiente > 0) && (
+          <div className="rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
+            <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+              <p className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-wide">📋 GASTOS FIJOS DEL MES (referencia)</p>
+              <p className="text-[9px] text-slate-400 mt-0.5">No forman parte de la ganancia del día — son costos del mes</p>
             </div>
-            <div className="divide-y divide-amber-100 dark:divide-amber-900/30">
-              {/* Empresa pendiente */}
-              {empPendientes.length > 0 && (
+            <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+              {/* Fijos pagados */}
+              {totalFijosPagados > 0 && (
                 <>
-                  <div className="px-3 py-0.5 bg-amber-50/60 dark:bg-amber-900/10">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">💼 Empresa</p>
+                  <div className="flex justify-between items-center px-3 py-1 bg-green-50/50 dark:bg-green-900/10">
+                    <p className="text-[10px] font-bold text-green-700 dark:text-green-400">✓ Ya pagados este mes</p>
+                    <p className="text-[11px] font-black text-green-700 dark:text-green-400 font-mono">{fmt(totalFijosPagados)}</p>
                   </div>
-                  {empPendientes.map(g => (
-                    <div key={g.id} className="flex justify-between items-center px-3 py-0.5 pl-5">
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1">⏳ {g.nombre}</span>
-                      <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 ml-2 shrink-0">
-                        {fmt(Math.max(0, g.montoTotal - g.montoAcumulado))}
-                      </span>
-                    </div>
-                  ))}
+                  {empPagados.length > 0 && (
+                    <>
+                      <div className="px-3 py-0.5 bg-slate-50 dark:bg-slate-700/40">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">💼 Empresa</p>
+                      </div>
+                      {empPagados.map(g => (
+                        <div key={g.id} className="flex justify-between items-center px-3 py-0.5 pl-5">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1">✓ {g.nombre}</span>
+                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 ml-2 shrink-0">{fmt(g.montoAcumulado)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {perPagados.length > 0 && (
+                    <>
+                      <div className="px-3 py-0.5 bg-slate-50 dark:bg-slate-700/40">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">🏠 Personal — Mirian G. Francolino</p>
+                      </div>
+                      {perPagados.map(g => (
+                        <div key={g.id} className="flex justify-between items-center px-3 py-0.5 pl-5">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1">✓ {g.nombre}</span>
+                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 ml-2 shrink-0">{fmt(g.montoAcumulado)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </>
               )}
-              {/* Personal pendiente */}
-              {perPendientes.length > 0 && (
+              {/* Fijos pendientes */}
+              {totalFijosPendiente > 0 && (
                 <>
-                  <div className="px-3 py-0.5 bg-amber-50/60 dark:bg-amber-900/10">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">🏠 Personal — Mirian G. Francolino</p>
+                  <div className="flex justify-between items-center px-3 py-1 bg-amber-50/60 dark:bg-amber-900/10">
+                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400">⚠️ Aún no pagados este mes</p>
+                    <p className="text-[11px] font-black text-amber-600 dark:text-amber-400 font-mono">{fmt(totalFijosPendiente)}</p>
                   </div>
-                  {perPendientes.map(g => (
-                    <div key={g.id} className="flex justify-between items-center px-3 py-0.5 pl-5">
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1">⏳ {g.nombre}</span>
-                      <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 ml-2 shrink-0">
-                        {fmt(Math.max(0, g.montoTotal - g.montoAcumulado))}
-                      </span>
-                    </div>
-                  ))}
+                  {empPendientes.length > 0 && (
+                    <>
+                      <div className="px-3 py-0.5 bg-amber-50/40 dark:bg-amber-900/10">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">💼 Empresa</p>
+                      </div>
+                      {empPendientes.map(g => (
+                        <div key={g.id} className="flex justify-between items-center px-3 py-0.5 pl-5">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1">⏳ {g.nombre}</span>
+                          <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 ml-2 shrink-0">
+                            {fmt(Math.max(0, g.montoTotal - g.montoAcumulado))}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {perPendientes.length > 0 && (
+                    <>
+                      <div className="px-3 py-0.5 bg-amber-50/40 dark:bg-amber-900/10">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wide">🏠 Personal — Mirian G. Francolino</p>
+                      </div>
+                      {perPendientes.map(g => (
+                        <div key={g.id} className="flex justify-between items-center px-3 py-0.5 pl-5">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex-1">⏳ {g.nombre}</span>
+                          <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 ml-2 shrink-0">
+                            {fmt(Math.max(0, g.montoTotal - g.montoAcumulado))}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </>
               )}
-            </div>
-            {/* Ganancia real si se pagan los pendientes */}
-            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-200 dark:border-slate-600">
-              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Si también se pagan:</p>
-              <p className={`text-base font-black font-mono ${
-                gananciaReal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              }`}>
-                {fmt(gananciaReal)}
-              </p>
             </div>
           </div>
         )}

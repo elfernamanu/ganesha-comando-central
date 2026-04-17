@@ -145,9 +145,8 @@ export function generarReporteTxt(
   })();
 
   // ── Números finales ────────────────────────────────────────────────────────
-  const totalGastosTodos = totales.gastos_totales + totalFijosPagados;
-  const gananciaNeta     = totales.ingresos_totales - totalGastosTodos;
-  const gananciaReal     = gananciaNeta - totalFijosPendiente;
+  // Ganancia del día = ingresos del día − gastos del día (los fijos son del MES, se muestran aparte)
+  const gananciaNeta = totales.ingresos_totales - totales.gastos_totales;
 
   // ── Armar documento ────────────────────────────────────────────────────────
   const partes: string[] = [
@@ -170,30 +169,29 @@ export function generarReporteTxt(
     `  INGRESOS DEL DÍA                         ${m(totales.ingresos_totales)}`,
     `  (${cobradosCount} cliente${cobradosCount !== 1 ? 's' : ''} · Ef. ${m(totales.efectivo, 0).trim()} · Tr. ${m(totales.transferencia, 0).trim()})`,
     '',
-    `  GASTOS:`,
+    `  GASTOS DEL DÍA:`,
     `  ${ln}`,
-    `  Gastos del día:                      ${m(-totales.gastos_totales)}`,
     gastosdiaTxt,
-    '',
-    `  Gastos fijos pagados este mes:       ${m(-totalFijosPagados)}`,
-    fijosPagadosTxt,
-    '',
     `  ${ln}`,
-    `  TOTAL GASTOS:                        ${m(-totalGastosTodos)}`,
+    `  TOTAL GASTOS DEL DÍA:                ${m(-totales.gastos_totales)}`,
     '',
     `${LN}`,
-    `  ${gananciaNeta >= 0 ? '✅' : '⚠️'} GANANCIA NETA:                       ${m(gananciaNeta)}`,
+    `  ${gananciaNeta >= 0 ? '✅' : '⚠️'} GANANCIA DEL DÍA:                    ${m(gananciaNeta)}`,
+    `     (ingresos del día menos gastos del día)`,
     `${LN}`,
+    '',
+    `  GASTOS FIJOS DEL MES (referencia — no forman parte de la ganancia del día)`,
+    `  ${ln}`,
+    `  Ya pagados este mes:                 ${m(totalFijosPagados)}`,
+    fijosPagadosTxt,
   ];
 
   // Fijos pendientes (bloque opcional)
   if (totalFijosPendiente > 0) {
     partes.push(
       '',
-      `  ⚠️  Fijos aún no pagados este mes:    ${m(-totalFijosPendiente)}`,
+      `  Aún no pagados este mes:            ${m(totalFijosPendiente)}`,
       fijosPendientesTxt,
-      `  ${ln}`,
-      `  Ganancia real (si se pagan todos):   ${m(gananciaReal)}`,
     );
   }
 
