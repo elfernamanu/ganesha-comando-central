@@ -130,6 +130,28 @@ function CajaContent() {
   const [recuperando, setRecuperando] = useState(false);
   const [mensajeRecuperar, setMensajeRecuperar] = useState('');
 
+  // ── Estado para limpieza de datos viejos ──
+  const [limpiandoViejos, setLimpiandoViejos] = useState(false);
+  const [mensajeLimpieza, setMensajeLimpieza] = useState('');
+
+  const limpiarDatosAnteriores = async (anteriorA: string) => {
+    setLimpiandoViejos(true);
+    setMensajeLimpieza('');
+    try {
+      const [rCaja, rTurnos] = await Promise.all([
+        fetch(`/api/caja?antes_de=${anteriorA}`, { method: 'DELETE' }).then(r => r.json()),
+        fetch(`/api/sync?antes_de=${anteriorA}`, { method: 'DELETE' }).then(r => r.json()),
+      ]);
+      const caja   = rCaja.borrados   ?? 0;
+      const turnos = rTurnos.borrados ?? 0;
+      setMensajeLimpieza(`✅ Eliminados: ${caja} día${caja!==1?'s':''} de caja · ${turnos} día${turnos!==1?'s':''} de turnos anteriores al ${anteriorA}`);
+    } catch {
+      setMensajeLimpieza('⚠️ Error al limpiar — verificá conexión');
+    }
+    setLimpiandoViejos(false);
+    setTimeout(() => setMensajeLimpieza(''), 8000);
+  };
+
   const fechasHabilitadas = useFechasHabilitadas();
 
   // ── Caja siempre muestra HOY por defecto — no redirigir aunque no haya jornada ──
@@ -472,6 +494,42 @@ function CajaContent() {
         </button>
         {mensajeRecuperar && <span className="text-[10px] text-slate-500">{mensajeRecuperar}</span>}
       </div>
+
+      {/* ── Limpiar datos de prueba anteriores a una fecha ── */}
+      <details className="group">
+        <summary className="text-[9px] font-bold text-slate-400 uppercase tracking-wide cursor-pointer select-none hover:text-red-500 transition-colors">
+          🗑️ Borrar datos anteriores a una fecha (limpieza de pruebas)
+        </summary>
+        <div className="mt-1.5 p-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/15 space-y-1.5">
+          <p className="text-[10px] text-red-600 dark:text-red-400 font-medium">
+            ⚠️ Borra PERMANENTEMENTE todos los turnos y datos de caja anteriores a la fecha elegida. No se puede deshacer.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-slate-500 shrink-0">Borrar todo antes del:</span>
+            <input type="date" defaultValue={hoy} id="fecha-limpieza"
+              max={hoy}
+              className="flex-1 px-2 py-0.5 rounded border border-red-300 dark:border-red-700 bg-white dark:bg-slate-700 text-xs" />
+            <button
+              disabled={limpiandoViejos}
+              onClick={() => {
+                const input = document.getElementById('fecha-limpieza') as HTMLInputElement;
+                const val = input?.value;
+                if (!val) return;
+                if (confirm(`¿Segura que querés borrar TODOS los datos anteriores al ${val}? Esta acción NO se puede deshacer.`)) {
+                  limpiarDatosAnteriores(val);
+                }
+              }}
+              className="px-2.5 py-0.5 rounded-lg bg-red-600 text-white font-bold text-xs hover:bg-red-700 disabled:opacity-40 transition-colors whitespace-nowrap shrink-0">
+              {limpiandoViejos ? '⏳' : '🗑️ Borrar'}
+            </button>
+          </div>
+          {mensajeLimpieza && (
+            <p className={`text-[10px] font-medium ${mensajeLimpieza.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>
+              {mensajeLimpieza}
+            </p>
+          )}
+        </div>
+      </details>
 
       </div>
 

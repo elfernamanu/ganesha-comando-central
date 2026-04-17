@@ -25,6 +25,27 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// DELETE /api/sync?antes_de=2026-04-16  → borra turnos con fecha < ese valor
+export async function DELETE(req: NextRequest) {
+  const antes_de = req.nextUrl.searchParams.get('antes_de');
+  if (!antes_de) return NextResponse.json({ ok: false, error: 'Falta antes_de' }, { status: 400 });
+
+  try {
+    const result = await query<{ count: string }>(
+      `WITH deleted AS (
+         DELETE FROM turnos WHERE fecha < $1 RETURNING fecha
+       )
+       SELECT count(*)::text AS count FROM deleted`,
+      [antes_de]
+    );
+    const borrados = parseInt(result[0]?.count ?? '0', 10);
+    return NextResponse.json({ ok: true, borrados, mensaje: `${borrados} día${borrados !== 1 ? 's' : ''} de turnos eliminado${borrados !== 1 ? 's' : ''}` });
+  } catch (err) {
+    console.error('[/api/sync DELETE]', err);
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+  }
+}
+
 // POST /api/sync  →  { fecha, datos: Turno[] }
 export async function POST(req: NextRequest) {
   try {

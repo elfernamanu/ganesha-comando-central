@@ -66,6 +66,29 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ── DELETE: borrar registros anteriores a una fecha ───────────────────────
+// DELETE /api/caja?antes_de=2026-04-16  → borra todas las filas con fecha < ese valor
+export async function DELETE(req: NextRequest) {
+  const antes_de = req.nextUrl.searchParams.get('antes_de');
+  if (!antes_de) return NextResponse.json({ ok: false, error: 'Falta antes_de' }, { status: 400 });
+
+  try {
+    await ensureTable();
+    const result = await query<{ count: string }>(
+      `WITH deleted AS (
+         DELETE FROM caja_diaria WHERE fecha < $1 RETURNING fecha
+       )
+       SELECT count(*)::text AS count FROM deleted`,
+      [antes_de]
+    );
+    const borrados = parseInt(result[0]?.count ?? '0', 10);
+    return NextResponse.json({ ok: true, borrados, mensaje: `${borrados} día${borrados !== 1 ? 's' : ''} de caja eliminado${borrados !== 1 ? 's' : ''}` });
+  } catch (err) {
+    console.error('[/api/caja DELETE]', err);
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+  }
+}
+
 // ── POST: guardar/cerrar caja ──────────────────────────────────────────────
 //
 // Dos modos:
