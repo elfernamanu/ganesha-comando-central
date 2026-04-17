@@ -28,8 +28,7 @@ function titleCase(str: string): string {
 // ── Descarga TXT clásico (bloc de notas) ──────────────────────────────────
 function descargarContactosTxt(rows: ClienteRow[]) {
   const fecha = new Date().toLocaleDateString('es-AR');
-  const sep   = '═'.repeat(52);
-  const lin   = '─'.repeat(52);
+  const sep   = '═'.repeat(58);
   const lineas = [
     sep,
     '  GANESHA ESTHETIC — AGENDA DE CONTACTOS',
@@ -44,19 +43,20 @@ function descargarContactosTxt(rows: ClienteRow[]) {
   for (const [titulo, lista] of [['MUJERES', mujeres], ['HOMBRES', hombres]] as const) {
     if (lista.length === 0) continue;
     lineas.push(`  ${titulo} (${lista.length})`);
-    lineas.push(`  ${lin}`);
+    lineas.push('  ' + '─'.repeat(56));
     for (const c of lista) {
-      const tel   = c.celular || '—';
-      const notas = c.notas   ? `   ${c.notas}` : '';
-      const stats = c.totalTurnos > 0 ? `   [${c.totalTurnos} turnos · ${c.presentes}✓ ${c.ausentes}✗]` : '';
-      lineas.push(`  ${titleCase(c.nombre).padEnd(28)} ${tel}${stats}${notas}`);
+      const nombre = titleCase(c.nombre).padEnd(30);
+      const tel    = (c.celular || 'sin número').padEnd(18);
+      const notas  = c.notas ? `  ${c.notas}` : '';
+      lineas.push(`  ${nombre} ${tel}${notas}`);
     }
     lineas.push('');
   }
 
   lineas.push(sep);
+  lineas.push(`  ${rows.filter(r => r.celular).length} con número · ${rows.filter(r => !r.celular).length} sin número`);
 
-  const blob = new Blob([lineas.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const blob = new Blob([lineas.join('\r\n')], { type: 'text/plain;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
@@ -70,15 +70,16 @@ function descargarContactosTxt(rows: ClienteRow[]) {
 // ── Descarga formato WhatsApp (para cargar en teléfono nuevo) ─────────────
 function descargarContactosWhatsapp(rows: ClienteRow[]) {
   const fecha = new Date().toLocaleDateString('es-AR');
+  const conTel  = rows.filter(r => r.celular);
+  const sinTel  = rows.filter(r => !r.celular);
   const lineas = [
     `*GANESHA ESTHETIC — CONTACTOS*`,
-    `_Exportado: ${fecha}_`,
+    `_Exportado: ${fecha} · ${conTel.length} con número · ${sinTel.length} sin número_`,
     '',
   ];
 
-  const mujeres = rows.filter(r => r.genero === 'f' && r.celular);
-  const hombres = rows.filter(r => r.genero === 'm' && r.celular);
-  const sinTel  = rows.filter(r => !r.celular);
+  const mujeres = conTel.filter(r => r.genero === 'f');
+  const hombres = conTel.filter(r => r.genero === 'm');
 
   if (mujeres.length > 0) {
     lineas.push('👩 *MUJERES*');
@@ -99,10 +100,13 @@ function descargarContactosWhatsapp(rows: ClienteRow[]) {
   }
 
   if (sinTel.length > 0) {
-    lineas.push(`⚠️ _Sin celular registrado: ${sinTel.map(c => titleCase(c.nombre)).join(', ')}_`);
+    lineas.push(`⚠️ *SIN NÚMERO REGISTRADO (${sinTel.length}):*`);
+    for (const c of sinTel) {
+      lineas.push(`• ${titleCase(c.nombre)}`);
+    }
   }
 
-  const blob = new Blob([lineas.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const blob = new Blob([lineas.join('\r\n')], { type: 'text/plain;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
@@ -181,53 +185,71 @@ function buscarStats(
   return vacio;
 }
 
-// ── Fila compacta — todo en una línea ─────────────────────────────────────
-function FilaCliente({ c, onEdit, onDelete }: {
+// ── Fila compacta — teléfono editable inline ──────────────────────────────
+function FilaCliente({ c, onEdit, onDelete, onSaveCelular }: {
   c: ClienteRow;
   onEdit: (c: ClienteRow) => void;
   onDelete: (c: ClienteRow) => void;
+  onSaveCelular: (c: ClienteRow, cel: string) => void;
 }) {
   const falta = c.ausentes > 0;
+  const [tel, setTel] = useState(c.celular);
+  // sincronizar si el dato cambia desde afuera (ej: guardado del servidor)
+  useEffect(() => { setTel(c.celular); }, [c.celular]);
+
+  const handleBlur = () => {
+    const nuevo = tel.trim();
+    if (nuevo !== c.celular) onSaveCelular(c, nuevo);
+  };
+
   return (
     <div className={`group px-2 py-0.5 flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/50 last:border-0
       ${falta ? 'bg-red-50/70 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
 
-      <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 shrink-0">{titleCase(c.nombre)}</span>
+      {/* Nombre */}
+      <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 shrink-0 min-w-0 truncate" style={{maxWidth:'38%'}}>
+        {titleCase(c.nombre)}
+      </span>
 
-        {c.celular
-          ? <span className="text-[10px] font-mono text-slate-500 shrink-0">{c.celular}</span>
-          : <span className="text-[10px] text-slate-300 dark:text-slate-600 shrink-0">sin tel.</span>
-        }
+      {/* Teléfono — siempre editable inline */}
+      <input
+        value={tel}
+        onChange={e => setTel(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        placeholder="📱 número"
+        inputMode="tel"
+        className={`text-[11px] font-mono w-28 shrink-0 px-1 py-0 rounded border transition-colors bg-transparent focus:outline-none focus:ring-1 focus:ring-violet-400 focus:bg-white dark:focus:bg-slate-700
+          ${tel
+            ? 'text-slate-600 dark:text-slate-300 border-transparent hover:border-slate-300 dark:hover:border-slate-500'
+            : 'text-slate-300 dark:text-slate-600 border-dashed border-slate-200 dark:border-slate-700 placeholder:text-slate-300'
+          }`}
+      />
 
-        {c.totalTurnos > 0 && (
-          <span className="text-[10px] font-mono text-slate-400 shrink-0">{c.totalTurnos}t</span>
-        )}
-        {c.presentes > 0 && (
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">✓{c.presentes}</span>
-        )}
-        {falta && (
-          <span className="text-[10px] font-bold text-red-500 shrink-0">✗{c.ausentes} ⚠️cobrar seña</span>
-        )}
-        {c.notas && !falta && (
-          <span className="text-[10px] text-amber-500 shrink-0">⚠️{c.notas}</span>
-        )}
+      {/* Stats + alertas */}
+      <div className="flex items-center gap-1 flex-1 min-w-0">
+        {c.totalTurnos > 0 && <span className="text-[10px] text-slate-400">{c.totalTurnos}t</span>}
+        {c.presentes > 0   && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓{c.presentes}</span>}
+        {falta             && <span className="text-[10px] font-bold text-red-500">✗{c.ausentes} ⚠️seña</span>}
+        {c.notas && !falta && <span className="text-[10px] text-amber-500 truncate">⚠️{c.notas}</span>}
       </div>
 
+      {/* Acciones */}
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button onClick={() => onEdit(c)}   className="text-[10px] text-slate-400 hover:text-blue-500 px-0.5">✏️</button>
-        <button onClick={() => onDelete(c)} className="text-[10px] text-slate-400 hover:text-red-500 px-0.5">🗑️</button>
+        <button onClick={() => onEdit(c)}   className="text-[10px] text-slate-400 hover:text-blue-500 px-0.5" title="Editar nombre/notas/género">✏️</button>
+        <button onClick={() => onDelete(c)} className="text-[10px] text-slate-400 hover:text-red-500 px-0.5"  title="Eliminar">🗑️</button>
       </div>
     </div>
   );
 }
 
 // ── Columna ────────────────────────────────────────────────────────────────
-function Columna({ titulo, icono, color, items, onEdit, onDelete }: {
+function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular }: {
   titulo: string; icono: string; color: string;
   items: ClienteRow[];
   onEdit: (c: ClienteRow) => void;
   onDelete: (c: ClienteRow) => void;
+  onSaveCelular: (c: ClienteRow, cel: string) => void;
 }) {
   const [filtro, setFiltro] = useState('');
   const filtrados = useMemo(() => {
@@ -236,6 +258,7 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete }: {
     return items.filter(c => c.nombre.toLowerCase().includes(q) || c.celular.includes(q));
   }, [items, filtro]);
 
+  const conTel   = items.filter(c => c.celular).length;
   const ausentes = items.filter(c => c.ausentes > 0).length;
   return (
     <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
@@ -246,6 +269,7 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete }: {
           </span>
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
             <span className="font-semibold">{items.length}</span>
+            <span className="text-emerald-600">📱{conTel}</span>
             {ausentes > 0 && <span className="text-red-500 font-bold">⚠️{ausentes}</span>}
           </div>
         </div>
@@ -258,7 +282,9 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete }: {
       <div className="overflow-y-auto" style={{ maxHeight: '65vh' }}>
         {filtrados.length === 0
           ? <p className="text-center py-6 text-[11px] text-slate-400">{filtro ? 'Sin resultados' : 'Sin registros'}</p>
-          : filtrados.map(c => <FilaCliente key={c.id} c={c} onEdit={onEdit} onDelete={onDelete} />)
+          : filtrados.map(c => (
+              <FilaCliente key={c.id} c={c} onEdit={onEdit} onDelete={onDelete} onSaveCelular={onSaveCelular} />
+            ))
         }
       </div>
     </div>
@@ -418,6 +444,27 @@ export default function ContactosPage() {
     await persistir(nueva);
   }, [blacklist, persistir]);
 
+  // Guardar solo el teléfono sin abrir el modal (edición inline en la fila)
+  const guardarCelularInline = useCallback(async (c: ClienteRow, celular: string) => {
+    const actual = serverRef.current;
+    const existente = actual.find(x => x.id === c.id);
+    const updated: ClienteData = existente
+      ? { ...existente, celular }
+      : {
+          id:             c.id.startsWith('ls_') ? crypto.randomUUID() : c.id,
+          nombre:         c.nombre,
+          originalNombre: c.originalNombre,
+          celular,
+          notas:          c.notas,
+          genero:         c.genero,
+        };
+    const sin   = actual.filter(x => x.id !== c.id && x.nombre.toLowerCase() !== c.nombre.toLowerCase());
+    const nueva = [...sin, updated];
+    setServerClientes(nueva);
+    serverRef.current = nueva;
+    await persistir(nueva);
+  }, [persistir]);
+
   const agregarManual = () => {
     const id = crypto.randomUUID();
     setEditId(id); setEditNombre(''); setEditCelular(''); setEditNotas(''); setEditGenero('f');
@@ -501,9 +548,9 @@ export default function ContactosPage() {
       {/* Dos columnas */}
       <div className="grid grid-cols-2 gap-3">
         <Columna titulo="Mujeres" icono="👩" color="bg-pink-50/50 dark:bg-pink-900/10"
-          items={mujeres} onEdit={abrirEdit} onDelete={eliminar} />
+          items={mujeres} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
         <Columna titulo="Hombres" icono="👨" color="bg-blue-50/50 dark:bg-blue-900/10"
-          items={hombres} onEdit={abrirEdit} onDelete={eliminar} />
+          items={hombres} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
       </div>
 
     </div>
