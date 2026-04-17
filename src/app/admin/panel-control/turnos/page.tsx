@@ -16,7 +16,7 @@ function TurnosContent() {
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
-  const { turnos, totales, mensaje, guardando, autoGuardado, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, guardar } = useTurnos(fecha);
+  const { turnos, totales, mensaje, guardando, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
 
   const fechasHabilitadas = useFechasHabilitadas();
 
@@ -150,26 +150,13 @@ function TurnosContent() {
         </div>
       )}
 
-      {/* Indicador auto-guardado */}
-      {autoGuardado !== 'idle' && (
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-          autoGuardado === 'pendiente' ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-          : autoGuardado === 'ok'      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-          :                              'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-        }`}>
-          {autoGuardado === 'pendiente' && <span className="w-3 h-3 rounded-full border-2 border-slate-400 border-t-transparent animate-spin inline-block" />}
-          {autoGuardado === 'ok'        && '✓'}
-          {autoGuardado === 'error'     && '⚠️'}
-          {autoGuardado === 'pendiente' ? 'Guardando...' : autoGuardado === 'ok' ? 'Guardado automáticamente' : 'Sin conexión — reintentará'}
-        </div>
-      )}
-
       <TurnosTable
         turnos={turnos}
+        celularesSync={celularesSync}
         onActualizar={actualizarTurno}
         onEliminar={eliminarTurno}
         onAgregar={agregarTurno}
-        celularesSync={celularesSync}
+        onConfirmarCelular={confirmarCelular}
       />
 
       <button

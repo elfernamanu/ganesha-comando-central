@@ -4,6 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { TurnosTableProps } from '../types';
 import { leerCatalogo, buscarEnCatalogo, invalidarCatalogoCache, type CatalogoPromos } from '../../_shared/catalogoPromos';
 
+// ── Detecta si un string es un número de celular ──────────────────────
+function esNumeroCelular(str: string): boolean {
+  const clean = (str ?? '').trim().replace(/[\s\-\(\)\+\.]/g, '');
+  return /^\d{8,15}$/.test(clean);
+}
+
 // ── Autocompleta horario al salir del campo ────────────────────────────
 // "16"   → "16:00" | "9"   → "09:00"
 // "1630" → "16:30" | "930" → "09:30"
@@ -116,10 +122,11 @@ function BotonesAsistencia({
 // ── Componente principal ───────────────────────────────────────────────
 export default function TurnosTable({
   turnos,
+  celularesSync,
   onActualizar,
   onEliminar,
   onAgregar,
-  celularesSync,
+  onConfirmarCelular,
 }: TurnosTableProps) {
   const [catalogo, setCatalogo] = useState<CatalogoPromos>({});
 
@@ -355,14 +362,8 @@ export default function TurnosTable({
                   placeholder="Nombre de la clienta"
                   className="flex-1 px-3 py-1.5 rounded-lg text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-semibold"
                 />
-                {celularesSync?.has((turno.clienteNombre ?? '').toLowerCase()) && (
-                  <span title="📱 Celular guardado en Clientes y Caja"
-                    className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold leading-none">
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    📱
-                  </span>
+                {celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && !esNumeroCelular(turno.detalle) && (
+                  <span title="Celular guardado en Contactos" className="shrink-0 text-base">📱</span>
                 )}
                 <span className="shrink-0 text-xs text-slate-400 font-bold">#{idx + 1}</span>
                 <button
@@ -380,13 +381,24 @@ export default function TurnosTable({
                   tratamiento={turno.tratamiento}
                   className="text-sm"
                 />
-                <input
-                  type="text"
-                  value={turno.detalle || ''}
-                  onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                  placeholder="Detalle adicional..."
-                  className="w-full px-3 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 italic"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={turno.detalle || ''}
+                    onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                    placeholder="Detalle adicional..."
+                    className={`w-full py-1 rounded-lg text-xs border bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 italic ${
+                      esNumeroCelular(turno.detalle) ? 'pl-3 pr-8' : 'px-3'
+                    } border-slate-200 dark:border-slate-600`}
+                  />
+                  {esNumeroCelular(turno.detalle) && celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && (
+                    <button
+                      onClick={() => onConfirmarCelular(turno.id)}
+                      title="Celular guardado — tocar para confirmar y limpiar"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none active:scale-90 transition-transform"
+                    >👁</button>
+                  )}
+                </div>
               </div>
 
               {/* ── Asistencia ── */}
@@ -466,7 +478,7 @@ export default function TurnosTable({
                           : '—'}
                       </p>
                     </div>
-                    {saldo > 0 && turno.asistencia === 'presente' && (
+                    {saldo > 0 && (
                       <button
                         onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
                         className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold active:scale-95 transition-all shadow-sm"
@@ -526,9 +538,9 @@ export default function TurnosTable({
           Visible en pantallas ≥ md (768px)
       ══════════════════════════════════════════════════ */}
       <div className="hidden md:block overflow-x-auto rounded-lg">
-        <div className="min-w-[730px] max-w-5xl space-y-1">
+        <div className="min-w-[700px] max-w-5xl space-y-1">
           {/* Header */}
-          <div className="grid grid-cols-[56px_140px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+          <div className="grid grid-cols-[56px_110px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 px-3 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             <span>Hora</span>
             <span>Clienta</span>
             <span>Promo / Detalle</span>
@@ -552,7 +564,7 @@ export default function TurnosTable({
             return (
               <div
                 key={turno.id}
-                className={`grid grid-cols-[56px_140px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 items-center px-3 py-2 rounded-lg border transition-colors ${
+                className={`grid grid-cols-[56px_110px_1fr_54px_66px_66px_72px_36px_52px_24px] gap-x-2 items-center px-3 py-2 rounded-lg border transition-colors ${
                   noVinoDesk
                     ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 opacity-70'
                     : listaDesk
@@ -590,7 +602,7 @@ export default function TurnosTable({
                 </div>
 
                 {/* Clienta */}
-                <div className="flex flex-col gap-0.5">
+                <div className="relative">
                   <input
                     type="text"
                     value={turno.clienteNombre}
@@ -598,14 +610,8 @@ export default function TurnosTable({
                     placeholder="Nombre y apellido"
                     className="w-full px-2 py-1 rounded text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-medium"
                   />
-                  {celularesSync?.has((turno.clienteNombre ?? '').toLowerCase()) && (
-                    <span title="Celular guardado en Clientes y Caja"
-                      className="flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 leading-none">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      📱 guardado
-                    </span>
+                  {celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && !esNumeroCelular(turno.detalle) && (
+                    <span title="Celular guardado en Contactos" className="absolute right-1 top-1/2 -translate-y-1/2 text-sm">📱</span>
                   )}
                 </div>
 
@@ -616,13 +622,24 @@ export default function TurnosTable({
                     tratamiento={turno.tratamiento}
                     className="text-xs py-1 rounded"
                   />
-                  <input
-                    type="text"
-                    value={turno.detalle || ''}
-                    onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                    placeholder="Detalle adicional..."
-                    className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={turno.detalle || ''}
+                      onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                      placeholder="Detalle adicional..."
+                      className={`w-full py-0.5 rounded text-xs border bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic border-slate-200 dark:border-slate-600 ${
+                        esNumeroCelular(turno.detalle) ? 'pl-1 pr-6' : 'px-1'
+                      }`}
+                    />
+                    {esNumeroCelular(turno.detalle) && celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && (
+                      <button
+                        onClick={() => onConfirmarCelular(turno.id)}
+                        title="Celular guardado — tocar para confirmar y limpiar"
+                        className="absolute right-0.5 top-1/2 -translate-y-1/2 text-xs leading-none active:scale-90 transition-transform"
+                      >👁</button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Asistencia */}
@@ -666,7 +683,7 @@ export default function TurnosTable({
                     <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
                   ) : saldoDesk === 0 && turno.monto_total > 0 ? (
                     <span className="text-xs font-bold text-green-600 dark:text-green-400">✓ Pagó</span>
-                  ) : saldoDesk > 0 && turno.asistencia === 'presente' ? (
+                  ) : saldoDesk > 0 ? (
                     <button
                       onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
                       title="Click para marcar cobrado"
@@ -689,7 +706,7 @@ export default function TurnosTable({
                     >
                       ✓
                     </button>
-                  ) : turno.asistencia === 'presente' && turno.monto_total > 0 ? (
+                  ) : turno.monto_total > 0 ? (
                     <button
                       onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
                       title={`Marcar cobrado: $${turno.monto_total.toLocaleString('es-AR')}`}

@@ -40,10 +40,6 @@ type ClienteRow = { id: string; nombre: string; celular: string; notas: string; 
 
 async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Set<string>> {
   const sincronizados = new Set<string>(); // keys (nombre lowercase) que tienen celular guardado
-  const candidatos = turnosList.filter(t =>
-    t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
-  );
-  if (candidatos.length === 0) return sincronizados;
 
   try {
     const resGet = await fetch('/api/clientes');
@@ -51,8 +47,20 @@ async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Se
     if (!dataGet.ok) return sincronizados;
 
     const byNombre = new Map((dataGet.datos ?? []).map(c => [c.nombre.toLowerCase(), { ...c }]));
-    let changed = false;
 
+    // 1. Marcar clientes que YA tienen celular en Contactos (para mostrar 📱 en fechas futuras)
+    for (const t of turnosList) {
+      if (!t.clienteNombre?.trim()) continue;
+      const key = t.clienteNombre.trim().toLowerCase();
+      const existente = byNombre.get(key);
+      if (existente?.celular) sincronizados.add(key);
+    }
+
+    // 2. Guardar celulares nuevos desde el campo detalle
+    const candidatos = turnosList.filter(t =>
+      t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
+    );
+    let changed = false;
     for (const t of candidatos) {
       const key = t.clienteNombre.trim().toLowerCase();
       const celularNuevo = t.detalle.trim().replace(/[\s\-\(\)\+\.]/g, '');
@@ -61,7 +69,7 @@ async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Se
         byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: t.clienteNombre.trim(), celular: celularNuevo, notas: existing?.notas ?? '' });
         changed = true;
       }
-      sincronizados.add(key); // confirmar guardado (nuevo o ya existente)
+      sincronizados.add(key);
     }
 
     if (changed) {
@@ -108,6 +116,19 @@ export function useTurnos(fecha: string) {
   // después de la última interacción — evita que se borre lo que están escribiendo
   const ultimaInteraccion = useRef(0);
   const PROTECCION_MS = 60_000; // 60 segundos de protección post-edición
+  // Solo true si el usuario hizo algún cambio real (agregar/editar/eliminar)
+  // Evita que el spinner "Guardando..." aparezca en la carga inicial
+  const hayCambios = useRef(false);
+  // Evita llamar a sincronizarCelulares en cada polling (solo en carga inicial y guardados)
+  const celularInicialSync = useRef(false);
+  // Último actualizado_at conocido del servidor — evita actualizar estado si no hubo cambios
+  const ultimaActualizacionServidor = useRef<string | null>(null);
+  // AbortController del auto-save en vuelo — permite cancelarlo si el usuario
+  // hace click en "Guardar" antes de que el auto-save termine
+  const autoSaveAbortRef = useRef<AbortController | null>(null);
+  // Guard de concurrencia: evita dos POSTs simultáneos al mismo row de PostgreSQL
+  // (auto-save + guardar manual al mismo tiempo → servidor se cuelga)
+  const isSavingRef = useRef(false);
 
   const lsKey = `ganesha_turnos_${fecha}`;
 
@@ -133,7 +154,17 @@ export function useTurnos(fecha: string) {
   const cargarDesdeServidor = useCallback(async () => {
     try {
       const r = await fetch(`/api/sync?fecha=${fecha}`);
-      const { ok, datos } = await r.json();
+      const { ok, datos, actualizado_at } = await r.json() as { ok: boolean; datos: unknown; actualizado_at: string | null };
+
+      // Si el servidor tiene el mismo timestamp que ya tenemos → nada cambió, no tocar estado
+      if (
+        actualizado_at &&
+        ultimaActualizacionServidor.current &&
+        actualizado_at === ultimaActualizacionServidor.current &&
+        cargaInicialCompleta.current // solo en polling, no en carga inicial
+      ) return;
+
+      if (actualizado_at) ultimaActualizacionServidor.current = actualizado_at;
 
       if (!ok) return; // error de red/servidor → no tocar nada local
 
@@ -212,8 +243,11 @@ export function useTurnos(fecha: string) {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
-    cargaInicialCompleta.current = false; // nueva fecha = nueva carga
-    ultimaInteraccion.current = 0;        // nueva fecha = sin interacciones previas
+    cargaInicialCompleta.current = false;          // nueva fecha = nueva carga
+    ultimaInteraccion.current = 0;                 // nueva fecha = sin interacciones previas
+    hayCambios.current = false;                    // nueva fecha = sin cambios del usuario
+    celularInicialSync.current = false;            // nueva fecha = volver a sincronizar celulares una vez
+    ultimaActualizacionServidor.current = null;    // nueva fecha = no hay timestamp conocido
     setTurnos([]);           // limpiar día anterior antes de cargar nuevo
     setCelularesSync(new Set()); // limpiar ojitos del día anterior
 
@@ -234,13 +268,15 @@ export function useTurnos(fecha: string) {
     });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Polling cada 30s + recarga al volver al foco → celular y PC sincronizados
+  // Sin polling constante — solo sincroniza cuando el usuario vuelve a la pestaña/ventana
+  // El servidor devuelve actualizado_at: si no cambió nada, cargarDesdeServidor no toca el estado
   useEffect(() => {
-    const interval = setInterval(cargarDesdeServidor, 30000);
+    const alVolver = () => { if (document.visibilityState === 'visible') cargarDesdeServidor(); };
     window.addEventListener('focus', cargarDesdeServidor);
+    document.addEventListener('visibilitychange', alVolver);
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', cargarDesdeServidor);
+      document.removeEventListener('visibilitychange', alVolver);
     };
   }, [cargarDesdeServidor]);
 
@@ -251,29 +287,57 @@ export function useTurnos(fecha: string) {
     } catch { /* silencioso */ }
   }, [turnos, lsKey]);
 
-  // Auto-sync al servidor 3s después del último cambio DEL USUARIO
+  // Auto-sync al servidor 8s después del último cambio DEL USUARIO
+  // (8s de debounce para evitar colisiones con el guardado manual)
   useEffect(() => {
     if (turnos.length === 0) return;
     if (!cargaInicialCompleta.current) return;
+
+    // Sin cambios reales → sincronizar celulares solo UNA VEZ al cargar (no en cada polling)
+    if (!hayCambios.current) {
+      if (!celularInicialSync.current) {
+        celularInicialSync.current = true;
+        sincronizarCelularesDesdeDetalle(turnos).then(sync => {
+          if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
+        }).catch(() => {});
+      }
+      return;
+    }
+
     setAutoGuardado('pendiente');
     const timer = setTimeout(async () => {
-      if (Date.now() - ultimoGuardadoManual.current < 5000) return;
+      // Si el usuario guardó manualmente en los últimos 12s, no hacer auto-save
+      if (Date.now() - ultimoGuardadoManual.current < 12_000) return;
+      // Si hay un save en curso (manual), esperar — no enviar dos POSTs a la vez
+      if (isSavingRef.current) return;
+
+      // Cancelar el auto-save anterior si todavía estaba en vuelo
+      autoSaveAbortRef.current?.abort();
+      const ctrl = new AbortController();
+      autoSaveAbortRef.current = ctrl;
+
+      isSavingRef.current = true;
       try {
         await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fecha, datos: turnos }),
+          signal: ctrl.signal,
         });
+        if (ctrl.signal.aborted) return; // cancelado por guardado manual
         sincronizarCelularesDesdeDetalle(turnos).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
         }).catch(() => {});
         setAutoGuardado('ok');
         setTimeout(() => setAutoGuardado('idle'), 3000);
-      } catch {
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return; // cancelado — no mostrar error
         setAutoGuardado('error');
         setTimeout(() => setAutoGuardado('idle'), 4000);
+      } finally {
+        isSavingRef.current = false;
       }
-    }, 3000);
+    }, 8_000);
     return () => clearTimeout(timer);
   }, [turnos, fecha]);
 
@@ -299,6 +363,7 @@ export function useTurnos(fecha: string) {
 
   const agregarTurno = () => {
     ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
     const nuevoTurno: Turno = {
       id: `turno_${Date.now()}`,
       horario: proximoHorario(),
@@ -319,6 +384,7 @@ export function useTurnos(fecha: string) {
 
   const actualizarTurno = (id: string, cambios: Partial<Turno>) => {
     ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
     setTurnos(prev => {
       const actualizado = prev.map(t => {
         if (t.id !== id) return t;
@@ -349,7 +415,15 @@ export function useTurnos(fecha: string) {
 
   const eliminarTurno = (id: string) => {
     ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
     setTurnos(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Confirmar celular: la dueña toca el 👁 → borra el número del detalle, queda 📱 en el nombre
+  const confirmarCelular = (id: string) => {
+    ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
+    setTurnos(prev => prev.map(t => t.id === id ? { ...t, detalle: '' } : t));
   };
 
   // ========================================
@@ -396,7 +470,16 @@ export function useTurnos(fecha: string) {
     }
 
     try {
-      ultimoGuardadoManual.current = Date.now(); // cancelar auto-sync duplicado
+      ultimoGuardadoManual.current = Date.now();
+      // Cancelar el auto-save en vuelo antes de enviar el manual (evita dos POSTs simultáneos)
+      autoSaveAbortRef.current?.abort();
+      autoSaveAbortRef.current = null;
+      // Si el auto-save ya empezó su fetch, esperar a que isSavingRef se libere (max 3s)
+      const t0 = Date.now();
+      while (isSavingRef.current && Date.now() - t0 < 3000) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+      isSavingRef.current = true;
       // Ordenar antes de guardar → próximo refresh carga en orden correcto
       const turnosOrdenados = [...turnos].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
       const res = await fetch('/api/sync', {
@@ -417,6 +500,7 @@ export function useTurnos(fecha: string) {
     } catch {
       setMensaje('⚠️ Sin conexión — guardado solo en este dispositivo');
     } finally {
+      isSavingRef.current = false;
       setGuardando(false);
       setTimeout(() => setMensaje(''), 5000);
     }
@@ -432,6 +516,7 @@ export function useTurnos(fecha: string) {
     agregarTurno,
     actualizarTurno,
     eliminarTurno,
+    confirmarCelular,
     guardar,
   };
 }

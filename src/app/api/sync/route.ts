@@ -11,14 +11,16 @@ export async function GET(req: NextRequest) {
   if (!fecha) return NextResponse.json({ ok: false, datos: [] });
 
   try {
-    const rows = await query<{ datos: unknown }>(
-      'SELECT datos FROM turnos WHERE fecha = $1',
+    const rows = await query<{ datos: unknown; actualizado_at: string }>(
+      'SELECT datos, actualizado_at FROM turnos WHERE fecha = $1',
       [fecha]
     );
-    return NextResponse.json({ ok: true, datos: rows[0]?.datos ?? [] }, {
-      headers: {
-        'Cache-Control': 'private, max-age=20, stale-while-revalidate=60',
-      },
+    return NextResponse.json({
+      ok: true,
+      datos: rows[0]?.datos ?? [],
+      actualizado_at: rows[0]?.actualizado_at ?? null,
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch {
     return NextResponse.json({ ok: false, datos: [] });

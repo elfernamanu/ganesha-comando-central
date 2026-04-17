@@ -21,8 +21,9 @@ export interface MovimientoCaja {
 // Props para componentes
 export interface TurnosTableProps {
   turnos: Turno[];
+  celularesSync: Set<string>;
   onActualizar: (id: string, cambios: Partial<Turno>) => void;
   onEliminar: (id: string) => void;
   onAgregar: () => void;
-  celularesSync?: Set<string>; // clienteNombre lowercase con celular confirmado guardado
+  onConfirmarCelular: (id: string) => void;
 }

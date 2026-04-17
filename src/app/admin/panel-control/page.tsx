@@ -123,9 +123,9 @@ export default function PanelControlPage() {
           </p>
         </div>
         <button
-          onClick={() => {
-            cerrarSesionPanel();
-            window.location.href = '/admin/panel-control';
+          onClick={async () => {
+            await cerrarSesionPanel();
+            window.location.href = '/admin/login';
           }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 transition-colors active:scale-95"
         >

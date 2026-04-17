@@ -7,14 +7,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const N8N_WEBHOOK_URL = 'http://164.90.194.79:5678/webhook/api/v1/bunker-ganesha';
-const N8N_TOKEN = 'Ganesha_Admin_2026_Secure';
-const ALLOWED_ORIGINS = [
-  'https://ganesha-comando-central.vercel.app',
-  'http://localhost:3000',
-];
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL ?? '';
+const N8N_TOKEN = process.env.N8N_TOKEN ?? '';
+
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
 
 export async function POST(request: NextRequest) {
+  if (!N8N_WEBHOOK_URL || !N8N_TOKEN) {
+    return NextResponse.json({ error: 'Webhook no configurado' }, { status: 503 });
+  }
+
   try {
     // 1. Validar origen (CORS básico)
     const origin = request.headers.get('origin');
