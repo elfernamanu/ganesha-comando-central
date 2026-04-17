@@ -126,6 +126,7 @@ export default function TurnosTable({
   onActualizar,
   onEliminar,
   onAgregar,
+  onConfirmarCelular,
 }: TurnosTableProps) {
   const [catalogo, setCatalogo] = useState<CatalogoPromos>({});
 
@@ -361,8 +362,8 @@ export default function TurnosTable({
                   placeholder="Nombre de la clienta"
                   className="flex-1 px-3 py-1.5 rounded-lg text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-semibold"
                 />
-                {celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && (
-                  <span title="Celular guardado en Contactos" className="shrink-0 text-base">👁</span>
+                {celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && !esNumeroCelular(turno.detalle) && (
+                  <span title="Celular guardado en Contactos" className="shrink-0 text-base">📱</span>
                 )}
                 <span className="shrink-0 text-xs text-slate-400 font-bold">#{idx + 1}</span>
                 <button
@@ -380,13 +381,24 @@ export default function TurnosTable({
                   tratamiento={turno.tratamiento}
                   className="text-sm"
                 />
-                <input
-                  type="text"
-                  value={turno.detalle || ''}
-                  onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                  placeholder="Detalle adicional..."
-                  className="w-full px-3 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 italic"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={turno.detalle || ''}
+                    onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                    placeholder="Detalle adicional..."
+                    className={`w-full py-1 rounded-lg text-xs border bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 italic ${
+                      esNumeroCelular(turno.detalle) ? 'pl-3 pr-8' : 'px-3'
+                    } border-slate-200 dark:border-slate-600`}
+                  />
+                  {esNumeroCelular(turno.detalle) && celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && (
+                    <button
+                      onClick={() => onConfirmarCelular(turno.id)}
+                      title="Celular guardado — tocar para confirmar y limpiar"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none active:scale-90 transition-transform"
+                    >👁</button>
+                  )}
+                </div>
               </div>
 
               {/* ── Asistencia ── */}
@@ -598,8 +610,8 @@ export default function TurnosTable({
                     placeholder="Nombre y apellido"
                     className="w-full px-2 py-1 rounded text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-medium"
                   />
-                  {celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && (
-                    <span title="Celular guardado en Contactos" className="absolute right-1 top-1/2 -translate-y-1/2 text-sm">👁</span>
+                  {celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && !esNumeroCelular(turno.detalle) && (
+                    <span title="Celular guardado en Contactos" className="absolute right-1 top-1/2 -translate-y-1/2 text-sm">📱</span>
                   )}
                 </div>
 
@@ -610,13 +622,24 @@ export default function TurnosTable({
                     tratamiento={turno.tratamiento}
                     className="text-xs py-1 rounded"
                   />
-                  <input
-                    type="text"
-                    value={turno.detalle || ''}
-                    onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
-                    placeholder="Detalle adicional..."
-                    className="w-full px-1 py-0.5 rounded text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={turno.detalle || ''}
+                      onChange={e => onActualizar(turno.id, { detalle: e.target.value })}
+                      placeholder="Detalle adicional..."
+                      className={`w-full py-0.5 rounded text-xs border bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 italic border-slate-200 dark:border-slate-600 ${
+                        esNumeroCelular(turno.detalle) ? 'pl-1 pr-6' : 'px-1'
+                      }`}
+                    />
+                    {esNumeroCelular(turno.detalle) && celularesSync.has((turno.clienteNombre ?? '').trim().toLowerCase()) && (
+                      <button
+                        onClick={() => onConfirmarCelular(turno.id)}
+                        title="Celular guardado — tocar para confirmar y limpiar"
+                        className="absolute right-0.5 top-1/2 -translate-y-1/2 text-xs leading-none active:scale-90 transition-transform"
+                      >👁</button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Asistencia */}

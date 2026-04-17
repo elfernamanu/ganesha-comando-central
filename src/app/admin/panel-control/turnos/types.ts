@@ -25,4 +25,5 @@ export interface TurnosTableProps {
   onActualizar: (id: string, cambios: Partial<Turno>) => void;
   onEliminar: (id: string) => void;
   onAgregar: () => void;
+  onConfirmarCelular: (id: string) => void;
 }

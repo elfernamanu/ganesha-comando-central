@@ -40,10 +40,6 @@ type ClienteRow = { id: string; nombre: string; celular: string; notas: string; 
 
 async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Set<string>> {
   const sincronizados = new Set<string>(); // keys (nombre lowercase) que tienen celular guardado
-  const candidatos = turnosList.filter(t =>
-    t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
-  );
-  if (candidatos.length === 0) return sincronizados;
 
   try {
     const resGet = await fetch('/api/clientes');
@@ -51,8 +47,20 @@ async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Se
     if (!dataGet.ok) return sincronizados;
 
     const byNombre = new Map((dataGet.datos ?? []).map(c => [c.nombre.toLowerCase(), { ...c }]));
-    let changed = false;
 
+    // 1. Marcar clientes que YA tienen celular en Contactos (para mostrar 📱 en fechas futuras)
+    for (const t of turnosList) {
+      if (!t.clienteNombre?.trim()) continue;
+      const key = t.clienteNombre.trim().toLowerCase();
+      const existente = byNombre.get(key);
+      if (existente?.celular) sincronizados.add(key);
+    }
+
+    // 2. Guardar celulares nuevos desde el campo detalle
+    const candidatos = turnosList.filter(t =>
+      t.clienteNombre?.trim() && t.detalle?.trim() && esNumeroCelular(t.detalle.trim())
+    );
+    let changed = false;
     for (const t of candidatos) {
       const key = t.clienteNombre.trim().toLowerCase();
       const celularNuevo = t.detalle.trim().replace(/[\s\-\(\)\+\.]/g, '');
@@ -61,7 +69,7 @@ async function sincronizarCelularesDesdeDetalle(turnosList: Turno[]): Promise<Se
         byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: t.clienteNombre.trim(), celular: celularNuevo, notas: existing?.notas ?? '' });
         changed = true;
       }
-      sincronizados.add(key); // confirmar guardado (nuevo o ya existente)
+      sincronizados.add(key);
     }
 
     if (changed) {
@@ -411,6 +419,13 @@ export function useTurnos(fecha: string) {
     setTurnos(prev => prev.filter(t => t.id !== id));
   };
 
+  // Confirmar celular: la dueña toca el 👁 → borra el número del detalle, queda 📱 en el nombre
+  const confirmarCelular = (id: string) => {
+    ultimaInteraccion.current = Date.now();
+    hayCambios.current = true;
+    setTurnos(prev => prev.map(t => t.id === id ? { ...t, detalle: '' } : t));
+  };
+
   // ========================================
   // CÁLCULOS
   // ========================================
@@ -501,6 +516,7 @@ export function useTurnos(fecha: string) {
     agregarTurno,
     actualizarTurno,
     eliminarTurno,
+    confirmarCelular,
     guardar,
   };
 }
