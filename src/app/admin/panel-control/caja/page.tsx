@@ -412,7 +412,7 @@ function CajaContent() {
                   <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate shrink-0">{t.clienteNombre}</p>
                     {(t.tratamiento && t.tratamiento !== 'Otro') && (
-                      <p className="text-[11px] text-slate-400 truncate min-w-0">{resolverTratamiento(t.tratamiento)}</p>
+                      <p className={`text-[11px] truncate min-w-0 ${t.tratamiento.includes('(Hombre)') ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400'}`}>{resolverTratamiento(t.tratamiento)}</p>
                     )}
                   </div>
                   {/* Monto cobrado (solo si presente) */}

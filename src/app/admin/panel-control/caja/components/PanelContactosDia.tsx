@@ -160,7 +160,7 @@ export default function PanelContactosDia({ turnos }: Props) {
               </p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {e.tratamiento && e.tratamiento !== 'Otro' && (
-                  <span className="text-[10px] text-slate-400 truncate">{e.tratamiento}</span>
+                  <span className={`text-[10px] truncate ${e.tratamiento.includes('(Hombre)') ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400'}`}>{e.tratamiento}</span>
                 )}
                 {e.ausente && (
                   <span className="text-[10px] font-semibold text-red-500 dark:text-red-400">
