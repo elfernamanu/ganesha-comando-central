@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { guardarCombos, invalidarCatalogoCache } from '../_shared/catalogoPromos';
 import CargandoServidor from '@/components/CargandoServidor';
+import AccesoRestringido from '@/components/AccesoRestringido';
+import { useAcceso } from '@/hooks/useAcceso';
 
 interface Combo {
   numero: number;
@@ -21,6 +23,7 @@ interface Combo {
 const LS_COMBOS = 'ganesha_catalog_combos_raw';
 
 export default function PromocionesPage() {
+  const acceso = useAcceso();
   const [combos, setCombos] = useState<Combo[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [estado, setEstado] = useState<'ok' | 'error' | ''>('');
@@ -111,7 +114,8 @@ export default function PromocionesPage() {
     }
   };
 
-  if (cargandoInicial) return <CargandoServidor seccion="Combos y Promociones" />;
+  if (acceso === null || cargandoInicial) return <CargandoServidor seccion="Combos y Promociones" />;
+  if (!acceso) return <AccesoRestringido seccion="Combos y Promociones" />;
 
   return (
     <div className="space-y-3">

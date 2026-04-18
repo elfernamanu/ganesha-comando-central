@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import CargandoServidor from '@/components/CargandoServidor';
+import AccesoRestringido from '@/components/AccesoRestringido';
+import { useAcceso } from '@/hooks/useAcceso';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface ClienteData {
@@ -355,6 +357,7 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular 
 
 // ── Página ─────────────────────────────────────────────────────────────────
 export default function ContactosPage() {
+  const acceso = useAcceso();
   const [serverClientes, setServerClientes] = useState<ClienteData[]>([]);
   const [statsMap, setStatsMap]             = useState<Map<string, ClienteStats>>(new Map());
   const [guardando, setGuardando]           = useState(false);
@@ -557,7 +560,8 @@ export default function ContactosPage() {
     }
   }, [blacklist, rows]);
 
-  if (cargandoInicial) return <CargandoServidor seccion="Contactos / CRM" />;
+  if (acceso === null || cargandoInicial) return <CargandoServidor seccion="Contactos" />;
+  if (!acceso) return <AccesoRestringido seccion="Contactos" />;
 
   return (
     <div className="space-y-3">

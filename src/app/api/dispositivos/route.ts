@@ -101,6 +101,27 @@ export async function POST(req: NextRequest) {
     await ensureTable();
 
     if (alias !== undefined) {
+      // Verificar si el dispositivo ya tiene alias (ya está registrado)
+      const existing = await query<{ alias: string }>(
+        'SELECT alias FROM dispositivos WHERE id = $1', [id]
+      ).catch(() => []);
+      const yaRegistrado = ((existing as { alias: string }[])[0]?.alias ?? '') !== '';
+
+      // Si es un dispositivo NUEVO (sin alias previo), requerir código de registro
+      if (!yaRegistrado) {
+        const deviceCode = process.env.DEVICE_CODE;
+        if (deviceCode) {
+          const { codigoRegistro } = body as { codigoRegistro?: string };
+          if (!codigoRegistro || codigoRegistro.trim() !== deviceCode.trim()) {
+            return NextResponse.json({
+              ok: false,
+              codigoInvalido: true,
+              error: 'Código incorrecto. Pedíselo a la dueña.',
+            }, { status: 403 });
+          }
+        }
+      }
+
       // Actualizar alias (nombre personalizado del dueño)
       await query(
         `INSERT INTO dispositivos (id, alias, nombre, user_agent, ip, primera_vez, ultima_vez, visitas)

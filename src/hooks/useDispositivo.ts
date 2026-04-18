@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const LS_KEY = 'ganesha_device_id';
+const LS_KEY       = 'ganesha_device_id';
+const LS_ALIAS_KEY = 'ganesha_device_alias';
 
 function generarId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-// Detecta nombre automático del dispositivo desde userAgent
 function detectarNombre(): string {
   if (typeof navigator === 'undefined') return '';
   const ua = navigator.userAgent;
@@ -30,17 +30,20 @@ function detectarNombre(): string {
 
 export interface InfoDispositivo {
   id: string;
-  alias: string;         // nombre puesto por el dueño ("PC Dueña", "Celular Dueña")
-  nombre: string;        // auto-detectado ("PC Windows — Chrome")
-  registrado: boolean;   // true si tiene alias
+  alias: string;
+  nombre: string;
+  registrado: boolean;
   visitas: number;
-  esNuevo: boolean;      // true si el servidor nunca lo vio antes
+  esNuevo: boolean;
 }
 
+export type ResultadoRegistro =
+  | { ok: true }
+  | { ok: false; codigoInvalido: boolean; error: string };
+
 export function useDispositivo() {
-  const [info, setInfo]         = useState<InfoDispositivo | null>(null);
+  const [info, setInfo]       = useState<InfoDispositivo | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [modalAbierto, setModalAbierto] = useState(false);
 
   useEffect(() => {
     let id = localStorage.getItem(LS_KEY);
@@ -50,7 +53,6 @@ export function useDispositivo() {
     }
     const nombre = detectarNombre();
 
-    // 1. Registrar/actualizar visita en servidor (sin tocar alias existente)
     fetch('/api/dispositivos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,9 +60,11 @@ export function useDispositivo() {
     })
       .then(r => r.json())
       .then((data: { ok: boolean; registrado?: boolean; alias?: string; visitas?: number }) => {
+        const alias = data.alias ?? '';
+        if (alias) localStorage.setItem(LS_ALIAS_KEY, alias);
         setInfo({
           id,
-          alias: data.alias ?? '',
+          alias,
           nombre,
           registrado: data.registrado ?? false,
           visitas: data.visitas ?? 1,
@@ -68,32 +72,43 @@ export function useDispositivo() {
         });
       })
       .catch(() => {
-        // Sin conexión: usar lo que hay en localStorage
-        setInfo({ id, alias: localStorage.getItem('ganesha_device_alias') ?? '', nombre, registrado: false, visitas: 0, esNuevo: false });
+        const id2 = localStorage.getItem(LS_KEY) ?? '';
+        setInfo({
+          id: id2,
+          alias: localStorage.getItem(LS_ALIAS_KEY) ?? '',
+          nombre,
+          registrado: !!(localStorage.getItem(LS_ALIAS_KEY)),
+          visitas: 0,
+          esNuevo: false,
+        });
       });
   }, []);
 
-  const guardarAlias = useCallback(async (alias: string) => {
+  // Registrar con nombre + código (requerido para dispositivos nuevos si DEVICE_CODE está configurado)
+  const guardarAlias = useCallback(async (alias: string, codigoRegistro?: string): Promise<ResultadoRegistro> => {
     const id = localStorage.getItem(LS_KEY);
-    if (!id) return;
+    if (!id) return { ok: false, codigoInvalido: false, error: 'Sin ID local' };
     setGuardando(true);
     try {
       const nombre = detectarNombre();
       const res = await fetch('/api/dispositivos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, nombre, alias }),
+        body: JSON.stringify({ id, nombre, alias, codigoRegistro }),
       });
-      const data = await res.json() as { ok: boolean };
+      const data = await res.json() as { ok: boolean; codigoInvalido?: boolean; error?: string };
       if (data.ok) {
-        localStorage.setItem('ganesha_device_alias', alias);
+        localStorage.setItem(LS_ALIAS_KEY, alias);
         setInfo(prev => prev ? { ...prev, alias, registrado: alias !== '' } : prev);
-        setModalAbierto(false);
+        return { ok: true };
       }
+      return { ok: false, codigoInvalido: data.codigoInvalido ?? false, error: data.error ?? 'Error al guardar' };
+    } catch {
+      return { ok: false, codigoInvalido: false, error: 'Sin conexión' };
     } finally {
       setGuardando(false);
     }
   }, []);
 
-  return { info, guardando, modalAbierto, setModalAbierto, guardarAlias };
+  return { info, guardando, guardarAlias };
 }
