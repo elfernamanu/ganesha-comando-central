@@ -686,34 +686,17 @@ export default function TurnosTable({
                   </div>
                 </div>
 
-                {/* Asistencia + botón extra */}
-                <div className="flex flex-col gap-1 items-center">
+                {/* Asistencia */}
+                <div className="flex items-center justify-center">
                   <BotonesAsistencia
                     asistencia={turno.asistencia}
                     onChange={v => onActualizar(turno.id, { asistencia: v as any })}
                     size="sm"
                   />
-                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
-                    <div className="flex items-center gap-0.5 w-full">
-                      <span className="text-[9px] font-bold text-blue-500">+</span>
-                      <NumeroInput
-                        value={extraDesk}
-                        onChange={v => onActualizar(turno.id, { extra: v })}
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
-                      className="w-full py-0.5 rounded text-[11px] font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
-                    >+ extra</button>
-                  )}
-                  {extraDesk > 0 && (
-                    <p className="text-[9px] font-bold text-slate-500">={granTotalDesk.toLocaleString('es-AR')}</p>
-                  )}
                 </div>
 
-                {/* Total */}
-                <div>
+                {/* Total + botón extra */}
+                <div className="flex flex-col gap-0.5">
                   <div className="relative">
                     <NumeroInput
                       value={turno.monto_total}
@@ -728,6 +711,22 @@ export default function TurnosTable({
                       >!</span>
                     )}
                   </div>
+                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
+                    <>
+                      <NumeroInput
+                        value={extraDesk}
+                        onChange={v => onActualizar(turno.id, { extra: v })}
+                      />
+                      {extraDesk > 0 && (
+                        <p className="text-[9px] font-bold text-slate-500 text-center">={granTotalDesk.toLocaleString('es-AR')}</p>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
+                      className="w-full py-0.5 rounded text-[11px] font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                    >+ extra</button>
+                  )}
                 </div>
 
                 {/* Seña */}
