@@ -40,6 +40,7 @@ export default function PanelContactosDia({ turnos }: Props) {
   const [guardado, setGuardado]   = useState(false);
   const [cerrado, setCerrado]     = useState(false);
   const [cargando, setCargando]   = useState(true);
+  const cargaCompleta = useRef(false);
 
   // Armar lista única de clientas del día + datos del servidor
   useEffect(() => {
@@ -84,8 +85,41 @@ export default function PanelContactosDia({ turnos }: Props) {
       .catch(() => {
         setEntradas(Array.from(unicasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre)));
       })
-      .finally(() => setCargando(false));
+      .finally(() => { setCargando(false); cargaCompleta.current = true; });
   }, [turnos]);
+
+  // Cuando la secretaria carga un número en Turnos → vuelve al foco → refrescar teléfonos
+  useEffect(() => {
+    const refrescarTels = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!cargaCompleta.current || entradas.length === 0) return;
+      fetch('/api/clientes')
+        .then(r => r.json())
+        .then((data: { ok: boolean; datos?: ClienteData[] }) => {
+          if (!data.ok || !data.datos) return;
+          const serverMap = new Map(data.datos.map(c => [c.nombre.toLowerCase(), c.celular]));
+          setEntradas(prev => {
+            let changed = false;
+            const next = prev.map(e => {
+              const serverCel = serverMap.get(e.nombre.toLowerCase()) ?? '';
+              if (serverCel && serverCel !== e.celular) {
+                changed = true;
+                return { ...e, celular: serverCel, yaExistia: true };
+              }
+              return e;
+            });
+            return changed ? next : prev;
+          });
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('focus', refrescarTels);
+    document.addEventListener('visibilitychange', refrescarTels);
+    return () => {
+      window.removeEventListener('focus', refrescarTels);
+      document.removeEventListener('visibilitychange', refrescarTels);
+    };
+  }, [entradas.length]);
 
   const cambiarCelular = (nombre: string, celular: string) => {
     setGuardado(false);
