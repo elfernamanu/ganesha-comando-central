@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { verificarToken } from '@/lib/auth';
+import { guardarBackup } from '@/lib/backup';
 
 // GET /api/config → devuelve la configuración de servicios
 export async function GET(req: NextRequest) {
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
     if (!datos) return NextResponse.json({ ok: false }, { status: 400 });
 
     const json = JSON.stringify(datos);
+
+    const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = 1').catch(() => []);
+    if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('config', '1', (prev as { datos: unknown }[])[0].datos);
 
     // UPSERT: una sola operación atómica
     await query(

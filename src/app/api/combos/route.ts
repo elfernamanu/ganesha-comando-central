@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 const ID_COMBOS = -3;
 
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(datos)) {
       return NextResponse.json({ ok: false, error: 'datos debe ser un array' }, { status: 400 });
     }
+
+    const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = $1', [ID_COMBOS]).catch(() => []);
+    if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('combos', '1', (prev as { datos: unknown }[])[0].datos);
 
     await query(
       `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES ($1, $2::jsonb, NOW())

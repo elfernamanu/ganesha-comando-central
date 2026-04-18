@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 const ID_EMPRESA  = -1;
 const ID_PERSONAL = -2;
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
     const { empresa, personal } = body as { empresa?: unknown[]; personal?: unknown[] };
 
     if (Array.isArray(empresa)) {
+      const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = $1', [ID_EMPRESA]).catch(() => []);
+      if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('gastos_empresa', '1', (prev as { datos: unknown }[])[0].datos);
       await query(
         `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES ($1, $2::jsonb, NOW())
          ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
@@ -41,6 +44,8 @@ export async function POST(req: NextRequest) {
       );
     }
     if (Array.isArray(personal)) {
+      const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = $1', [ID_PERSONAL]).catch(() => []);
+      if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('gastos_personal', '1', (prev as { datos: unknown }[])[0].datos);
       await query(
         `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES ($1, $2::jsonb, NOW())
          ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
