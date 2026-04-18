@@ -115,6 +115,17 @@ export function useCajaDiaria(fecha: string) {
   // Cargar gastos + estado de caja + snapshot fijos desde el servidor al montar
   useEffect(() => {
     serverCargado.current = false;
+    // Resetear estado al cambiar de fecha — evita mostrar datos del día anterior
+    setEstadoCaja('abierta');
+    estadoCajaRef.current = 'abierta';
+    setSnapshotFijosEmpresa([]);
+    setSnapshotFijosPersonal([]);
+    // Cargar gastos de la nueva fecha desde localStorage (respuesta inmediata)
+    try {
+      const raw = localStorage.getItem(`ganesha_gastos_${fecha}`);
+      const parsed = raw ? JSON.parse(raw) : null;
+      setGastos(Array.isArray(parsed) ? parsed : []);
+    } catch { setGastos([]); }
 
     fetch(`/api/caja?fecha=${fecha}`)
       .then(r => r.json())
