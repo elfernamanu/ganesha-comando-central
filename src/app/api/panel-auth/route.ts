@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Dispositivo registrado → bypass del PIN
     if (body.deviceId && !body.pin) {
-      const { rows } = await query(
+      const rows = await query(
         'SELECT id FROM dispositivos WHERE id = $1 AND registrado = true',
         [body.deviceId]
       );
