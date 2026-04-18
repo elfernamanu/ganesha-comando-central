@@ -379,9 +379,7 @@ export function useTurnos(fecha: string) {
       metodo_pago: 'efectivo',
       createdAt: Date.now(),
     };
-    setTurnos(prev =>
-      [...prev, nuevoTurno].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''))
-    );
+    setTurnos(prev => [...prev, nuevoTurno]);
   };
 
   const actualizarTurno = (id: string, cambios: Partial<Turno>) => {
@@ -491,20 +489,17 @@ export function useTurnos(fecha: string) {
         await new Promise(r => setTimeout(r, 50));
       }
       isSavingRef.current = true;
-      // Ordenar antes de guardar → próximo refresh carga en orden correcto
-      const turnosOrdenados = [...turnos].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha, datos: turnosOrdenados }),
+        body: JSON.stringify({ fecha, datos: turnos }),
       });
 
       const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; parcial?: boolean; cantServidor?: number; cantEnviados?: number; error?: string };
       if (res.ok && resData.ok) {
         hayCambios.current = false;   // resetear: ya no hay cambios sin guardar
         setAutoGuardado('idle');      // quitar el banner "Guardando..." que dejó el useEffect
-        setTurnos(turnosOrdenados);
-        sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
+        sincronizarCelularesDesdeDetalle(turnos).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
         }).catch(() => {});
         setMensaje('✅ Guardado — visible en todos los dispositivos');
