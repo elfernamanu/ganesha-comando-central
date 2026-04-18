@@ -89,12 +89,13 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-// ── POST: guardar/cerrar caja ──────────────────────────────────────────────
+// ── POST: guardar/cerrar/reabrir caja ─────────────────────────────────────
 //
-// Dos modos:
+// Tres modos:
 //   estado = 'cerrada'  → cierre completo: guarda todo (snapshot), marca cerrada = TRUE
 //   estado = 'abierta'  → auto-guardado parcial: solo actualiza gastos en datos JSONB,
 //                          NUNCA reabre una caja ya cerrada
+//   estado = 'reabrir'  → marca cerrada = FALSE sin tocar los datos (para reabrir el día)
 //
 export async function POST(req: NextRequest) {
   try {
@@ -104,6 +105,14 @@ export async function POST(req: NextRequest) {
     if (!fecha) return NextResponse.json({ ok: false, error: 'Falta fecha' }, { status: 400 });
 
     await ensureTable();
+
+    if (estado === 'reabrir') {
+      await query(
+        `UPDATE caja_diaria SET cerrada = false, actualizado = NOW() WHERE fecha = $1`,
+        [fecha]
+      );
+      return NextResponse.json({ ok: true, cerrada: false, fecha });
+    }
 
     if (estado === 'cerrada') {
       // ── Cierre completo: snapshot de todo ─────────────────────────────────
