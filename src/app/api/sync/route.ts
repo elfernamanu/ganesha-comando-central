@@ -62,17 +62,27 @@ export async function POST(req: NextRequest) {
     // → rechazar el guardado. Evita que cualquier dispositivo sin caché
     // pise datos reales con una lista vacía.
     // Para borrar todos los turnos intencionalmente usar forzar: true.
-    if (datos.length === 0 && !forzar) {
+    if (!forzar) {
       const existing = await query<{ cant: string }>(
         `SELECT jsonb_array_length(datos)::text AS cant FROM turnos WHERE fecha = $1`,
         [fecha]
       );
       const cantExistente = parseInt(existing[0]?.cant ?? '0', 10);
-      if (cantExistente > 0) {
+      if (cantExistente > 0 && datos.length === 0) {
         return NextResponse.json({
           ok: false,
           protegido: true,
           error: `Protección activa: hay ${cantExistente} turno${cantExistente !== 1 ? 's' : ''} guardados en el servidor para ${fecha}. No se puede guardar vacío.`,
+        }, { status: 409 });
+      }
+      if (cantExistente > datos.length && datos.length > 0) {
+        return NextResponse.json({
+          ok: false,
+          protegido: true,
+          parcial: true,
+          cantServidor: cantExistente,
+          cantEnviados: datos.length,
+          error: `Protección activa: el servidor tiene ${cantExistente} turnos para ${fecha} pero se enviaron solo ${datos.length}. Para sobrescribir usar forzar: true.`,
         }, { status: 409 });
       }
     }
