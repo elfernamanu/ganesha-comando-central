@@ -420,10 +420,11 @@ export default function ContactosPage() {
   // Auto-refresh cuando la pestaña vuelve al foco
   useEffect(() => {
     const alVolver = () => { if (document.visibilityState === 'visible') cargarClientes(); };
-    window.addEventListener('focus', cargarClientes);
+    const alFoco = () => cargarClientes();
+    window.addEventListener('focus', alFoco);
     document.addEventListener('visibilitychange', alVolver);
     return () => {
-      window.removeEventListener('focus', cargarClientes);
+      window.removeEventListener('focus', alFoco);
       document.removeEventListener('visibilitychange', alVolver);
     };
   }, [cargarClientes]);
