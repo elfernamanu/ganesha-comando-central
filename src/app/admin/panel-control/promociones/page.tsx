@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { guardarCombos, invalidarCatalogoCache } from '../_shared/catalogoPromos';
+import CargandoServidor from '@/components/CargandoServidor';
+import AccesoRestringido from '@/components/AccesoRestringido';
+import { useAcceso } from '@/hooks/useAcceso';
 
 interface Combo {
   numero: number;
@@ -20,27 +23,18 @@ interface Combo {
 const LS_COMBOS = 'ganesha_catalog_combos_raw';
 
 export default function PromocionesPage() {
+  const acceso = useAcceso();
   const [combos, setCombos] = useState<Combo[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [estado, setEstado] = useState<'ok' | 'error' | ''>('');
+  const [cargandoInicial, setCargandoInicial] = useState(true);
   const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
   const ultimoGuardadoManual = useRef(0);
   const cargaCompleta = useRef(false);
-  // Solo true cuando el servidor respondió OK — bloquea auto-save si el servidor estaba caído
   const servidorConfirmado = useRef(false);
 
-  // Cargar: primero localStorage (inmediato), luego servidor (si tiene datos)
+  // Servidor primero — bloquea la pantalla hasta recibir datos reales
   useEffect(() => {
-    // 1. localStorage primero
-    try {
-      const stored = localStorage.getItem(LS_COMBOS);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Combo[];
-        if (Array.isArray(parsed)) setCombos(parsed);
-      }
-    } catch { /* silencioso */ }
-
-    // 2. Servidor — si tiene datos gana (versión más fresca)
     fetch('/api/combos')
       .then(r => r.json())
       .then((data: { ok: boolean; datos?: unknown }) => {
@@ -51,10 +45,30 @@ export default function PromocionesPage() {
           try { localStorage.setItem(LS_COMBOS, JSON.stringify(fromServer)); } catch { /* silencioso */ }
           guardarCombos(fromServer);
           invalidarCatalogoCache();
+        } else {
+          // Fallback a localStorage si servidor no tiene datos
+          try {
+            const stored = localStorage.getItem(LS_COMBOS);
+            if (stored) {
+              const parsed = JSON.parse(stored) as Combo[];
+              if (Array.isArray(parsed)) setCombos(parsed);
+            }
+          } catch { /* silencioso */ }
         }
       })
-      .catch(() => { /* servidor caído — servidorConfirmado queda false */ })
-      .finally(() => { cargaCompleta.current = true; });
+      .catch(() => {
+        try {
+          const stored = localStorage.getItem(LS_COMBOS);
+          if (stored) {
+            const parsed = JSON.parse(stored) as Combo[];
+            if (Array.isArray(parsed)) setCombos(parsed);
+          }
+        } catch { /* silencioso */ }
+      })
+      .finally(() => {
+        cargaCompleta.current = true;
+        setCargandoInicial(false);
+      });
   }, []);
 
   // Auto-guardado 3s después de cada cambio
@@ -128,6 +142,9 @@ export default function PromocionesPage() {
       setTimeout(() => setEstado(''), 3000);
     }
   };
+
+  if (acceso === null || cargandoInicial) return <CargandoServidor seccion="Combos y Promociones" />;
+  if (!acceso) return <AccesoRestringido seccion="Combos y Promociones" />;
 
   return (
     <div className="space-y-3">

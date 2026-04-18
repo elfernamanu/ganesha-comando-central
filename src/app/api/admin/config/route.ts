@@ -11,7 +11,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { datos } = body;
-    if (!datos) return NextResponse.json({ ok: false, error: 'Sin datos' }, { status: 400 });
+    // Validación estricta: datos debe ser array con al menos 1 elemento (no permite config vacía)
+    if (!datos || !Array.isArray(datos) || datos.length === 0) {
+      return NextResponse.json({ ok: false, error: 'datos debe ser un array con al menos 1 categoría' }, { status: 400 });
+    }
 
     const json = JSON.stringify(datos);
 

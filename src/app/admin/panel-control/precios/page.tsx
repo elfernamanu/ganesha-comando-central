@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/components/Toast';
 import { invalidarCatalogoCache } from '../_shared/catalogoPromos';
+import CargandoServidor from '@/components/CargandoServidor';
+import AccesoRestringido from '@/components/AccesoRestringido';
+import { useAcceso } from '@/hooks/useAcceso';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface Jornada {
@@ -556,6 +559,7 @@ function ListaPrecios({
 
 // ── Página principal ───────────────────────────────────────────────────────
 export default function ConfiguracionServiciosPage() {
+  const acceso = useAcceso();
   const [categorias, setCategorias] = useState<CategoriaServicio[]>(INICIAL);
   const [tabActiva, setTabActiva]   = useState('unas');
   const [guardando, setGuardando]   = useState(false);
@@ -757,6 +761,9 @@ export default function ConfiguracionServiciosPage() {
   };
 
   const cat = categorias.find(c => c.id === tabActiva)!;
+
+  if (acceso === null || !cargado) return <CargandoServidor seccion="Servicios y Precios" />;
+  if (!acceso) return <AccesoRestringido seccion="Servicios y Precios" />;
 
   return (
     <div className="space-y-3">

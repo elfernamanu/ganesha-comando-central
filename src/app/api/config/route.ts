@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { datos } = body;
-    if (!datos) return NextResponse.json({ ok: false }, { status: 400 });
+    if (!datos || (Array.isArray(datos) && datos.length === 0)) {
+      return NextResponse.json({ ok: false, error: 'datos vacío — no se guarda' }, { status: 400 });
+    }
 
     const json = JSON.stringify(datos);
 

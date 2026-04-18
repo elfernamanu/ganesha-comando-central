@@ -14,13 +14,29 @@ function LoginForm() {
   const [checking, setChecking] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Si no hay PIN requerido, redirigir directo
+  // Si no hay PIN requerido, o dispositivo ya registrado → entrar directo
   useEffect(() => {
     fetch('/api/panel-auth')
       .then(r => r.json())
-      .then(d => {
-        if (!d.pinRequerido) router.replace(destino);
-        else { setChecking(false); setTimeout(() => inputRef.current?.focus(), 100); }
+      .then(async d => {
+        if (!d.pinRequerido) { router.replace(destino); return; }
+
+        // Intentar autenticar con el ID del dispositivo (si está registrado, no pide PIN)
+        try {
+          const deviceId = localStorage.getItem('ganesha_device_id');
+          if (deviceId) {
+            const authRes = await fetch('/api/panel-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ deviceId }),
+            });
+            const authData = await authRes.json() as { ok: boolean };
+            if (authData.ok) { router.replace(destino); return; }
+          }
+        } catch { /* dispositivo no registrado o sin conexión → mostrar PIN */ }
+
+        setChecking(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
       })
       .catch(() => setChecking(false));
   }, [destino, router]);

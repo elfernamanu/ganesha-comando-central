@@ -196,9 +196,10 @@ export function useTurnos(fecha: string) {
           if (!item || item.precio === 0 || item.precio === t.monto_total) return t;
           huboCambioPrecio = true;
           const monto_total = item.precio;
-          const sena = Math.min(t.seña_pagada ?? 0, monto_total);
+          const totalConExtra = monto_total + (t.extra ?? 0);
+          const sena = Math.min(t.seña_pagada ?? 0, totalConExtra);
           const estado_pago = sena === 0 ? 'sin_pago'
-            : (monto_total > 0 && sena >= monto_total) ? 'completo'
+            : (totalConExtra > 0 && sena >= totalConExtra) ? 'completo'
             : 'seña';
           return { ...t, monto_total, seña_pagada: sena, estado_pago };
         });
@@ -372,6 +373,7 @@ export function useTurnos(fecha: string) {
       detalle: '',
       asistencia: '',
       monto_total: 0,
+      extra: 0,
       seña_pagada: 0,
       estado_pago: 'sin_pago',
       metodo_pago: 'efectivo',
@@ -390,11 +392,13 @@ export function useTurnos(fecha: string) {
         if (t.id !== id) return t;
         const updated = { ...t, ...cambios };
 
-        if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined) {
-          const total = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
-          let seña    = cambios.seña_pagada !== undefined ? cambios.seña_pagada : t.seña_pagada;
+        if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined || cambios.extra !== undefined) {
+          const base  = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
+          const xtra  = cambios.extra !== undefined ? (cambios.extra ?? 0) : (t.extra ?? 0);
+          const total = base + xtra;
+          let seña    = cambios.seña_pagada !== undefined ? cambios.seña_pagada : (t.seña_pagada ?? 0);
 
-          // Seña nunca puede superar el monto total (evita datos corruptos)
+          // Seña nunca puede superar el total (base + extra)
           if (total > 0 && seña > total) {
             seña = total;
             updated.seña_pagada = total;
@@ -431,8 +435,8 @@ export function useTurnos(fecha: string) {
   // ========================================
   const totales = useMemo(() => {
     const ingresos = turnos
-      .filter(t => t.asistencia === 'presente' || (t.asistencia === 'no_vino' && t.seña_pagada > 0))
-      .reduce((sum, t) => sum + t.seña_pagada, 0);
+      .filter(t => t.asistencia === 'presente' || (t.asistencia === 'no_vino' && (t.seña_pagada ?? 0) > 0))
+      .reduce((sum, t) => sum + (t.seña_pagada ?? 0), 0);
 
     return {
       total_turnos: turnos.length,
@@ -497,6 +501,8 @@ export function useTurnos(fecha: string) {
 
       const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; parcial?: boolean; cantServidor?: number; cantEnviados?: number; error?: string };
       if (res.ok && resData.ok) {
+        hayCambios.current = false;   // resetear: ya no hay cambios sin guardar
+        setAutoGuardado('idle');      // quitar el banner "Guardando..." que dejó el useEffect
         setTurnos(turnosOrdenados);
         sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
@@ -519,6 +525,8 @@ export function useTurnos(fecha: string) {
           });
           const dataForzado = await resForzado.json().catch(() => ({})) as { ok: boolean };
           if (resForzado.ok && dataForzado.ok) {
+            hayCambios.current = false;
+            setAutoGuardado('idle');
             setTurnos(turnosOrdenados);
             setMensaje('✅ Guardado forzado — se sobrescribieron los datos del servidor');
           } else {

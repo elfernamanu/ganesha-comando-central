@@ -39,26 +39,28 @@ export function useCajaDiaria(fecha: string) {
   // ========================================
   const [turnos,         setTurnos]         = useState<Turno[]>([]);
   const [cargandoTurnos, setCargandoTurnos] = useState(true);
+  const [cargandoCaja,   setCargandoCaja]   = useState(true);
 
   const cargarTurnos = useCallback(async () => {
-    // 1. localStorage primero (inmediato)
+    // Servidor primero — fuente de verdad. Solo si falla usamos localStorage.
+    try {
+      const res = await fetch(`/api/sync?fecha=${fecha}`);
+      const { ok, datos } = await res.json();
+      if (ok && Array.isArray(datos)) {
+        setTurnos(datos as Turno[]);
+        try { localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos)); } catch { /* silencioso */ }
+        setCargandoTurnos(false);
+        return;
+      }
+    } catch { /* sin conexión */ }
+    // Fallback: localStorage solo si servidor no respondió
     try {
       const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) setTurnos(parsed);
+        if (Array.isArray(parsed)) setTurnos(parsed);
       }
     } catch { /* silencioso */ }
-
-    // 2. Servidor (fuente de verdad)
-    try {
-      const res = await fetch(`/api/sync?fecha=${fecha}`);
-      const { ok, datos } = await res.json();
-      if (ok && Array.isArray(datos) && datos.length > 0) {
-        setTurnos(datos as Turno[]);
-        try { localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos)); } catch { /* silencioso */ }
-      }
-    } catch { /* sin conexión — quedamos con localStorage */ }
     setCargandoTurnos(false);
   }, [fecha]);
 
@@ -119,6 +121,7 @@ export function useCajaDiaria(fecha: string) {
   // Cargar gastos + estado de caja + snapshot fijos desde el servidor al montar
   useEffect(() => {
     serverCargado.current = false;
+    setCargandoCaja(true);
     // Resetear estado al cambiar de fecha — evita mostrar datos del día anterior
     setEstadoCaja('abierta');
     estadoCajaRef.current = 'abierta';
@@ -153,10 +156,12 @@ export function useCajaDiaria(fecha: string) {
         }
         // Si no existe en el servidor todavía, nos quedamos con localStorage (o [])
         serverCargado.current = true;
+        setCargandoCaja(false);
       })
       .catch(() => {
         // Sin conexión — quedamos con localStorage
         serverCargado.current = true;
+        setCargandoCaja(false);
       });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -394,6 +399,7 @@ export function useCajaDiaria(fecha: string) {
   return {
     turnos,
     cargandoTurnos,
+    cargandoInicial: cargandoTurnos || cargandoCaja,
     gastos,
     totales,
     estadoCaja,

@@ -21,6 +21,7 @@ export interface Turno {
   detalle: string;           // "Cuerpo completo sin rostro"
   asistencia: Asistencia;
   monto_total: number;       // $ 33.000
+  extra: number;             // $ adicional cobrado en el momento (otro tratamiento)
   seña_pagada: number;       // $ 5.000
   estado_pago: EstadoPago;
   metodo_pago: MetodoPago;

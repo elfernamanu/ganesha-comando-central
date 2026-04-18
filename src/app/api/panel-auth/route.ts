@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/db';
 
 /**
  * GET    /api/panel-auth  → { pinRequerido: bool }
@@ -25,9 +26,30 @@ export async function POST(req: NextRequest) {
   if (!panelPin) return NextResponse.json({ ok: true });
 
   try {
-    const { pin } = await req.json() as { pin: string };
-    const ok = String(pin).trim() === String(panelPin).trim();
+    const body = await req.json() as { pin?: string; deviceId?: string };
 
+    // Dispositivo registrado → bypass del PIN
+    if (body.deviceId && !body.pin) {
+      const { rows } = await query(
+        'SELECT id FROM dispositivos WHERE id = $1 AND registrado = true',
+        [body.deviceId]
+      );
+      if (rows.length > 0) {
+        const token = await sessionToken(panelPin);
+        const res = NextResponse.json({ ok: true });
+        res.cookies.set('ganesha_session', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60,
+          path: '/',
+        });
+        return res;
+      }
+      return NextResponse.json({ ok: false });
+    }
+
+    const ok = String(body.pin ?? '').trim() === String(panelPin).trim();
     if (!ok) return NextResponse.json({ ok: false });
 
     const token = await sessionToken(panelPin);

@@ -6,6 +6,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
 import { useGastosFijos } from './hooks/useGastosFijos';
 import { useToast } from '@/components/Toast';
+import CargandoServidor from '@/components/CargandoServidor';
+import AccesoRestringido from '@/components/AccesoRestringido';
+import { useAcceso } from '@/hooks/useAcceso';
 import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
 import { formatearDinero, formatearHora } from './utils/formatters';
 import GastosForm from './components/GastosForm';
@@ -17,6 +20,7 @@ import PanelContactosDia from './components/PanelContactosDia';
 import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
 
 function CajaContent() {
+  const acceso = useAcceso();
   const params  = useSearchParams();
   const router  = useRouter();
   // Fecha LOCAL (no UTC) — en Argentina a las 23:30 UTC sería el día siguiente
@@ -44,6 +48,7 @@ function CajaContent() {
     snapshotFijosEmpresa,
     snapshotFijosPersonal,
     cargandoTurnos,
+    cargandoInicial,
   } = useCajaDiaria(fecha);
 
   const {
@@ -266,6 +271,9 @@ function CajaContent() {
     setRecuperando(false);
     setTimeout(() => setMensajeRecuperar(''), 5000);
   };
+
+  if (acceso === null || cargandoInicial) return <CargandoServidor seccion="Control de Caja" />;
+  if (!acceso) return <AccesoRestringido seccion="Control de Caja" />;
 
   return (
     <div className="space-y-2 max-w-2xl mx-auto">
