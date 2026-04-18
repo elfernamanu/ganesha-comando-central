@@ -274,6 +274,8 @@ export default function TurnosTable({
     );
   }
 
+  const [senasAbiertas, setSenasAbiertas] = useState<Set<string>>(new Set());
+
   if (turnos.length === 0) {
     return (
       <div className="text-center py-10 text-slate-400 text-sm space-y-3">
@@ -450,12 +452,23 @@ export default function TurnosTable({
 
                   {/* Seña cobrada */}
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña ya cobrada</p>
-                    <NumeroInput
-                      value={turno.seña_pagada}
-                      onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
-                      className="text-base font-bold"
-                    />
+                    {(turno.seña_pagada > 0 || senasAbiertas.has(turno.id)) ? (
+                      <>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña ya cobrada</p>
+                        <NumeroInput
+                          value={turno.seña_pagada}
+                          onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
+                          className="text-base font-bold"
+                        />
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setSenasAbiertas(s => new Set([...s, turno.id]))}
+                        className="mt-5 w-full px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 hover:text-blue-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                      >
+                        + seña
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -688,10 +701,19 @@ export default function TurnosTable({
 
                 {/* Seña */}
                 <div>
-                  <NumeroInput
-                    value={turno.seña_pagada}
-                    onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
-                  />
+                  {(turno.seña_pagada > 0 || senasAbiertas.has(turno.id)) ? (
+                    <NumeroInput
+                      value={turno.seña_pagada}
+                      onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setSenasAbiertas(s => new Set([...s, turno.id]))}
+                      className="w-full px-1 py-1 rounded text-[11px] font-medium text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 hover:text-blue-600 hover:border-blue-400 transition-colors"
+                    >
+                      + seña
+                    </button>
+                  )}
                 </div>
 
                 {/* Cobrar ahora — saldo pendiente */}
