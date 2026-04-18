@@ -2,10 +2,56 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Suspense, useEffect, useCallback } from 'react';
+import { Suspense, useEffect, useCallback, useState } from 'react';
 import { useTurnos } from './hooks/useTurnos';
 import TurnosTable from './components/TurnosTable';
 import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
+
+function RecuperarBackupButton({ fecha }: { fecha: string }) {
+  const [estado, setEstado] = useState<'idle' | 'cargando' | 'confirmando' | 'restaurando'>('idle');
+  const [backupInfo, setBackupInfo] = useState<{ guardado_at: string; cant: number } | null>(null);
+
+  const verificar = async () => {
+    setEstado('cargando');
+    try {
+      const res = await fetch(`/api/backup?restaurar=turnos&clave=${fecha}`);
+      const data = await res.json() as { ok: boolean; datos?: unknown[]; guardado_at?: string };
+      if (!data.ok || !data.datos) { setEstado('idle'); alert('No hay backup previo para esta fecha.'); return; }
+      setBackupInfo({ guardado_at: data.guardado_at ?? '', cant: Array.isArray(data.datos) ? data.datos.length : 0 });
+      setEstado('confirmando');
+    } catch { setEstado('idle'); alert('Error al consultar backup'); }
+  };
+
+  const restaurar = async () => {
+    setEstado('restaurando');
+    try {
+      const res = await fetch('/api/backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'restaurar', tabla: 'turnos', clave: fecha }) });
+      const data = await res.json() as { ok: boolean; mensaje?: string };
+      if (data.ok) { alert(`✅ ${data.mensaje}\nRecargá la página para ver los turnos restaurados.`); }
+      else { alert(`❌ Error: ${data.mensaje}`); }
+    } catch { alert('Error al restaurar'); }
+    setEstado('idle');
+    setBackupInfo(null);
+  };
+
+  if (estado === 'confirmando' && backupInfo) {
+    const fechaBackup = new Date(backupInfo.guardado_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-amber-600 font-semibold">Backup del {fechaBackup} — {backupInfo.cant} turnos</span>
+        <button onClick={restaurar} className="text-[11px] px-2 py-0.5 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600">Restaurar</button>
+        <button onClick={() => setEstado('idle')} className="text-[11px] text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={verificar} disabled={estado === 'cargando' || estado === 'restaurando'}
+      className="text-[11px] text-violet-500 dark:text-violet-400 hover:underline disabled:opacity-50">
+      {estado === 'cargando' ? '⏳ Buscando...' : '🔄 Recuperar backup'}
+    </button>
+  );
+}
 
 function TurnosContent() {
   const params = useSearchParams();
@@ -16,7 +62,7 @@ function TurnosContent() {
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
-  const { turnos, totales, mensaje, guardando, autoGuardado, cargandoInicial, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
+  const { turnos, totales, mensaje, guardando, autoGuardado, cargandoInicial, ultimaActualizacion, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
 
   const sinGuardar = autoGuardado === 'pendiente' || autoGuardado === 'error';
 
@@ -190,6 +236,16 @@ function TurnosContent() {
         onAgregar={agregarTurno}
         onConfirmarCelular={confirmarCelular}
       />
+
+      {/* Último guardado + recuperar backup */}
+      {ultimaActualizacion && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            Servidor actualizado: {new Date(ultimaActualizacion).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+          </p>
+          <RecuperarBackupButton fecha={fecha} />
+        </div>
+      )}
 
       <button
         onClick={guardar}

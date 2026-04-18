@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 let tableReady = false;
 async function ensureTable() {
@@ -75,6 +76,14 @@ export async function POST(req: NextRequest) {
           error: `Protección activa: hay ${cantExistente} contacto${cantExistente !== 1 ? 's' : ''} en el servidor. No se puede guardar vacío.`,
         }, { status: 409 });
       }
+    }
+
+    // Guardar backup ANTES de sobreescribir
+    const prev = await query<{ datos: unknown }>(
+      'SELECT datos FROM clientes_telefonos WHERE id = 1'
+    ).catch(() => []);
+    if ((prev as { datos: unknown }[])[0]?.datos) {
+      await guardarBackup('clientes', '1', (prev as { datos: unknown }[])[0].datos);
     }
 
     await query(
