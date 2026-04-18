@@ -53,12 +53,32 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { datos } = body as { datos?: unknown[] };
+    const { datos, forzar } = body as { datos?: unknown[]; forzar?: boolean };
     if (!Array.isArray(datos)) {
       return NextResponse.json({ ok: false, error: 'datos debe ser un array' }, { status: 400 });
     }
 
     const json = JSON.stringify(datos);
+
+    // Protección: nunca vaciar la base de contactos accidentalmente.
+    // Si el dispositivo envía [] pero el servidor ya tiene contactos → rechazar.
+    // Para vaciar intencionalmente usar forzar: true.
+    if (datos.length === 0 && !forzar) {
+      try {
+        await ensureTable();
+        const existing = await query<{ cant: string }>(
+          `SELECT jsonb_array_length(datos)::text AS cant FROM clientes_telefonos WHERE id = 1`
+        );
+        const cantExistente = parseInt(existing[0]?.cant ?? '0', 10);
+        if (cantExistente > 0) {
+          return NextResponse.json({
+            ok: false,
+            protegido: true,
+            error: `Protección activa: hay ${cantExistente} contacto${cantExistente !== 1 ? 's' : ''} en el servidor. No se puede guardar vacío.`,
+          }, { status: 409 });
+        }
+      } catch { /* tabla no existe todavía — no hay datos que proteger */ }
+    }
 
     // Intentar guardar en clientes_telefonos; si la tabla no existe, usar config_servicios
     let savedMain = false;
