@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useCallback } from 'react';
 import { useTurnos } from './hooks/useTurnos';
 import TurnosTable from './components/TurnosTable';
 import { useFechasHabilitadas } from '../_shared/useFechasHabilitadas';
@@ -16,7 +16,26 @@ function TurnosContent() {
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
-  const { turnos, totales, mensaje, guardando, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
+  const { turnos, totales, mensaje, guardando, autoGuardado, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
+
+  const sinGuardar = autoGuardado === 'pendiente' || autoGuardado === 'error';
+
+  // Alerta al cerrar/recargar la página con cambios sin guardar
+  useEffect(() => {
+    if (!sinGuardar) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [sinGuardar]);
+
+  // Navegar a otra fecha con confirmación si hay cambios pendientes
+  const navegarFecha = useCallback((destino: string) => {
+    if (sinGuardar) {
+      const ok = confirm('⚠️ Los turnos no se guardaron en el servidor todavía.\n¿Querés guardar antes de cambiar de fecha?');
+      if (ok) { guardar(); return; }
+    }
+    router.push(`/admin/panel-control/turnos?fecha=${destino}`);
+  }, [sinGuardar, guardar, router]);
 
   const fechasHabilitadas = useFechasHabilitadas();
 
@@ -86,31 +105,44 @@ function TurnosContent() {
         </div>
       )}
 
+      {/* ── Alerta turnos sin guardar ── */}
+      {sinGuardar && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700">
+          <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+            ⚠️ {autoGuardado === 'error' ? 'Sin conexión — turnos guardados solo en este dispositivo' : 'Guardando en servidor...'}
+          </p>
+          <button onClick={guardar} disabled={guardando}
+            className="px-3 py-1 text-xs rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50 shrink-0">
+            {guardando ? '⏳' : '💾 Guardar ya'}
+          </button>
+        </div>
+      )}
+
       {/* ── Navegación entre días ── */}
       <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-800 rounded-2xl px-3 py-2 border border-slate-100 dark:border-slate-700 shadow-sm">
-        <Link
-          href={`/admin/panel-control/turnos?fecha=${prevStr}`}
+        <button
+          onClick={() => navegarFecha(prevStr)}
           className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
           Anterior
-        </Link>
+        </button>
 
         <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-wide uppercase">
           {esHoy ? '📅 Hoy' : fecha}
         </span>
 
-        <Link
-          href={`/admin/panel-control/turnos?fecha=${nextStr}`}
+        <button
+          onClick={() => navegarFecha(nextStr)}
           className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all"
         >
           Siguiente
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9,18 15,12 9,6"/>
           </svg>
-        </Link>
+        </button>
       </div>
 
       {/* Stats del día — cards nativas */}
