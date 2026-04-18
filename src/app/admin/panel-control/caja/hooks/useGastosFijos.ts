@@ -33,14 +33,36 @@ const LS_EMPRESA  = 'ganesha_gastos_fijos_empresa_v2';
 const LS_PERSONAL = 'ganesha_gastos_fijos_personal_v2';
 
 // Función en lugar de constante para que fechaCreacion sea el día de hoy real
+// IDs fijos de gastos personales requeridos — se agregan si faltan, sin tocar los existentes
+const PERSONAL_REQUERIDOS = [
+  { id: 'personal_luz',     nombre: 'Luz Casa' },
+  { id: 'personal_gas',     nombre: 'Gas Casa' },
+  { id: 'personal_gym',     nombre: 'Gym'      },
+  { id: 'personal_arba',    nombre: 'ARBA'     },
+  { id: 'personal_aysa',    nombre: 'AYSA'     },
+  { id: 'personal_flow',    nombre: 'FLOW'     },
+  { id: 'personal_targeta', nombre: 'TARGETA'  },
+];
+
 function gastoPersonalDefault(): GastoFijo[] {
   const hoy = hoyStr();
-  return [
-    { id: 'personal_luz',  nombre: 'Luz Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
-    { id: 'personal_gas',  nombre: 'Gas Casa',  tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
-    { id: 'personal_gym',  nombre: 'Gym',       tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
-    { id: 'personal_arba', nombre: 'ARBA',      tipo: 'personal', montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {} },
-  ];
+  return PERSONAL_REQUERIDOS.map(r => ({
+    id: r.id, nombre: r.nombre, tipo: 'personal' as TipoGastoFijo,
+    montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {},
+  }));
+}
+
+// Agrega los gastos requeridos que falten — sin modificar los existentes
+function mergePersonalRequeridos(existentes: GastoFijo[]): { lista: GastoFijo[]; huboNuevos: boolean } {
+  const idsExistentes = new Set(existentes.map(g => g.id));
+  const hoy = hoyStr();
+  const nuevos = PERSONAL_REQUERIDOS
+    .filter(r => !idsExistentes.has(r.id))
+    .map(r => ({
+      id: r.id, nombre: r.nombre, tipo: 'personal' as TipoGastoFijo,
+      montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {},
+    }));
+  return { lista: [...existentes, ...nuevos], huboNuevos: nuevos.length > 0 };
 }
 
 // ─── Migración de formato viejo (sin pagos[]) al nuevo ───────────────────────
@@ -169,12 +191,22 @@ export function useGastosFijos(fecha: string) {
         }
         if (Array.isArray(data.personal) && data.personal.length > 0) {
           const migrados = (data.personal as Record<string, unknown>[]).map(migrarGasto);
-          setPersonal(migrados);
-          lsSet(LS_PERSONAL, migrados);
-        } else if (!empLS && !perLS) {
-          // Primera vez: inicializar con defaults (fechaCreacion = hoy)
+          const { lista: merged, huboNuevos } = mergePersonalRequeridos(migrados);
+          setPersonal(merged);
+          lsSet(LS_PERSONAL, merged);
+          // Si faltaban gastos requeridos, guardar en servidor automáticamente
+          if (huboNuevos) {
+            const empActual = Array.isArray(data.empresa) && data.empresa.length > 0
+              ? (data.empresa as Record<string, unknown>[]).map(migrarGasto)
+              : lsGet(LS_EMPRESA) ?? [];
+            _guardarEnServidor(empActual, merged);
+          }
+        } else {
+          // Sin datos en servidor: inicializar con todos los defaults
           const defaults = gastoPersonalDefault();
-          _guardarEnServidor([], defaults);
+          setPersonal(defaults);
+          lsSet(LS_PERSONAL, defaults);
+          _guardarEnServidor(lsGet(LS_EMPRESA) ?? [], defaults);
           serverLoaded.current = true;
         }
       })
