@@ -184,7 +184,7 @@ export default function ResumenCierre({
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-amber-600 dark:text-amber-400'
               }`}>
-                {totalPendiente === 0 ? '✅ Todo al día — fijos del mes pagados' : '⏳ Fijos del mes pagados (quedan pendientes)'}
+                {totalPendiente === 0 ? '✅ Todo al día — fijos del mes pagados' : '✅ Ya pagado este mes — aún quedan gastos pendientes'}
               </span>
               <span className={`text-[10px] font-black font-mono ${
                 totalPendiente === 0
