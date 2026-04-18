@@ -372,6 +372,7 @@ export function useTurnos(fecha: string) {
       detalle: '',
       asistencia: '',
       monto_total: 0,
+      extra: 0,
       seña_pagada: 0,
       estado_pago: 'sin_pago',
       metodo_pago: 'efectivo',
@@ -390,11 +391,13 @@ export function useTurnos(fecha: string) {
         if (t.id !== id) return t;
         const updated = { ...t, ...cambios };
 
-        if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined) {
-          const total = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
+        if (cambios.seña_pagada !== undefined || cambios.monto_total !== undefined || cambios.extra !== undefined) {
+          const base  = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
+          const xtra  = cambios.extra !== undefined ? (cambios.extra ?? 0) : (t.extra ?? 0);
+          const total = base + xtra;
           let seña    = cambios.seña_pagada !== undefined ? cambios.seña_pagada : t.seña_pagada;
 
-          // Seña nunca puede superar el monto total (evita datos corruptos)
+          // Seña nunca puede superar el total (base + extra)
           if (total > 0 && seña > total) {
             seña = total;
             updated.seña_pagada = total;

@@ -300,12 +300,14 @@ export default function TurnosTable({
       ══════════════════════════════════════════════════ */}
       <div className="md:hidden space-y-3">
         {turnos.map((turno, idx) => {
-          const itemCat       = turno.tratamiento ? catalogo[turno.tratamiento] : null;
+          const itemCat        = turno.tratamiento ? catalogo[turno.tratamiento] : null;
           const precioEsperado = itemCat?.precio ?? 0;
-          const hayMismatch   = precioEsperado > 0 && turno.monto_total !== precioEsperado;
-          const lista         = turno.asistencia === 'presente' && turno.estado_pago === 'completo';
-          const noVino        = turno.asistencia === 'no_vino';
-          const saldo         = Math.max(0, turno.monto_total - turno.seña_pagada);
+          const hayMismatch    = precioEsperado > 0 && turno.monto_total !== precioEsperado;
+          const lista          = turno.asistencia === 'presente' && turno.estado_pago === 'completo';
+          const noVino         = turno.asistencia === 'no_vino';
+          const extra          = turno.extra ?? 0;
+          const granTotal      = turno.monto_total + extra;
+          const saldo          = Math.max(0, granTotal - turno.seña_pagada);
 
           return (
             <div
@@ -440,13 +442,26 @@ export default function TurnosTable({
                         Catálogo: ${precioEsperado.toLocaleString('es-AR')} — tocá ! para fijar
                       </p>
                     )}
-                    {precioEsperado > 0 && (
+                    {/* Extra — otro tratamiento cobrado en el momento */}
+                    {(extra > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="text-xs text-slate-400 font-bold">+</span>
+                        <NumeroInput
+                          value={extra}
+                          onChange={v => onActualizar(turno.id, { extra: v })}
+                          className="text-sm font-bold"
+                        />
+                      </div>
+                    ) : (
                       <button
-                        onClick={() => onActualizar(turno.id, { monto_total: turno.monto_total + precioEsperado })}
-                        className="mt-1 w-full px-2 py-1 rounded-lg text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 active:scale-95 transition-all"
-                      >
-                        + ${precioEsperado.toLocaleString('es-AR')}
-                      </button>
+                        onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
+                        className="mt-1 w-full px-2 py-1 rounded-lg text-xs font-semibold text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 hover:text-blue-600 hover:border-blue-400 transition-colors"
+                      >+</button>
+                    )}
+                    {extra > 0 && (
+                      <p className="text-[10px] font-bold text-slate-500 mt-0.5">
+                        = ${granTotal.toLocaleString('es-AR')}
+                      </p>
                     )}
                   </div>
 
@@ -457,7 +472,7 @@ export default function TurnosTable({
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña ya cobrada</p>
                         <NumeroInput
                           value={turno.seña_pagada}
-                          onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
+                          onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, granTotal) })}
                           className="text-base font-bold"
                         />
                       </>
@@ -483,16 +498,16 @@ export default function TurnosTable({
                   }`}>
                     <div>
                       <p className={`text-[10px] font-bold uppercase tracking-wide ${
-                        saldo === 0 && turno.monto_total > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                        saldo === 0 && granTotal > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
                       }`}>
-                        {saldo === 0 && turno.monto_total > 0 ? '✅ Ya pagó todo' : '💳 Cobrar ahora'}
+                        {saldo === 0 && granTotal > 0 ? '✅ Ya pagó todo' : '💳 Cobrar ahora'}
                       </p>
                       <p className={`text-2xl font-black leading-tight ${
-                        saldo === 0 && turno.monto_total > 0
+                        saldo === 0 && granTotal > 0
                           ? 'text-green-700 dark:text-green-300'
                           : 'text-orange-700 dark:text-orange-300'
                       }`}>
-                        {saldo === 0 && turno.monto_total > 0
+                        {saldo === 0 && granTotal > 0
                           ? '✓ Pagado'
                           : saldo > 0
                           ? `$${saldo.toLocaleString('es-AR')}`
@@ -501,13 +516,13 @@ export default function TurnosTable({
                     </div>
                     {saldo > 0 && (
                       <button
-                        onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
+                        onClick={() => onActualizar(turno.id, { seña_pagada: granTotal })}
                         className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold active:scale-95 transition-all shadow-sm"
                       >
                         Cobrar ✓
                       </button>
                     )}
-                    {saldo === 0 && turno.monto_total > 0 && (
+                    {saldo === 0 && granTotal > 0 && (
                       <button
                         onClick={() => onActualizar(turno.id, { seña_pagada: 0 })}
                         className="text-xs text-green-600 dark:text-green-400 hover:underline"
@@ -578,7 +593,9 @@ export default function TurnosTable({
             const itemCat        = turno.tratamiento ? catalogo[turno.tratamiento] : null;
             const precioEsperado = itemCat?.precio ?? 0;
             const hayMismatch    = precioEsperado > 0 && turno.monto_total !== precioEsperado;
-            const saldoDesk      = Math.max(0, turno.monto_total - turno.seña_pagada);
+            const extraDesk      = turno.extra ?? 0;
+            const granTotalDesk  = turno.monto_total + extraDesk;
+            const saldoDesk      = Math.max(0, granTotalDesk - turno.seña_pagada);
             const listaDesk      = turno.asistencia === 'presente' && turno.estado_pago === 'completo';
             const noVinoDesk     = turno.asistencia === 'no_vino';
 
@@ -688,14 +705,26 @@ export default function TurnosTable({
                       >!</span>
                     )}
                   </div>
-                  {precioEsperado > 0 && (
+                  {/* Extra — otro tratamiento cobrado en el momento */}
+                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
+                    <div className="mt-0.5 flex items-center gap-0.5">
+                      <span className="text-[10px] text-slate-400 font-bold">+</span>
+                      <NumeroInput
+                        value={extraDesk}
+                        onChange={v => onActualizar(turno.id, { extra: v })}
+                      />
+                    </div>
+                  ) : (
                     <button
-                      onClick={() => onActualizar(turno.id, { monto_total: turno.monto_total + precioEsperado })}
-                      title={`Sumar otro tratamiento: +$${precioEsperado.toLocaleString('es-AR')}`}
-                      className="mt-0.5 w-full px-1 py-0.5 rounded text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors leading-tight"
-                    >
-                      + ${precioEsperado.toLocaleString('es-AR')}
-                    </button>
+                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
+                      title="Agregar cobro extra"
+                      className="mt-0.5 w-full px-1 py-0.5 rounded text-[11px] font-bold text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 hover:text-blue-600 hover:border-blue-400 transition-colors"
+                    >+</button>
+                  )}
+                  {extraDesk > 0 && (
+                    <p className="text-[9px] font-bold text-slate-500 mt-0.5 text-right">
+                      =${granTotalDesk.toLocaleString('es-AR')}
+                    </p>
                   )}
                 </div>
 
@@ -704,7 +733,7 @@ export default function TurnosTable({
                   {(turno.seña_pagada > 0 || senasAbiertas.has(turno.id)) ? (
                     <NumeroInput
                       value={turno.seña_pagada}
-                      onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
+                      onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, granTotalDesk) })}
                     />
                   ) : (
                     <button
@@ -720,11 +749,11 @@ export default function TurnosTable({
                 <div className="flex justify-center">
                   {turno.asistencia === 'no_vino' ? (
                     <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
-                  ) : saldoDesk === 0 && turno.monto_total > 0 ? (
+                  ) : saldoDesk === 0 && granTotalDesk > 0 ? (
                     <span className="text-xs font-bold text-green-600 dark:text-green-400">✓ Pagó</span>
                   ) : saldoDesk > 0 ? (
                     <button
-                      onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
+                      onClick={() => onActualizar(turno.id, { seña_pagada: granTotalDesk })}
                       title="Click para marcar cobrado"
                       className="px-2 py-0.5 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold hover:bg-orange-200 dark:hover:bg-orange-900/60 transition-colors"
                     >
@@ -745,10 +774,10 @@ export default function TurnosTable({
                     >
                       ✓
                     </button>
-                  ) : turno.monto_total > 0 ? (
+                  ) : granTotalDesk > 0 ? (
                     <button
-                      onClick={() => onActualizar(turno.id, { seña_pagada: turno.monto_total })}
-                      title={`Marcar cobrado: $${turno.monto_total.toLocaleString('es-AR')}`}
+                      onClick={() => onActualizar(turno.id, { seña_pagada: granTotalDesk })}
+                      title={`Marcar cobrado: $${granTotalDesk.toLocaleString('es-AR')}`}
                       className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold border-2 transition-colors ${
                         turno.estado_pago === 'seña'
                           ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 hover:bg-yellow-400 hover:text-white'
