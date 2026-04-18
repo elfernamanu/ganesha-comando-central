@@ -7,7 +7,7 @@
  * Guarda en /api/clientes (config_servicios id=-4).
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Turno {
   clienteNombre: string;
@@ -36,13 +36,11 @@ interface Props {
 
 export default function PanelContactosDia({ turnos }: Props) {
   const [entradas, setEntradas] = useState<EntradaDia[]>([]);
-  const [guardando, setGuardando]   = useState(false);
-  const [guardado, setGuardado]     = useState(false);
-  const [cerrado, setCerrado]       = useState(false);
-  const [cargando, setCargando]     = useState(true);
-  const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
-  const ultimoGuardadoManual        = useRef(0);
-  const cargaCompleta               = useRef(false);
+  const [guardando, setGuardando] = useState(false);
+  const [guardado, setGuardado]   = useState(false);
+  const [cerrado, setCerrado]     = useState(false);
+  const [cargando, setCargando]   = useState(true);
+  const cargaCompleta = useRef(false);
 
   // Armar lista única de clientas del día + datos del servidor
   useEffect(() => {
@@ -90,34 +88,38 @@ export default function PanelContactosDia({ turnos }: Props) {
       .finally(() => { setCargando(false); cargaCompleta.current = true; });
   }, [turnos]);
 
-  // Auto-guardado 3s después de cada cambio de celular
+  // Cuando la secretaria carga un número en Turnos → vuelve al foco → refrescar teléfonos
   useEffect(() => {
-    if (!cargaCompleta.current || entradas.length === 0) return;
-    setAutoGuardado('pendiente');
-    const timer = setTimeout(async () => {
-      if (Date.now() - ultimoGuardadoManual.current < 5000) return;
-      try {
-        const resGet = await fetch('/api/clientes');
-        const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteData[] };
-        // Si el servidor no respondió OK, no hacer POST — evita borrar datos existentes
-        if (!dataGet.ok) { setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); return; }
-        const serverClientes: ClienteData[] = dataGet.datos ?? [];
-        const byNombre = new Map(serverClientes.map(c => [c.nombre.toLowerCase(), { ...c }]));
-        for (const e of entradas) {
-          const key = e.nombre.toLowerCase();
-          const existing = byNombre.get(key);
-          let notas = existing?.notas ?? '';
-          if (e.ausente && !notas) notas = '⚠️ Cobrar seña — faltó turno';
-          byNombre.set(key, { ...existing, id: existing?.id ?? crypto.randomUUID(), nombre: e.nombre, celular: e.celular.trim() || (existing?.celular ?? ''), notas });
-        }
-        const res = await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: Array.from(byNombre.values()) }) });
-        const d = await res.json() as { ok: boolean };
-        if (d.ok) { setAutoGuardado('ok'); setTimeout(() => setAutoGuardado('idle'), 3000); }
-        else { setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); }
-      } catch { setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); }
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [entradas]);
+    const refrescarTels = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!cargaCompleta.current || entradas.length === 0) return;
+      fetch('/api/clientes')
+        .then(r => r.json())
+        .then((data: { ok: boolean; datos?: ClienteData[] }) => {
+          if (!data.ok || !data.datos) return;
+          const serverMap = new Map(data.datos.map(c => [c.nombre.toLowerCase(), c.celular]));
+          setEntradas(prev => {
+            let changed = false;
+            const next = prev.map(e => {
+              const serverCel = serverMap.get(e.nombre.toLowerCase()) ?? '';
+              if (serverCel && serverCel !== e.celular) {
+                changed = true;
+                return { ...e, celular: serverCel, yaExistia: true };
+              }
+              return e;
+            });
+            return changed ? next : prev;
+          });
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('focus', refrescarTels);
+    document.addEventListener('visibilitychange', refrescarTels);
+    return () => {
+      window.removeEventListener('focus', refrescarTels);
+      document.removeEventListener('visibilitychange', refrescarTels);
+    };
+  }, [entradas.length]);
 
   const cambiarCelular = (nombre: string, celular: string) => {
     setGuardado(false);
@@ -125,16 +127,12 @@ export default function PanelContactosDia({ turnos }: Props) {
   };
 
   const guardar = async () => {
-    ultimoGuardadoManual.current = Date.now();
-    setAutoGuardado('idle');
     setGuardando(true);
     try {
       // 1. Traer lista completa del servidor para no perder otros clientes
       const resGet = await fetch('/api/clientes');
       const dataGet = await resGet.json() as { ok: boolean; datos?: ClienteData[] };
-      // Si el servidor no responde OK, abortar — no borrar datos existentes con lista vacía
-      if (!dataGet.ok) { setGuardando(false); setAutoGuardado('error'); setTimeout(() => setAutoGuardado('idle'), 4000); return; }
-      const serverClientes: ClienteData[] = dataGet.datos ?? [];
+      const serverClientes: ClienteData[] = dataGet.ok ? (dataGet.datos ?? []) : [];
 
       const byNombre = new Map(serverClientes.map(c => [c.nombre.toLowerCase(), { ...c }]));
 
@@ -150,7 +148,6 @@ export default function PanelContactosDia({ turnos }: Props) {
         }
 
         byNombre.set(key, {
-          ...existing,
           id:      existing?.id ?? crypto.randomUUID(),
           nombre:  e.nombre,
           celular: e.celular.trim() || (existing?.celular ?? ''),
@@ -166,9 +163,8 @@ export default function PanelContactosDia({ turnos }: Props) {
       });
       const d = await res.json() as { ok: boolean };
       if (d.ok) setGuardado(true);
-      else setAutoGuardado('error');
-    } catch { setAutoGuardado('error'); }
-    finally { setGuardando(false); setTimeout(() => setAutoGuardado('idle'), 4000); }
+    } catch { /* silencioso */ }
+    finally { setGuardando(false); }
   };
 
   if (cerrado || cargando || entradas.length === 0) return null;
@@ -182,13 +178,7 @@ export default function PanelContactosDia({ turnos }: Props) {
           📱 Contactos del día
         </p>
         <div className="flex items-center gap-2">
-          {autoGuardado !== 'idle' && (
-            <span className={`text-[11px] font-semibold flex items-center gap-1 ${autoGuardado === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : autoGuardado === 'error' ? 'text-amber-500' : 'text-slate-400'}`}>
-              {autoGuardado === 'pendiente' && <span className="w-2.5 h-2.5 rounded-full border-2 border-slate-400 border-t-transparent animate-spin inline-block" />}
-              {autoGuardado === 'ok' ? '✓ guardado' : autoGuardado === 'error' ? '⚠️ sin conexión' : 'guardando...'}
-            </span>
-          )}
-          {guardado && autoGuardado === 'idle' && <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">✓ guardado en servidor</span>}
+          {guardado && <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">✓ guardado en servidor</span>}
           <button onClick={() => setCerrado(true)} className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 px-1">✕</button>
         </div>
       </div>
