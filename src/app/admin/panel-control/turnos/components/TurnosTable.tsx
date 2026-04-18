@@ -722,8 +722,8 @@ export default function TurnosTable({
                     <button
                       onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
                       title="Agregar cobro extra"
-                      className="mt-0.5 w-full px-1 py-0.5 rounded text-[11px] font-bold text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 hover:text-blue-600 hover:border-blue-400 transition-colors"
-                    >+</button>
+                      className="mt-0.5 w-full px-1 py-1 rounded text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 hover:bg-blue-100 transition-colors"
+                    >+ extra</button>
                   )}
                   {extraDesk > 0 && (
                     <p className="text-[9px] font-bold text-slate-500 mt-0.5 text-right">
