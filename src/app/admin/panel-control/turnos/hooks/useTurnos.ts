@@ -105,6 +105,8 @@ export function useTurnos(fecha: string) {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [autoGuardado, setAutoGuardado] = useState<'idle' | 'pendiente' | 'ok' | 'error'>('idle');
+  // true = esperando confirmación del servidor (bloquea tabla y guardar)
+  const [cargandoInicial, setCargandoInicial] = useState(true);
   // Set de clienteNombre (lowercase) con celular sincronizado en esta sesión
   const [celularesSync, setCelularesSync] = useState<Set<string>>(new Set());
   // Ref para cancelar el auto-sync si el usuario acaba de guardar manualmente
@@ -250,21 +252,13 @@ export function useTurnos(fecha: string) {
     ultimaActualizacionServidor.current = null;    // nueva fecha = no hay timestamp conocido
     setTurnos([]);           // limpiar día anterior antes de cargar nuevo
     setCelularesSync(new Set()); // limpiar ojitos del día anterior
+    setCargandoInicial(true); // bloquear tabla hasta confirmar con servidor
 
-    // 1. localStorage primero (respuesta inmediata)
-    try {
-      const stored = localStorage.getItem(lsKey);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Turno[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTurnos(aplicarMigracion(parsed));
-        }
-      }
-    } catch { /* silencioso */ }
-
-    // 2. Servidor (fuente de verdad) — cuando termina, marcamos carga completa
+    // Servidor es la fuente de verdad — no mostramos nada hasta que responda.
+    // localStorage solo se usa como cache interno (no se muestra al usuario).
     cargarDesdeServidor().finally(() => {
       cargaInicialCompleta.current = true;
+      setCargandoInicial(false); // desbloquear tabla con datos reales
     });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -557,7 +551,7 @@ export function useTurnos(fecha: string) {
     mensaje,
     guardando,
     autoGuardado,
-    cargandoInicial: !cargaInicialCompleta.current,
+    cargandoInicial,
     ultimaActualizacion: ultimaActualizacionServidor.current,
     celularesSync,
     agregarTurno,
