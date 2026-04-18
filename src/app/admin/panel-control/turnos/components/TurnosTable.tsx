@@ -695,7 +695,7 @@ export default function TurnosTable({
                   />
                 </div>
 
-                {/* Total + botón extra */}
+                {/* Total + extra siempre visible */}
                 <div className="flex flex-col gap-0.5">
                   <div className="relative">
                     <NumeroInput
@@ -711,21 +711,15 @@ export default function TurnosTable({
                       >!</span>
                     )}
                   </div>
-                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
-                    <>
-                      <NumeroInput
-                        value={extraDesk}
-                        onChange={v => onActualizar(turno.id, { extra: v })}
-                      />
-                      {extraDesk > 0 && (
-                        <p className="text-[9px] font-bold text-slate-500 text-center">={granTotalDesk.toLocaleString('es-AR')}</p>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
-                      className="w-full py-0.5 rounded text-[11px] font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
-                    >+ extra</button>
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[9px] font-bold text-red-500 shrink-0">+ext</span>
+                    <NumeroInput
+                      value={extraDesk}
+                      onChange={v => onActualizar(turno.id, { extra: v })}
+                    />
+                  </div>
+                  {extraDesk > 0 && (
+                    <p className="text-[9px] font-bold text-slate-500 text-right">={granTotalDesk.toLocaleString('es-AR')}</p>
                   )}
                 </div>
 
