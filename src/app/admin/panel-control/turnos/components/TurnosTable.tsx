@@ -438,6 +438,14 @@ export default function TurnosTable({
                         Catálogo: ${precioEsperado.toLocaleString('es-AR')} — tocá ! para fijar
                       </p>
                     )}
+                    {precioEsperado > 0 && (
+                      <button
+                        onClick={() => onActualizar(turno.id, { monto_total: turno.monto_total + precioEsperado })}
+                        className="mt-1 w-full px-2 py-1 rounded-lg text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 active:scale-95 transition-all"
+                      >
+                        + ${precioEsperado.toLocaleString('es-AR')}
+                      </button>
+                    )}
                   </div>
 
                   {/* Seña cobrada */}
@@ -445,7 +453,7 @@ export default function TurnosTable({
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña ya cobrada</p>
                     <NumeroInput
                       value={turno.seña_pagada}
-                      onChange={v => onActualizar(turno.id, { seña_pagada: v })}
+                      onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
                       className="text-base font-bold"
                     />
                   </div>
@@ -667,13 +675,22 @@ export default function TurnosTable({
                       >!</span>
                     )}
                   </div>
+                  {precioEsperado > 0 && (
+                    <button
+                      onClick={() => onActualizar(turno.id, { monto_total: turno.monto_total + precioEsperado })}
+                      title={`Sumar otro tratamiento: +$${precioEsperado.toLocaleString('es-AR')}`}
+                      className="mt-0.5 w-full px-1 py-0.5 rounded text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors leading-tight"
+                    >
+                      + ${precioEsperado.toLocaleString('es-AR')}
+                    </button>
+                  )}
                 </div>
 
                 {/* Seña */}
                 <div>
                   <NumeroInput
                     value={turno.seña_pagada}
-                    onChange={v => onActualizar(turno.id, { seña_pagada: v })}
+                    onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, turno.monto_total) })}
                   />
                 </div>
 
