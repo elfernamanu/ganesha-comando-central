@@ -219,7 +219,7 @@ function buscarStats(
   return vacio;
 }
 
-// ── Fila — formato empresa: Nombre | Teléfono | Stats | Acciones ──────────
+// ── Fila — grid fijo: Nombre | Teléfono (centrado) | Stats | Acciones ──────
 function FilaCliente({ c, onEdit, onDelete, onSaveCelular }: {
   c: ClienteRow;
   onEdit: (c: ClienteRow) => void;
@@ -236,48 +236,48 @@ function FilaCliente({ c, onEdit, onDelete, onSaveCelular }: {
   };
 
   return (
-    <div className={`group flex items-center gap-1.5 px-2 py-[3px] border-b border-slate-100 dark:border-slate-700/40 last:border-0 transition-colors
-      ${falta ? 'bg-red-50/50 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
-
-      {/* Nombre + alerta (si falta) */}
-      <div className="flex-1 min-w-0">
-        <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 block truncate leading-snug">
+    <div
+      className={`group grid items-center px-2 py-1 border-b border-slate-100 dark:border-slate-700/40 last:border-0 transition-colors
+        ${falta ? 'bg-red-50/40 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}
+      style={{ gridTemplateColumns: '1fr 5.5rem 2.2rem 2.4rem' }}
+    >
+      {/* Col 1 — Nombre + nota corta */}
+      <div className="min-w-0 pr-1">
+        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 truncate leading-snug">
           {titleCase(c.nombre)}
-        </span>
+        </p>
         {falta && (
-          <span className="text-[9px] text-red-400 font-medium block leading-none">
-            ⚠️ cobrar seña · {c.ausentes} falta{c.ausentes > 1 ? 's' : ''}
-          </span>
+          <p className="text-[9px] text-red-400 font-semibold leading-none">⚠️ seña</p>
         )}
         {!falta && c.notas && (
-          <span className="text-[9px] text-amber-500 block truncate leading-none">{c.notas}</span>
+          <p className="text-[9px] text-amber-500 truncate leading-none">{c.notas}</p>
         )}
       </div>
 
-      {/* Teléfono — verde si cargado */}
+      {/* Col 2 — Teléfono centrado, verde si cargado */}
       <input
         value={tel}
         onChange={e => setTel(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-        placeholder="— agregar"
+        placeholder="—"
         inputMode="tel"
-        className={`text-[11px] font-mono w-[4.8rem] shrink-0 px-1.5 py-0.5 rounded-md border transition-colors focus:outline-none focus:ring-1 focus:ring-violet-400 focus:bg-white dark:focus:bg-slate-700
+        className={`w-full text-[11px] font-mono px-1 py-0.5 rounded border text-center transition-colors focus:outline-none focus:ring-1 focus:ring-violet-400
           ${tel
             ? 'text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/25 font-bold'
-            : 'text-slate-300 dark:text-slate-600 border-dashed border-slate-200 dark:border-slate-700 bg-transparent placeholder:text-[10px] placeholder:text-slate-300'
+            : 'text-slate-300 dark:text-slate-600 border-dashed border-slate-200 dark:border-slate-700 bg-transparent'
           }`}
       />
 
-      {/* Stats: turnos · presentes · ausentes */}
-      <div className="shrink-0 flex flex-col items-end w-7 text-[9px] leading-tight">
-        {c.totalTurnos > 0 && <span className="text-slate-400 font-medium">{c.totalTurnos}t</span>}
-        {c.presentes > 0   && <span className="text-emerald-600 font-bold">✓{c.presentes}</span>}
-        {falta             && <span className="text-red-500 font-bold">✗{c.ausentes}</span>}
+      {/* Col 3 — Stats: turnos / presentes / ausentes */}
+      <div className="flex flex-col items-center justify-center text-[9px] font-bold leading-tight">
+        {c.totalTurnos > 0 && <span className="text-slate-400 font-normal">{c.totalTurnos}t</span>}
+        {c.presentes > 0   && <span className="text-emerald-600">✓{c.presentes}</span>}
+        {falta             && <span className="text-red-500">✗{c.ausentes}</span>}
       </div>
 
-      {/* Acciones — aparecen al hacer hover */}
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      {/* Col 4 — Acciones al hover */}
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity justify-center">
         <button onClick={() => onEdit(c)}   className="p-0.5 text-slate-300 hover:text-blue-500 rounded" title="Editar">✏️</button>
         <button onClick={() => onDelete(c)} className="p-0.5 text-slate-300 hover:text-red-500 rounded"  title="Eliminar">🗑️</button>
       </div>
@@ -293,15 +293,22 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular 
   onDelete: (c: ClienteRow) => void;
   onSaveCelular: (c: ClienteRow, cel: string) => void;
 }) {
-  const [filtro, setFiltro] = useState('');
-  const filtrados = useMemo(() => {
-    if (!filtro) return items;
-    const q = filtro.toLowerCase();
-    return items.filter(c => c.nombre.toLowerCase().includes(q) || c.celular.includes(q));
-  }, [items, filtro]);
+  const [filtro, setFiltro]       = useState('');
+  const [filtroTel, setFiltroTel] = useState<'todos' | 'con' | 'sin'>('todos');
 
   const conTel   = items.filter(c => c.celular).length;
+  const sinTel   = items.length - conTel;
   const ausentes = items.filter(c => c.ausentes > 0).length;
+
+  const filtrados = useMemo(() => {
+    let lista = items;
+    if (filtroTel === 'con') lista = lista.filter(c => !!c.celular);
+    if (filtroTel === 'sin') lista = lista.filter(c => !c.celular);
+    if (!filtro) return lista;
+    const q = filtro.toLowerCase();
+    return lista.filter(c => c.nombre.toLowerCase().includes(q) || c.celular.includes(q));
+  }, [items, filtro, filtroTel]);
+
   return (
     <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
       <div className={`px-3 py-2 border-b border-slate-200 dark:border-slate-700 ${color}`}>
@@ -311,9 +318,21 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular 
           </span>
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
             <span className="font-semibold">{items.length}</span>
-            <span className="text-emerald-600">📱{conTel}</span>
-            {ausentes > 0 && <span className="text-red-500 font-bold">⚠️{ausentes}</span>}
+            <span className="text-emerald-600 font-bold">📱{conTel}</span>
+            {sinTel  > 0 && <span className="text-amber-500 font-bold">⚠️{sinTel}</span>}
+            {ausentes > 0 && <span className="text-red-500 font-bold">🚫{ausentes}</span>}
           </div>
+        </div>
+        {/* Filtro por teléfono */}
+        <div className="flex gap-1 mb-1.5">
+          {(['todos', 'con', 'sin'] as const).map(v => (
+            <button key={v} onClick={() => setFiltroTel(v)}
+              className={`flex-1 py-0.5 rounded-lg text-[10px] font-bold transition-colors ${
+                filtroTel === v ? 'bg-violet-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+              }`}>
+              {v === 'todos' ? `Todos (${items.length})` : v === 'con' ? `📱 Con (${conTel})` : `⚠️ Sin (${sinTel})`}
+            </button>
+          ))}
         </div>
         <input
           value={filtro} onChange={e => setFiltro(e.target.value)}
