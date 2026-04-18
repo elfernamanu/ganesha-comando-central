@@ -191,6 +191,18 @@ function TurnosContent() {
         </button>
       </div>
 
+      {/* Bloqueo total hasta tener datos reales del servidor */}
+      {cargandoInicial ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+          <div className="text-center">
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Cargando datos del servidor...</p>
+            <p className="text-xs text-slate-400 mt-1">Esperando confirmación antes de mostrar</p>
+          </div>
+        </div>
+      ) : (
+      <>
+
       {/* Stats del día — cards nativas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 text-center">
@@ -249,11 +261,14 @@ function TurnosContent() {
 
       <button
         onClick={guardar}
-        disabled={guardando || cargandoInicial}
+        disabled={guardando}
         className="w-full px-4 py-4 rounded-2xl bg-violet-600 dark:bg-violet-700 text-white font-bold text-base hover:bg-violet-700 dark:hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg shadow-violet-200 dark:shadow-violet-900/30"
       >
-        {cargandoInicial ? '⏳ Cargando datos del servidor...' : guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
+        {guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
       </button>
+
+      </> /* fin bloque que requiere datos del servidor */
+      )}
     </div>
   );
 }
