@@ -22,6 +22,7 @@ export function generarReporteTxt(
   totales: TotalesCaja,
   gastosEmpresa: GastoFijo[] = [],
   gastosPersonal: GastoFijo[] = [],
+  clientesMap: Map<string, string> = new Map(), // nombre lowercase → celular
 ): string {
   const fechaLabel = formatearFecha(new Date(fecha + 'T12:00:00'))
     .replace(/^\w/, c => c.toUpperCase());
@@ -122,6 +123,20 @@ export function generarReporteTxt(
     [...empPag, ...perPag].forEach(g =>
       add(linea(`    ✓ ${g.nombre}`, m(g.montoAcumulado ?? 0)))
     );
+    add('');
+  }
+
+  // No-shows con número de celular (para cobrar seña)
+  const noVinieron = turnos.filter(t => t.asistencia === 'no_vino');
+  if (noVinieron.length > 0) {
+    add(
+      sep,
+      `  ⚠ COBRAR SEÑA — NO VINIERON (${noVinieron.length})`,
+    );
+    for (const t of noVinieron) {
+      const cel = clientesMap.get(t.clienteNombre.trim().toLowerCase()) ?? '';
+      add(`    · ${t.clienteNombre}${cel ? `  📱 ${cel}` : '  (sin número)'}`);
+    }
     add('');
   }
 

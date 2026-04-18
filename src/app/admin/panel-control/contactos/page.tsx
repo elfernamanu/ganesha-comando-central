@@ -358,23 +358,21 @@ export default function ContactosPage() {
 
   useEffect(() => { setStatsMap(calcularStatsLS()); }, []);
 
-  useEffect(() => {
+  const cargarClientes = useCallback(() => {
+    setStatsMap(calcularStatsLS());
     fetch('/api/clientes')
       .then(r => r.json())
       .then((d: { ok: boolean; datos?: ClienteData[] }) => {
         if (d.ok && Array.isArray(d.datos) && d.datos.length > 0) {
           setServerClientes(d.datos);
-          // Backup local — copia de seguridad cada vez que el servidor tiene datos
           try { localStorage.setItem('ganesha_clientes_backup', JSON.stringify(d.datos)); } catch { /* silencioso */ }
         } else {
-          // Servidor vacío — restaurar desde backup local automáticamente
           try {
             const raw = localStorage.getItem('ganesha_clientes_backup');
             if (raw) {
               const backup = JSON.parse(raw) as ClienteData[];
               if (Array.isArray(backup) && backup.length > 0) {
                 setServerClientes(backup);
-                // Restaurar al servidor sin intervención del usuario
                 fetch('/api/clientes', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -387,6 +385,19 @@ export default function ContactosPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => { cargarClientes(); }, [cargarClientes]);
+
+  // Auto-refresh cuando la pestaña vuelve al foco
+  useEffect(() => {
+    const alVolver = () => { if (document.visibilityState === 'visible') cargarClientes(); };
+    window.addEventListener('focus', cargarClientes);
+    document.addEventListener('visibilitychange', alVolver);
+    return () => {
+      window.removeEventListener('focus', cargarClientes);
+      document.removeEventListener('visibilitychange', alVolver);
+    };
+  }, [cargarClientes]);
 
   // Mezclar server + localStorage
   const rows = useMemo((): ClienteRow[] => {
@@ -426,6 +437,7 @@ export default function ContactosPage() {
 
   const mujeres = rows.filter(c => c.genero !== 'm');
   const hombres = rows.filter(c => c.genero === 'm');
+  const conTelTotal = rows.filter(c => c.celular).length;
 
   const persistir = useCallback(async (lista: ClienteData[]) => {
     // Backup inmediato en localStorage antes de enviar al servidor
@@ -539,7 +551,7 @@ export default function ContactosPage() {
         <div>
           <h2 className="text-xl font-bold">👥 Clientes</h2>
           <p className="text-[11px] text-slate-400">
-            {rows.length} total · {mujeres.length} mujeres · {hombres.length} hombres
+            {rows.length} total · 📱 {conTelTotal} con número · ⚠️ {rows.length - conTelTotal} sin número
             {rows.filter(c => c.ausentes > 0).length > 0 && (
               <> · <span className="text-red-500 font-semibold">
                 ⚠️ {rows.filter(c => c.ausentes > 0).length} con ausencias
@@ -606,13 +618,9 @@ export default function ContactosPage() {
         </div>
       )}
 
-      {/* Dos columnas */}
-      <div className="grid grid-cols-2 gap-3">
-        <Columna titulo="Mujeres" icono="👩" color="bg-pink-50/50 dark:bg-pink-900/10"
-          items={mujeres} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
-        <Columna titulo="Hombres" icono="👨" color="bg-blue-50/50 dark:bg-blue-900/10"
-          items={hombres} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
-      </div>
+      {/* Lista unificada — todos los clientes juntos */}
+      <Columna titulo={`Todos los clientes · 👩${mujeres.length} 👨${hombres.length}`} icono="👥" color="bg-violet-50/50 dark:bg-violet-900/10"
+        items={rows} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
 
     </div>
   );
