@@ -492,7 +492,7 @@ export default function TurnosTable({
                 {/* COBRAR AHORA — lo que falta cobrar en el momento */}
                 {!noVino && (
                   <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${
-                    saldo === 0 && turno.monto_total > 0
+                    saldo === 0 && granTotal > 0
                       ? 'bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800'
                       : saldo > 0
                       ? 'bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-300 dark:border-orange-700'
