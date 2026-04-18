@@ -476,7 +476,7 @@ export default function TurnosTable({
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Seña ya cobrada</p>
                         <NumeroInput
                           value={turno.seña_pagada}
-                          onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, granTotal) })}
+                          onChange={v => onActualizar(turno.id, { seña_pagada: granTotal > 0 ? Math.min(v, granTotal) : v })}
                           className="text-base font-bold"
                         />
                       </>
@@ -734,7 +734,7 @@ export default function TurnosTable({
                   {(turno.seña_pagada > 0 || senasAbiertas.has(turno.id)) ? (
                     <NumeroInput
                       value={turno.seña_pagada}
-                      onChange={v => onActualizar(turno.id, { seña_pagada: Math.min(v, granTotalDesk) })}
+                      onChange={v => onActualizar(turno.id, { seña_pagada: granTotalDesk > 0 ? Math.min(v, granTotalDesk) : v })}
                     />
                   ) : (
                     <button
