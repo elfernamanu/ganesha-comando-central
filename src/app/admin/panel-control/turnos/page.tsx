@@ -16,7 +16,7 @@ function TurnosContent() {
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
-  const { turnos, totales, mensaje, guardando, autoGuardado, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
+  const { turnos, totales, mensaje, guardando, autoGuardado, cargandoInicial, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
 
   const sinGuardar = autoGuardado === 'pendiente' || autoGuardado === 'error';
 
@@ -193,10 +193,10 @@ function TurnosContent() {
 
       <button
         onClick={guardar}
-        disabled={guardando}
-        className="w-full px-4 py-4 rounded-2xl bg-violet-600 dark:bg-violet-700 text-white font-bold text-base hover:bg-violet-700 dark:hover:bg-violet-600 disabled:opacity-50 transition-all active:scale-[0.98] shadow-lg shadow-violet-200 dark:shadow-violet-900/30"
+        disabled={guardando || cargandoInicial}
+        className="w-full px-4 py-4 rounded-2xl bg-violet-600 dark:bg-violet-700 text-white font-bold text-base hover:bg-violet-700 dark:hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg shadow-violet-200 dark:shadow-violet-900/30"
       >
-        {guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
+        {cargandoInicial ? '⏳ Cargando datos del servidor...' : guardando ? '⏳ Guardando...' : '💾 Guardar Turnos'}
       </button>
     </div>
   );
