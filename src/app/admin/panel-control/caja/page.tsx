@@ -89,8 +89,9 @@ function CajaContent() {
   }, []); // solo en mount
 
   const resolverTratamiento = useCallback((t: string): string => {
-    const i = t.indexOf(': ');
-    return i > -1 ? (catalogoNombres.get(t.substring(0, i)) ?? t) : t;
+    // Si ya tiene el nombre completo (con ": "), no reemplazar — preserva el género correcto
+    if (t.includes(': ')) return t;
+    return catalogoNombres.get(t) ?? t;
   }, [catalogoNombres]);
 
   // ── Sugerencia de pago ──
