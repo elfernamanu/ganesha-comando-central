@@ -406,7 +406,6 @@ export default function ContactosPage() {
 
   const mujeres = rows.filter(c => c.genero !== 'm');
   const hombres = rows.filter(c => c.genero === 'm');
-  const conTelTotal = rows.filter(c => c.celular).length;
 
   const persistir = useCallback(async (lista: ClienteData[]) => {
     // Backup inmediato en localStorage antes de enviar al servidor
@@ -520,7 +519,7 @@ export default function ContactosPage() {
         <div>
           <h2 className="text-xl font-bold">👥 Clientes</h2>
           <p className="text-[11px] text-slate-400">
-            {rows.length} total · 📱 {conTelTotal} con número · ⚠️ {rows.length - conTelTotal} sin número
+            {rows.length} total · {mujeres.length} mujeres · {hombres.length} hombres
             {rows.filter(c => c.ausentes > 0).length > 0 && (
               <> · <span className="text-red-500 font-semibold">
                 ⚠️ {rows.filter(c => c.ausentes > 0).length} con ausencias
@@ -587,9 +586,13 @@ export default function ContactosPage() {
         </div>
       )}
 
-      {/* Lista unificada — todos los clientes juntos */}
-      <Columna titulo={`Todos los clientes · 👩${mujeres.length} 👨${hombres.length}`} icono="👥" color="bg-violet-50/50 dark:bg-violet-900/10"
-        items={rows} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
+      {/* Dos columnas: Mujeres / Hombres */}
+      <div className="grid grid-cols-2 gap-3">
+        <Columna titulo="Mujeres" icono="👩" color="bg-pink-50/50 dark:bg-pink-900/10"
+          items={mujeres} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
+        <Columna titulo="Hombres" icono="👨" color="bg-blue-50/50 dark:bg-blue-900/10"
+          items={hombres} onEdit={abrirEdit} onDelete={eliminar} onSaveCelular={guardarCelularInline} />
+      </div>
 
     </div>
   );
