@@ -516,13 +516,13 @@ export function useTurnos(fecha: string) {
           const resForzado = await fetch('/api/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fecha, datos: turnosOrdenados, forzar: true }),
+            body: JSON.stringify({ fecha, datos: turnos, forzar: true }),
           });
           const dataForzado = await resForzado.json().catch(() => ({})) as { ok: boolean };
           if (resForzado.ok && dataForzado.ok) {
             hayCambios.current = false;
             setAutoGuardado('idle');
-            setTurnos(turnosOrdenados);
+            setTurnos(turnos);
             setMensaje('✅ Guardado forzado — se sobrescribieron los datos del servidor');
           } else {
             setMensaje('⚠️ Error al guardar en servidor');
