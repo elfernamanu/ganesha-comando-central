@@ -116,6 +116,7 @@ export function useCajaDiaria(fecha: string) {
   useEffect(() => {
     serverCargado.current = false;
     // Resetear estado al cambiar de fecha — evita mostrar datos del día anterior
+    setTurnos([]);
     setEstadoCaja('abierta');
     estadoCajaRef.current = 'abierta';
     setSnapshotFijosEmpresa([]);
