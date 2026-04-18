@@ -432,7 +432,7 @@ export default function TurnosTable({
                 ) : (
                   <button
                     onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
-                    className="w-full py-1.5 rounded-lg text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 active:scale-95 transition-all"
+                    className="w-full py-1.5 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 active:scale-95 transition-all"
                   >
                     + agregar extra
                   </button>
@@ -704,7 +704,7 @@ export default function TurnosTable({
                   ) : (
                     <button
                       onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
-                      className="w-full py-0.5 rounded text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 hover:bg-blue-100 transition-colors"
+                      className="w-full py-0.5 rounded text-[11px] font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
                     >+ extra</button>
                   )}
                   {extraDesk > 0 && (
