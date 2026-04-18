@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ThemeZoomControls } from '@/components/Controls/ThemeZoomControls';
 import { EstadoSistema } from '@/components/EstadoSistema';
+import { PresenciaWidget } from '@/components/PresenciaWidget';
 
 const NAV_ITEMS = [
   { label: '📅 Agenda', href: '#' },
@@ -64,6 +65,8 @@ export function DrawerMain() {
           ⚙️ Panel de Control
         </Link>
       </nav>
+
+      <PresenciaWidget />
     </aside>
   );
 }

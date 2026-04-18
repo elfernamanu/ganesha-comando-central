@@ -513,11 +513,6 @@ function CajaContent() {
         gastosFijosPersonal={fijosPersonalParaResumen}
       />
 
-      {/* ── Contactos del día — visible siempre que haya turnos ── */}
-      {turnos.length > 0 && (
-        <PanelContactosDia turnos={turnos} />
-      )}
-
       {/* ── Botones de acción — fuera del recuadro ── */}
       <div className="flex gap-2">
         <button
@@ -544,6 +539,11 @@ function CajaContent() {
           </button>
         )}
       </div>
+
+      {/* ── Contactos del día — visible siempre que haya turnos ── */}
+      {turnos.length > 0 && (
+        <PanelContactosDia turnos={turnos} />
+      )}
 
       {/* ── Recuperar reporte pasado — una línea ── */}
       <div className="flex items-center gap-2">
