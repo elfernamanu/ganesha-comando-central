@@ -300,10 +300,18 @@ export function useCajaDiaria(fecha: string) {
     }
   };
 
-  const reabrirDia = () => {
+  const reabrirDia = async () => {
     estadoCajaRef.current = 'abierta';
     isClosing.current = false;
     setEstadoCaja('abierta');
+    // Persistir en servidor — sin esto al recargar vuelve a aparecer cerrada
+    try {
+      await fetch('/api/caja', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha, estado: 'reabrir' }),
+      });
+    } catch { /* silencioso — en memoria ya quedó abierta */ }
   };
 
   // ========================================
