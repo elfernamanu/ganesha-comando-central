@@ -138,6 +138,31 @@ export async function POST(req: NextRequest) {
 
     const { datos, guardado_at } = rows[0];
 
+    // Guardar snapshot del estado ACTUAL antes de restaurar (permite deshacer la restauración)
+    const { guardarBackup } = await import('@/lib/backup');
+    if (tabla === 'turnos') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM turnos WHERE fecha = $1', [clave]).catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('turnos', clave, (cur as { datos: unknown }[])[0].datos);
+    } else if (tabla === 'clientes') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM clientes_telefonos WHERE id = 1').catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('clientes', '1', (cur as { datos: unknown }[])[0].datos);
+    } else if (tabla === 'caja') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM caja_diaria WHERE fecha = $1', [clave]).catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('caja', clave, (cur as { datos: unknown }[])[0].datos);
+    } else if (tabla === 'config') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = 1').catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('config', '1', (cur as { datos: unknown }[])[0].datos);
+    } else if (tabla === 'combos') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = -3').catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('combos', '1', (cur as { datos: unknown }[])[0].datos);
+    } else if (tabla === 'gastos_empresa') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = -1').catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('gastos_empresa', '1', (cur as { datos: unknown }[])[0].datos);
+    } else if (tabla === 'gastos_personal') {
+      const cur = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = -2').catch(() => []);
+      if ((cur as { datos: unknown }[])[0]?.datos) await guardarBackup('gastos_personal', '1', (cur as { datos: unknown }[])[0].datos);
+    }
+
     if (tabla === 'turnos') {
       await query(
         `INSERT INTO turnos (fecha, datos, actualizado_at) VALUES ($1, $2::jsonb, NOW())

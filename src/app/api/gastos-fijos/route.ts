@@ -32,9 +32,21 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { empresa, personal } = body as { empresa?: unknown[]; personal?: unknown[] };
+    const { empresa, personal, forzar } = body as { empresa?: unknown[]; personal?: unknown[]; forzar?: boolean };
 
     if (Array.isArray(empresa)) {
+      // Protección: rechazar vacío si ya hay gastos guardados
+      if (!forzar && empresa.length === 0) {
+        const existing = await query<{ cant: string }>(
+          `SELECT jsonb_array_length(datos)::text AS cant FROM config_servicios WHERE id = $1`, [ID_EMPRESA]
+        ).catch(() => []);
+        const cant = parseInt((existing as { cant: string }[])[0]?.cant ?? '0', 10);
+        if (cant > 0) {
+          return NextResponse.json({ ok: false, protegido: true,
+            error: `Protección: hay ${cant} gastos empresa guardados. No se puede guardar vacío.`,
+          }, { status: 409 });
+        }
+      }
       const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = $1', [ID_EMPRESA]).catch(() => []);
       if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('gastos_empresa', '1', (prev as { datos: unknown }[])[0].datos);
       await query(
@@ -44,6 +56,18 @@ export async function POST(req: NextRequest) {
       );
     }
     if (Array.isArray(personal)) {
+      // Protección: rechazar vacío si ya hay gastos guardados
+      if (!forzar && personal.length === 0) {
+        const existing = await query<{ cant: string }>(
+          `SELECT jsonb_array_length(datos)::text AS cant FROM config_servicios WHERE id = $1`, [ID_PERSONAL]
+        ).catch(() => []);
+        const cant = parseInt((existing as { cant: string }[])[0]?.cant ?? '0', 10);
+        if (cant > 0) {
+          return NextResponse.json({ ok: false, protegido: true,
+            error: `Protección: hay ${cant} gastos personal guardados. No se puede guardar vacío.`,
+          }, { status: 409 });
+        }
+      }
       const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = $1', [ID_PERSONAL]).catch(() => []);
       if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('gastos_personal', '1', (prev as { datos: unknown }[])[0].datos);
       await query(

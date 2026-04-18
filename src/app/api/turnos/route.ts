@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { verificarToken } from '@/lib/auth';
+import { guardarBackup } from '@/lib/backup';
 
 // GET /api/turnos?fecha=2026-04-15
 export async function GET(req: NextRequest) {
@@ -51,6 +52,10 @@ export async function POST(req: NextRequest) {
         }, { status: 409 });
       }
     }
+
+    // Backup antes de sobreescribir
+    const current = await query<{ datos: unknown }>('SELECT datos FROM turnos WHERE fecha = $1', [fecha]).catch(() => []);
+    if ((current as { datos: unknown }[])[0]?.datos) await guardarBackup('turnos', fecha, (current as { datos: unknown }[])[0].datos);
 
     await query(
       `INSERT INTO turnos (fecha, datos, actualizado_at)

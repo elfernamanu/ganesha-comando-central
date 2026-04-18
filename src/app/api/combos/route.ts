@@ -26,9 +26,24 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { datos } = body as { datos?: unknown[] };
+    const { datos, forzar } = body as { datos?: unknown[]; forzar?: boolean };
     if (!Array.isArray(datos)) {
       return NextResponse.json({ ok: false, error: 'datos debe ser un array' }, { status: 400 });
+    }
+
+    // Protección: rechazar array vacío si ya hay combos guardados
+    if (!forzar) {
+      const existing = await query<{ cant: string }>(
+        `SELECT jsonb_array_length(datos)::text AS cant FROM config_servicios WHERE id = $1`,
+        [ID_COMBOS]
+      ).catch(() => []);
+      const cantExistente = parseInt((existing as { cant: string }[])[0]?.cant ?? '0', 10);
+      if (cantExistente > 0 && datos.length === 0) {
+        return NextResponse.json({
+          ok: false, protegido: true,
+          error: `Protección activa: hay ${cantExistente} combo${cantExistente !== 1 ? 's' : ''} guardados. No se puede guardar vacío.`,
+        }, { status: 409 });
+      }
     }
 
     const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = $1', [ID_COMBOS]).catch(() => []);
