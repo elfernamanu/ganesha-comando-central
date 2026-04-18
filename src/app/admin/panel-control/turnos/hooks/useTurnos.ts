@@ -318,13 +318,19 @@ export function useTurnos(fecha: string) {
 
       isSavingRef.current = true;
       try {
-        await fetch('/api/sync', {
+        const autoRes = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fecha, datos: turnos }),
           signal: ctrl.signal,
         });
         if (ctrl.signal.aborted) return; // cancelado por guardado manual
+        if (!autoRes.ok) {
+          // 409 = server protection triggered — treat as error so user sees warning
+          setAutoGuardado('error');
+          setTimeout(() => setAutoGuardado('idle'), 4000);
+          return;
+        }
         sincronizarCelularesDesdeDetalle(turnos).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
         }).catch(() => {});
@@ -495,13 +501,41 @@ export function useTurnos(fecha: string) {
         body: JSON.stringify({ fecha, datos: turnosOrdenados }),
       });
 
-      const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; error?: string };
+      const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; parcial?: boolean; cantServidor?: number; cantEnviados?: number; error?: string };
       if (res.ok && resData.ok) {
         setTurnos(turnosOrdenados);
         sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
         }).catch(() => {});
         setMensaje('✅ Guardado — visible en todos los dispositivos');
+      } else if (resData.protegido && resData.parcial) {
+        // Servidor tiene más turnos que los que envió este dispositivo
+        const confirmar = window.confirm(
+          `⚠️ ATENCIÓN: El servidor tiene ${resData.cantServidor} turnos pero este dispositivo solo tiene ${resData.cantEnviados}.\n\n` +
+          `¿Querés cargar los turnos del servidor antes de guardar?\n\n` +
+          `CANCELAR = cargar del servidor (recomendado)\n` +
+          `ACEPTAR = sobrescribir con los ${resData.cantEnviados} de este dispositivo (borra los otros)`
+        );
+        if (confirmar) {
+          // Forzar guardado aunque tenga menos
+          const resForzado = await fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fecha, datos: turnosOrdenados, forzar: true }),
+          });
+          const dataForzado = await resForzado.json().catch(() => ({})) as { ok: boolean };
+          if (resForzado.ok && dataForzado.ok) {
+            setTurnos(turnosOrdenados);
+            setMensaje('✅ Guardado forzado — se sobrescribieron los datos del servidor');
+          } else {
+            setMensaje('⚠️ Error al guardar en servidor');
+          }
+        } else {
+          // Recargar del servidor
+          setMensaje('🔄 Cargando datos del servidor...');
+          await cargarDesdeServidor();
+          setMensaje('✅ Datos actualizados del servidor');
+        }
       } else if (resData.protegido) {
         // El servidor rechazó porque había datos reales — no se pisó nada
         setMensaje(`⛔ ${resData.error ?? 'El servidor protegió los datos existentes'}`);
