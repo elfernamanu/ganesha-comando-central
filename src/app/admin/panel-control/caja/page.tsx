@@ -158,18 +158,33 @@ function CajaContent() {
     setLimpiandoViejos(true);
     setMensajeLimpieza('');
     try {
+      // 1. Borrar del servidor (PostgreSQL)
       const [rCaja, rTurnos] = await Promise.all([
         fetch(`/api/caja?antes_de=${anteriorA}`, { method: 'DELETE' }).then(r => r.json()),
         fetch(`/api/sync?antes_de=${anteriorA}`, { method: 'DELETE' }).then(r => r.json()),
       ]);
       const caja   = rCaja.borrados   ?? 0;
       const turnos = rTurnos.borrados ?? 0;
-      setMensajeLimpieza(`✅ Eliminados: ${caja} día${caja!==1?'s':''} de caja · ${turnos} día${turnos!==1?'s':''} de turnos anteriores al ${anteriorA}`);
+
+      // 2. Borrar del localStorage (datos que nunca llegaron al servidor)
+      let lsBorrados = 0;
+      try {
+        const keysABorrar: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i) ?? '';
+          // Patrones: ganesha_turnos_YYYY-MM-DD  y  ganesha_gastos_YYYY-MM-DD
+          const match = k.match(/^ganesha_(turnos|gastos)_(\d{4}-\d{2}-\d{2})$/);
+          if (match && match[2] < anteriorA) keysABorrar.push(k);
+        }
+        keysABorrar.forEach(k => { localStorage.removeItem(k); lsBorrados++; });
+      } catch { /* silencioso */ }
+
+      setMensajeLimpieza(`✅ Eliminados del servidor: ${caja} día${caja!==1?'s':''} de caja · ${turnos} de turnos | Del dispositivo: ${lsBorrados} registro${lsBorrados!==1?'s':''} — anteriores al ${anteriorA}`);
     } catch {
       setMensajeLimpieza('⚠️ Error al limpiar — verificá conexión');
     }
     setLimpiandoViejos(false);
-    setTimeout(() => setMensajeLimpieza(''), 8000);
+    setTimeout(() => setMensajeLimpieza(''), 10000);
   };
 
   const fechasHabilitadas = useFechasHabilitadas();
