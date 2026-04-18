@@ -7,7 +7,7 @@
  * Guarda en /api/clientes (config_servicios id=-4).
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Turno {
   clienteNombre: string;
