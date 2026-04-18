@@ -48,13 +48,33 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-// POST /api/sync  →  { fecha, datos: Turno[] }
+// POST /api/sync  →  { fecha, datos: Turno[], forzar?: boolean }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { fecha, datos } = body;
+    const { fecha, datos, forzar } = body;
     if (!fecha || !Array.isArray(datos)) {
       return NextResponse.json({ ok: false }, { status: 400 });
+    }
+
+    // ── PROTECCIÓN CRÍTICA ────────────────────────────────────────────────────
+    // Si el cliente manda datos vacíos Y el servidor ya tiene turnos guardados
+    // → rechazar el guardado. Evita que cualquier dispositivo sin caché
+    // pise datos reales con una lista vacía.
+    // Para borrar todos los turnos intencionalmente usar forzar: true.
+    if (datos.length === 0 && !forzar) {
+      const existing = await query<{ cant: string }>(
+        `SELECT jsonb_array_length(datos)::text AS cant FROM turnos WHERE fecha = $1`,
+        [fecha]
+      );
+      const cantExistente = parseInt(existing[0]?.cant ?? '0', 10);
+      if (cantExistente > 0) {
+        return NextResponse.json({
+          ok: false,
+          protegido: true,
+          error: `Protección activa: hay ${cantExistente} turno${cantExistente !== 1 ? 's' : ''} guardados en el servidor para ${fecha}. No se puede guardar vacío.`,
+        }, { status: 409 });
+      }
     }
 
     await query(

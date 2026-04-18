@@ -495,12 +495,16 @@ export function useTurnos(fecha: string) {
         body: JSON.stringify({ fecha, datos: turnosOrdenados }),
       });
 
-      if (res.ok) {
-        setTurnos(turnosOrdenados);    // aplicar el orden también localmente
+      const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; error?: string };
+      if (res.ok && resData.ok) {
+        setTurnos(turnosOrdenados);
         sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
         }).catch(() => {});
         setMensaje('✅ Guardado — visible en todos los dispositivos');
+      } else if (resData.protegido) {
+        // El servidor rechazó porque había datos reales — no se pisó nada
+        setMensaje(`⛔ ${resData.error ?? 'El servidor protegió los datos existentes'}`);
       } else {
         setMensaje('⚠️ Error al guardar en servidor');
       }
