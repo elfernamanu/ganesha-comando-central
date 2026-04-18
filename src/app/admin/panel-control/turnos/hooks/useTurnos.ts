@@ -446,6 +446,13 @@ export function useTurnos(fecha: string) {
   // GUARDAR (manual — con validación de precios)
   // ========================================
   const guardar = async () => {
+    // Bloquear si la carga inicial del servidor no terminó — evita guardar vacío y pisar los datos reales
+    if (!cargaInicialCompleta.current) {
+      setMensaje('⚠️ Esperá — los turnos todavía están cargando del servidor');
+      setTimeout(() => setMensaje(''), 4000);
+      return;
+    }
+
     setGuardando(true);
     setMensaje('');
 
