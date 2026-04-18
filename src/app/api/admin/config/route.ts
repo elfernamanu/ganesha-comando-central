@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 /**
  * POST /api/admin/config
@@ -13,6 +14,10 @@ export async function POST(req: NextRequest) {
     if (!datos) return NextResponse.json({ ok: false, error: 'Sin datos' }, { status: 400 });
 
     const json = JSON.stringify(datos);
+
+    // Backup antes de sobreescribir
+    const prev = await query<{ datos: unknown }>('SELECT datos FROM config_servicios WHERE id = 1').catch(() => []);
+    if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('config', '1', (prev as { datos: unknown }[])[0].datos);
 
     // UPSERT: siempre id=1, 1 sola fila, nunca acumula
     await query(

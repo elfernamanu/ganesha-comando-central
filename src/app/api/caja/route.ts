@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 // ── Verifica que la tabla existe (el usuario DB no tiene permiso CREATE TABLE) ─
 // La tabla debe crearse manualmente con el superusuario de PostgreSQL:
@@ -116,6 +117,10 @@ export async function POST(req: NextRequest) {
 
     if (estado === 'cerrada') {
       // ── Cierre completo: snapshot de todo ─────────────────────────────────
+      // Backup del estado anterior antes de sobreescribir
+      const prev = await query<{ datos: unknown }>('SELECT datos FROM caja_diaria WHERE fecha = $1', [fecha]).catch(() => []);
+      if ((prev as { datos: unknown }[])[0]?.datos) await guardarBackup('caja', fecha, (prev as { datos: unknown }[])[0].datos);
+
       const datos = {
         turnos:               turnos               ?? [],
         gastos:               gastos               ?? [],
