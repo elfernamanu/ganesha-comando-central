@@ -196,9 +196,10 @@ export function useTurnos(fecha: string) {
           if (!item || item.precio === 0 || item.precio === t.monto_total) return t;
           huboCambioPrecio = true;
           const monto_total = item.precio;
-          const sena = Math.min(t.seña_pagada ?? 0, monto_total);
+          const totalConExtra = monto_total + (t.extra ?? 0);
+          const sena = Math.min(t.seña_pagada ?? 0, totalConExtra);
           const estado_pago = sena === 0 ? 'sin_pago'
-            : (monto_total > 0 && sena >= monto_total) ? 'completo'
+            : (totalConExtra > 0 && sena >= totalConExtra) ? 'completo'
             : 'seña';
           return { ...t, monto_total, seña_pagada: sena, estado_pago };
         });
