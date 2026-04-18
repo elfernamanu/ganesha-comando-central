@@ -202,14 +202,26 @@ function CajaContent() {
   const totalGastosCompleto = totales.gastos_totales + totalFijosEmpresa + totalFijosPersonal;
   const gananciaNeta = totales.ingresos_totales - totalGastosCompleto;
 
+  const fetchClientesMap = async (): Promise<Map<string, string>> => {
+    try {
+      const res = await fetch('/api/clientes');
+      const data = await res.json() as { ok: boolean; datos?: Array<{ nombre: string; celular: string }> };
+      if (!data.ok || !data.datos) return new Map();
+      return new Map(data.datos.map(c => [c.nombre.toLowerCase(), c.celular]));
+    } catch { return new Map(); }
+  };
+
   // Cerrar + guardar + descargar .txt — todo en uno
   // Los gastos fijos se pasan para guardar snapshot histórico en caja_diaria
   const handleCerrarYGuardar = async () => {
-    const ok = await cerrarYGuardar(fijosEmpresaConPago, fijosPersonalConPago);
+    const [clientesMap, ok] = await Promise.all([
+      fetchClientesMap(),
+      cerrarYGuardar(fijosEmpresaConPago, fijosPersonalConPago),
+    ]);
     if (ok) {
       mostrar('Caja cerrada y guardada', 'exito', 'El resumen del día llegó al servidor ✓');
       setFechaRecuperar(fecha);
-      const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaConPago, fijosPersonalConPago);
+      const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaConPago, fijosPersonalConPago, clientesMap);
       descargarReporte(contenido, fecha);
     } else {
       mostrar('Error al guardar caja', 'error', 'Verificá la conexión con el servidor');
@@ -218,8 +230,9 @@ function CajaContent() {
 
   // Solo descargar .txt del día actual (sin cerrar)
   // Usa el snapshot histórico si la caja está cerrada (para que el reporte sea fiel a cuando se cerró)
-  const handleDescargarHoy = () => {
-    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaParaResumen, fijosPersonalParaResumen);
+  const handleDescargarHoy = async () => {
+    const clientesMap = await fetchClientesMap();
+    const contenido = generarReporteTxt(fecha, turnos, gastos, totales, fijosEmpresaParaResumen, fijosPersonalParaResumen, clientesMap);
     descargarReporte(contenido, fecha);
   };
 
@@ -497,8 +510,8 @@ function CajaContent() {
         gastosFijosPersonal={fijosPersonalParaResumen}
       />
 
-      {/* ── Contactos del día — aparece solo cuando la caja está cerrada ── */}
-      {estadoCaja === 'cerrada' && turnos.length > 0 && (
+      {/* ── Contactos del día — visible siempre que haya turnos ── */}
+      {turnos.length > 0 && (
         <PanelContactosDia turnos={turnos} />
       )}
 
