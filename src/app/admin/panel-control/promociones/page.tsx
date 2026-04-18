@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { guardarCombos, invalidarCatalogoCache } from '../_shared/catalogoPromos';
+import CargandoServidor from '@/components/CargandoServidor';
 
 interface Combo {
   numero: number;
@@ -23,19 +24,10 @@ export default function PromocionesPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [estado, setEstado] = useState<'ok' | 'error' | ''>('');
+  const [cargandoInicial, setCargandoInicial] = useState(true);
 
-  // Cargar: primero localStorage (inmediato), luego servidor (si tiene datos)
+  // Servidor primero — bloquea la pantalla hasta recibir datos reales
   useEffect(() => {
-    // 1. localStorage primero
-    try {
-      const stored = localStorage.getItem(LS_COMBOS);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Combo[];
-        if (Array.isArray(parsed)) setCombos(parsed);
-      }
-    } catch { /* silencioso */ }
-
-    // 2. Servidor — si tiene datos gana (versión más fresca)
     fetch('/api/combos')
       .then(r => r.json())
       .then((data: { ok: boolean; datos?: unknown }) => {
@@ -45,9 +37,28 @@ export default function PromocionesPage() {
           try { localStorage.setItem(LS_COMBOS, JSON.stringify(fromServer)); } catch { /* silencioso */ }
           guardarCombos(fromServer);
           invalidarCatalogoCache();
+        } else {
+          // Fallback a localStorage si servidor no tiene datos
+          try {
+            const stored = localStorage.getItem(LS_COMBOS);
+            if (stored) {
+              const parsed = JSON.parse(stored) as Combo[];
+              if (Array.isArray(parsed)) setCombos(parsed);
+            }
+          } catch { /* silencioso */ }
         }
       })
-      .catch(() => { /* silencioso — usa localStorage */ });
+      .catch(() => {
+        // Sin conexión — usa localStorage
+        try {
+          const stored = localStorage.getItem(LS_COMBOS);
+          if (stored) {
+            const parsed = JSON.parse(stored) as Combo[];
+            if (Array.isArray(parsed)) setCombos(parsed);
+          }
+        } catch { /* silencioso */ }
+      })
+      .finally(() => setCargandoInicial(false));
   }, []);
 
   const agregarCombo = () => {
@@ -99,6 +110,8 @@ export default function PromocionesPage() {
       setTimeout(() => setEstado(''), 3000);
     }
   };
+
+  if (cargandoInicial) return <CargandoServidor seccion="Combos y Promociones" />;
 
   return (
     <div className="space-y-3">

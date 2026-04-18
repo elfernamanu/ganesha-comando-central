@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useCajaDiaria } from './hooks/useCajaDiaria';
 import { useGastosFijos } from './hooks/useGastosFijos';
 import { useToast } from '@/components/Toast';
+import CargandoServidor from '@/components/CargandoServidor';
 import { generarReporteTxt, descargarReporte } from './utils/reporteGenerator';
 import { formatearDinero, formatearHora } from './utils/formatters';
 import GastosForm from './components/GastosForm';
@@ -44,6 +45,7 @@ function CajaContent() {
     snapshotFijosEmpresa,
     snapshotFijosPersonal,
     cargandoTurnos,
+    cargandoInicial,
   } = useCajaDiaria(fecha);
 
   const {
@@ -266,6 +268,8 @@ function CajaContent() {
     setRecuperando(false);
     setTimeout(() => setMensajeRecuperar(''), 5000);
   };
+
+  if (cargandoInicial) return <CargandoServidor seccion="Control de Caja" />;
 
   return (
     <div className="space-y-2 max-w-2xl mx-auto">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/Toast';
 import { invalidarCatalogoCache } from '../_shared/catalogoPromos';
+import CargandoServidor from '@/components/CargandoServidor';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface Jornada {
@@ -713,6 +714,8 @@ export default function ConfiguracionServiciosPage() {
   };
 
   const cat = categorias.find(c => c.id === tabActiva)!;
+
+  if (!cargado) return <CargandoServidor seccion="Servicios y Precios" />;
 
   return (
     <div className="space-y-3">

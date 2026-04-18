@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import CargandoServidor from '@/components/CargandoServidor';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface ClienteData {
@@ -358,6 +359,7 @@ export default function ContactosPage() {
   const [statsMap, setStatsMap]             = useState<Map<string, ClienteStats>>(new Map());
   const [guardando, setGuardando]           = useState(false);
   const [estado, setEstado]                 = useState<'ok' | 'error' | ''>('');
+  const [cargandoInicial, setCargandoInicial] = useState(true);
 
   const [editId, setEditId]           = useState<string | null>(null);
   const [editNombre, setEditNombre]   = useState('');
@@ -380,7 +382,7 @@ export default function ContactosPage() {
 
   useEffect(() => { setStatsMap(calcularStatsLS()); }, []);
 
-  const cargarClientes = useCallback(() => {
+  const cargarClientes = useCallback((esInicial = false) => {
     setStatsMap(calcularStatsLS());
     fetch('/api/clientes')
       .then(r => r.json())
@@ -388,7 +390,8 @@ export default function ContactosPage() {
         if (d.ok && Array.isArray(d.datos) && d.datos.length > 0) {
           setServerClientes(d.datos);
           try { localStorage.setItem('ganesha_clientes_backup', JSON.stringify(d.datos)); } catch { /* silencioso */ }
-        } else {
+        } else if (esInicial) {
+          // Si el servidor no tiene datos, intenta restaurar desde localStorage
           try {
             const raw = localStorage.getItem('ganesha_clientes_backup');
             if (raw) {
@@ -405,10 +408,11 @@ export default function ContactosPage() {
           } catch { /* silencioso */ }
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (esInicial) setCargandoInicial(false); });
   }, []);
 
-  useEffect(() => { cargarClientes(); }, [cargarClientes]);
+  useEffect(() => { cargarClientes(true); }, [cargarClientes]);
 
   // Auto-refresh cuando la pestaña vuelve al foco
   useEffect(() => {
@@ -552,6 +556,8 @@ export default function ContactosPage() {
       else descargarContactosWhatsapp(rows);
     }
   }, [blacklist, rows]);
+
+  if (cargandoInicial) return <CargandoServidor seccion="Contactos / CRM" />;
 
   return (
     <div className="space-y-3">
