@@ -396,7 +396,7 @@ export function useTurnos(fecha: string) {
           const base  = cambios.monto_total !== undefined ? cambios.monto_total : t.monto_total;
           const xtra  = cambios.extra !== undefined ? (cambios.extra ?? 0) : (t.extra ?? 0);
           const total = base + xtra;
-          let seña    = cambios.seña_pagada !== undefined ? cambios.seña_pagada : t.seña_pagada;
+          let seña    = cambios.seña_pagada !== undefined ? cambios.seña_pagada : (t.seña_pagada ?? 0);
 
           // Seña nunca puede superar el total (base + extra)
           if (total > 0 && seña > total) {
@@ -435,8 +435,8 @@ export function useTurnos(fecha: string) {
   // ========================================
   const totales = useMemo(() => {
     const ingresos = turnos
-      .filter(t => t.asistencia === 'presente' || (t.asistencia === 'no_vino' && t.seña_pagada > 0))
-      .reduce((sum, t) => sum + t.seña_pagada, 0);
+      .filter(t => t.asistencia === 'presente' || (t.asistencia === 'no_vino' && (t.seña_pagada ?? 0) > 0))
+      .reduce((sum, t) => sum + (t.seña_pagada ?? 0), 0);
 
     return {
       total_turnos: turnos.length,

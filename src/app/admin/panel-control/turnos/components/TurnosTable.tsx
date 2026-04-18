@@ -307,7 +307,7 @@ export default function TurnosTable({
           const noVino         = turno.asistencia === 'no_vino';
           const extra          = turno.extra ?? 0;
           const granTotal      = turno.monto_total + extra;
-          const saldo          = Math.max(0, granTotal - turno.seña_pagada);
+          const saldo          = Math.max(0, granTotal - (turno.seña_pagada ?? 0));
 
           return (
             <div
@@ -595,7 +595,7 @@ export default function TurnosTable({
             const hayMismatch    = precioEsperado > 0 && turno.monto_total !== precioEsperado;
             const extraDesk      = turno.extra ?? 0;
             const granTotalDesk  = turno.monto_total + extraDesk;
-            const saldoDesk      = Math.max(0, granTotalDesk - turno.seña_pagada);
+            const saldoDesk      = Math.max(0, granTotalDesk - (turno.seña_pagada ?? 0));
             const listaDesk      = turno.asistencia === 'presente' && turno.estado_pago === 'completo';
             const noVinoDesk     = turno.asistencia === 'no_vino';
 
