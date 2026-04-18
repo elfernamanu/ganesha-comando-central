@@ -265,14 +265,20 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular 
   onDelete: (c: ClienteRow) => void;
   onSaveCelular: (c: ClienteRow, cel: string) => void;
 }) {
-  const [filtro, setFiltro] = useState('');
+  const [filtro, setFiltro]       = useState('');
+  const [filtroTel, setFiltroTel] = useState<'todos' | 'con' | 'sin'>('todos');
+
   const filtrados = useMemo(() => {
-    if (!filtro) return items;
+    let lista = items;
+    if (filtroTel === 'con') lista = lista.filter(c => !!c.celular);
+    if (filtroTel === 'sin') lista = lista.filter(c => !c.celular);
+    if (!filtro) return lista;
     const q = filtro.toLowerCase();
-    return items.filter(c => c.nombre.toLowerCase().includes(q) || c.celular.includes(q));
-  }, [items, filtro]);
+    return lista.filter(c => c.nombre.toLowerCase().includes(q) || c.celular.includes(q));
+  }, [items, filtro, filtroTel]);
 
   const conTel   = items.filter(c => c.celular).length;
+  const sinTel   = items.length - conTel;
   const ausentes = items.filter(c => c.ausentes > 0).length;
   return (
     <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
@@ -284,9 +290,28 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular 
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
             <span className="font-semibold">{items.length}</span>
             <span className="text-emerald-600">📱{conTel}</span>
-            {ausentes > 0 && <span className="text-red-500 font-bold">⚠️{ausentes}</span>}
+            {sinTel > 0 && <span className="text-amber-500 font-bold">⚠️{sinTel}</span>}
+            {ausentes > 0 && <span className="text-red-500 font-bold">🚫{ausentes}</span>}
           </div>
         </div>
+
+        {/* Filtro rápido por celular */}
+        <div className="flex gap-1 mb-1.5">
+          {(['todos', 'con', 'sin'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setFiltroTel(v)}
+              className={`flex-1 py-0.5 rounded-lg text-[10px] font-bold transition-colors ${
+                filtroTel === v
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {v === 'todos' ? `Todos (${items.length})` : v === 'con' ? `📱 Con (${conTel})` : `⚠️ Sin (${sinTel})`}
+            </button>
+          ))}
+        </div>
+
         <input
           value={filtro} onChange={e => setFiltro(e.target.value)}
           placeholder={`Buscar ${titulo.toLowerCase()}...`}
@@ -295,7 +320,7 @@ function Columna({ titulo, icono, color, items, onEdit, onDelete, onSaveCelular 
       </div>
       <div className="overflow-y-auto" style={{ maxHeight: '65vh' }}>
         {filtrados.length === 0
-          ? <p className="text-center py-6 text-[11px] text-slate-400">{filtro ? 'Sin resultados' : 'Sin registros'}</p>
+          ? <p className="text-center py-6 text-[11px] text-slate-400">{filtro || filtroTel !== 'todos' ? 'Sin resultados' : 'Sin registros'}</p>
           : filtrados.map(c => (
               <FilaCliente key={c.id} c={c} onEdit={onEdit} onDelete={onDelete} onSaveCelular={onSaveCelular} />
             ))
