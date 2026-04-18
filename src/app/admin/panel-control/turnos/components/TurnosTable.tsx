@@ -695,9 +695,9 @@ export default function TurnosTable({
                   />
                 </div>
 
-                {/* Total + extra siempre visible */}
-                <div className="flex flex-col gap-0.5">
-                  <div className="relative">
+                {/* Total + botón [+] */}
+                <div className="flex flex-col gap-1 items-center">
+                  <div className="relative w-full">
                     <NumeroInput
                       value={turno.monto_total}
                       onChange={v => onActualizar(turno.id, { monto_total: v })}
@@ -711,15 +711,21 @@ export default function TurnosTable({
                       >!</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[9px] font-bold text-red-500 shrink-0">+ext</span>
-                    <NumeroInput
-                      value={extraDesk}
-                      onChange={v => onActualizar(turno.id, { extra: v })}
-                    />
-                  </div>
-                  {extraDesk > 0 && (
-                    <p className="text-[9px] font-bold text-slate-500 text-right">={granTotalDesk.toLocaleString('es-AR')}</p>
+                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
+                    <>
+                      <NumeroInput
+                        value={extraDesk}
+                        onChange={v => onActualizar(turno.id, { extra: v })}
+                      />
+                      {extraDesk > 0 && (
+                        <p className="text-[9px] font-bold text-slate-500">={granTotalDesk.toLocaleString('es-AR')}</p>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
+                      className="w-7 h-7 rounded text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                    >+</button>
                   )}
                 </div>
 
