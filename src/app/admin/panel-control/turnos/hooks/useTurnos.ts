@@ -497,6 +497,8 @@ export function useTurnos(fecha: string) {
 
       const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; parcial?: boolean; cantServidor?: number; cantEnviados?: number; error?: string };
       if (res.ok && resData.ok) {
+        hayCambios.current = false;   // resetear: ya no hay cambios sin guardar
+        setAutoGuardado('idle');      // quitar el banner "Guardando..." que dejó el useEffect
         setTurnos(turnosOrdenados);
         sincronizarCelularesDesdeDetalle(turnosOrdenados).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
@@ -519,6 +521,8 @@ export function useTurnos(fecha: string) {
           });
           const dataForzado = await resForzado.json().catch(() => ({})) as { ok: boolean };
           if (resForzado.ok && dataForzado.ok) {
+            hayCambios.current = false;
+            setAutoGuardado('idle');
             setTurnos(turnosOrdenados);
             setMensaje('✅ Guardado forzado — se sobrescribieron los datos del servidor');
           } else {
