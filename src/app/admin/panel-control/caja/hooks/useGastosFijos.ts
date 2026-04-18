@@ -52,8 +52,15 @@ function gastoPersonalDefault(): GastoFijo[] {
   }));
 }
 
-// Agrega los gastos requeridos que falten — sin modificar los existentes
+// Clave que indica que la migración inicial ya corrió — no volver a agregar gastos borrados
+const LS_PERSONAL_MIGRADO = 'ganesha_personal_migrado_v1';
+
+// Agrega los gastos requeridos que falten — solo corre UNA VEZ (primera vez)
+// Después respeta lo que el usuario haya borrado
 function mergePersonalRequeridos(existentes: GastoFijo[]): { lista: GastoFijo[]; huboNuevos: boolean } {
+  if (typeof window !== 'undefined' && localStorage.getItem(LS_PERSONAL_MIGRADO)) {
+    return { lista: existentes, huboNuevos: false }; // ya migró — no re-agregar borrados
+  }
   const idsExistentes = new Set(existentes.map(g => g.id));
   const hoy = hoyStr();
   const nuevos = PERSONAL_REQUERIDOS
@@ -62,6 +69,7 @@ function mergePersonalRequeridos(existentes: GastoFijo[]): { lista: GastoFijo[];
       id: r.id, nombre: r.nombre, tipo: 'personal' as TipoGastoFijo,
       montoTotal: 0, activo: true, fechaCreacion: hoy, pagos: {},
     }));
+  if (typeof window !== 'undefined') localStorage.setItem(LS_PERSONAL_MIGRADO, '1');
   return { lista: [...existentes, ...nuevos], huboNuevos: nuevos.length > 0 };
 }
 
