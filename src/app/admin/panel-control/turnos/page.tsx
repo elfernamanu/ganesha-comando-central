@@ -64,24 +64,24 @@ function TurnosContent() {
 
   const { turnos, totales, mensaje, guardando, autoGuardado, cargandoInicial, ultimaActualizacion, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
 
-  const sinGuardar = autoGuardado === 'pendiente' || autoGuardado === 'error';
+  const sinGuardar = autoGuardado === 'error'; // solo bloquea si falló — pendiente no traba
 
-  // Alerta al cerrar/recargar la página con cambios sin guardar
+  // Alerta al cerrar/recargar la pestaña con cambios sin guardar (incluye pendiente)
   useEffect(() => {
-    if (!sinGuardar) return;
+    if (autoGuardado !== 'pendiente' && autoGuardado !== 'error') return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [sinGuardar]);
+  }, [autoGuardado]);
 
-  // Navegar a otra fecha con confirmación si hay cambios pendientes
-  const navegarFecha = useCallback((destino: string) => {
-    if (sinGuardar) {
-      const ok = confirm('⚠️ Los turnos no se guardaron en el servidor todavía.\n¿Querés guardar antes de cambiar de fecha?');
-      if (ok) { guardar(); return; }
+  // Navegar a otra fecha — guarda primero si hay cambios, luego navega
+  const navegarFecha = useCallback(async (destino: string) => {
+    if (autoGuardado === 'pendiente' || autoGuardado === 'error') {
+      const ok = confirm('⚠️ Hay turnos sin confirmar en el servidor.\n\nAceptar = Guardar y continuar\nCancelar = Continuar sin guardar');
+      if (ok) await guardar();
     }
     router.push(`/admin/panel-control/turnos?fecha=${destino}`);
-  }, [sinGuardar, guardar, router]);
+  }, [autoGuardado, guardar, router]);
 
   const fechasHabilitadas = useFechasHabilitadas();
 
@@ -151,15 +151,29 @@ function TurnosContent() {
         </div>
       )}
 
-      {/* ── Alerta turnos sin guardar ── */}
-      {sinGuardar && (
-        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700">
-          <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
-            ⚠️ {autoGuardado === 'error' ? 'Sin conexión — turnos guardados solo en este dispositivo' : 'Guardando en servidor...'}
+      {/* ── Guardando (informativo, no bloquea) ── */}
+      {autoGuardado === 'pendiente' && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+            <span className="w-3 h-3 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin inline-block shrink-0" />
+            Guardando en servidor...
           </p>
           <button onClick={guardar} disabled={guardando}
-            className="px-3 py-1 text-xs rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50 shrink-0">
+            className="px-3 py-1 text-xs rounded-lg bg-blue-500 text-white font-bold hover:bg-blue-600 disabled:opacity-50 shrink-0">
             {guardando ? '⏳' : '💾 Guardar ya'}
+          </button>
+        </div>
+      )}
+
+      {/* ── Error al guardar (urgente) ── */}
+      {autoGuardado === 'error' && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700">
+          <p className="text-xs font-bold text-red-700 dark:text-red-400">
+            ⛔ Sin conexión — turnos guardados solo en este dispositivo
+          </p>
+          <button onClick={guardar} disabled={guardando}
+            className="px-3 py-1 text-xs rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 disabled:opacity-50 shrink-0">
+            {guardando ? '⏳' : '🔄 Reintentar'}
           </button>
         </div>
       )}
