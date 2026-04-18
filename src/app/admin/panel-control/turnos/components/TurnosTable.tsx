@@ -407,13 +407,36 @@ export default function TurnosTable({
                 </div>
               </div>
 
-              {/* ── Asistencia ── */}
-              <div className="px-4 pb-3">
+              {/* ── Asistencia + Extra ── */}
+              <div className="px-4 pb-3 space-y-2">
                 <BotonesAsistencia
                   asistencia={turno.asistencia}
                   onChange={v => onActualizar(turno.id, { asistencia: v as any })}
                   size="lg"
                 />
+                {/* Botón + extra — cobra algo adicional en el momento */}
+                {(extra > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">+ extra</span>
+                    <NumeroInput
+                      value={extra}
+                      onChange={v => onActualizar(turno.id, { extra: v })}
+                      className="text-sm font-bold"
+                    />
+                    {extra > 0 && (
+                      <span className="text-xs text-slate-500 font-bold whitespace-nowrap">
+                        = ${granTotal.toLocaleString('es-AR')}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
+                    className="w-full py-1.5 rounded-lg text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 active:scale-95 transition-all"
+                  >
+                    + agregar extra
+                  </button>
+                )}
               </div>
 
               {/* ── Montos + pago ── */}
@@ -442,27 +465,6 @@ export default function TurnosTable({
                     {hayMismatch && (
                       <p className="text-[10px] text-red-500 mt-0.5">
                         Catálogo: ${precioEsperado.toLocaleString('es-AR')} — tocá ! para fijar
-                      </p>
-                    )}
-                    {/* Extra — otro tratamiento cobrado en el momento */}
-                    {(extra > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
-                      <div className="mt-1 flex items-center gap-1">
-                        <span className="text-xs text-slate-400 font-bold">+</span>
-                        <NumeroInput
-                          value={extra}
-                          onChange={v => onActualizar(turno.id, { extra: v })}
-                          className="text-sm font-bold"
-                        />
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
-                        className="mt-1 w-full px-2 py-1 rounded-lg text-xs font-semibold text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 hover:text-blue-600 hover:border-blue-400 transition-colors"
-                      >+</button>
-                    )}
-                    {extra > 0 && (
-                      <p className="text-[10px] font-bold text-slate-500 mt-0.5">
-                        = ${granTotal.toLocaleString('es-AR')}
                       </p>
                     )}
                   </div>
@@ -684,13 +686,30 @@ export default function TurnosTable({
                   </div>
                 </div>
 
-                {/* Asistencia */}
-                <div className="flex gap-1 justify-center">
+                {/* Asistencia + botón extra */}
+                <div className="flex flex-col gap-1 items-center">
                   <BotonesAsistencia
                     asistencia={turno.asistencia}
                     onChange={v => onActualizar(turno.id, { asistencia: v as any })}
                     size="sm"
                   />
+                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
+                    <div className="flex items-center gap-0.5 w-full">
+                      <span className="text-[9px] font-bold text-blue-500">+</span>
+                      <NumeroInput
+                        value={extraDesk}
+                        onChange={v => onActualizar(turno.id, { extra: v })}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
+                      className="w-full py-0.5 rounded text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 hover:bg-blue-100 transition-colors"
+                    >+ extra</button>
+                  )}
+                  {extraDesk > 0 && (
+                    <p className="text-[9px] font-bold text-slate-500">={granTotalDesk.toLocaleString('es-AR')}</p>
+                  )}
                 </div>
 
                 {/* Total */}
@@ -709,27 +728,6 @@ export default function TurnosTable({
                       >!</span>
                     )}
                   </div>
-                  {/* Extra — otro tratamiento cobrado en el momento */}
-                  {(extraDesk > 0 || senasAbiertas.has(`extra_${turno.id}`)) ? (
-                    <div className="mt-0.5 flex items-center gap-0.5">
-                      <span className="text-[10px] text-slate-400 font-bold">+</span>
-                      <NumeroInput
-                        value={extraDesk}
-                        onChange={v => onActualizar(turno.id, { extra: v })}
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setSenasAbiertas(s => new Set([...s, `extra_${turno.id}`]))}
-                      title="Agregar cobro extra"
-                      className="mt-0.5 w-full px-1 py-1 rounded text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 hover:bg-blue-100 transition-colors"
-                    >+ extra</button>
-                  )}
-                  {extraDesk > 0 && (
-                    <p className="text-[9px] font-bold text-slate-500 mt-0.5 text-right">
-                      =${granTotalDesk.toLocaleString('es-AR')}
-                    </p>
-                  )}
                 </div>
 
                 {/* Seña */}
