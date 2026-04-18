@@ -37,7 +37,8 @@ export function useCajaDiaria(fecha: string) {
   // ========================================
   // TURNOS (solo lectura — escritos por secretaria)
   // ========================================
-  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [turnos,         setTurnos]         = useState<Turno[]>([]);
+  const [cargandoTurnos, setCargandoTurnos] = useState(true);
 
   const cargarTurnos = useCallback(async () => {
     // 1. localStorage primero (inmediato)
@@ -58,9 +59,12 @@ export function useCajaDiaria(fecha: string) {
         try { localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos)); } catch { /* silencioso */ }
       }
     } catch { /* sin conexión — quedamos con localStorage */ }
+    setCargandoTurnos(false);
   }, [fecha]);
 
   useEffect(() => {
+    setTurnos([]);
+    setCargandoTurnos(true);
     cargarTurnos();
     window.addEventListener('focus', cargarTurnos);
     const interval = setInterval(cargarTurnos, 30000);
@@ -116,7 +120,6 @@ export function useCajaDiaria(fecha: string) {
   useEffect(() => {
     serverCargado.current = false;
     // Resetear estado al cambiar de fecha — evita mostrar datos del día anterior
-    setTurnos([]);
     setEstadoCaja('abierta');
     estadoCajaRef.current = 'abierta';
     setSnapshotFijosEmpresa([]);
@@ -390,6 +393,7 @@ export function useCajaDiaria(fecha: string) {
 
   return {
     turnos,
+    cargandoTurnos,
     gastos,
     totales,
     estadoCaja,

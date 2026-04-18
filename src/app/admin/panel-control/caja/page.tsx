@@ -43,6 +43,7 @@ function CajaContent() {
     recargarDesdeServidor,
     snapshotFijosEmpresa,
     snapshotFijosPersonal,
+    cargandoTurnos,
   } = useCajaDiaria(fecha);
 
   const {
@@ -406,10 +407,19 @@ function CajaContent() {
 
         {turnos.length === 0 ? (
           <div className="p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-center text-sm text-slate-400">
-            La secretaria no cargó turnos todavía.
-            <button onClick={cargarTurnos} className="block mx-auto mt-1 text-blue-600 dark:text-blue-400 hover:underline text-xs">
-              🔄 Reintentar
-            </button>
+            {cargandoTurnos ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-slate-300 border-t-violet-500 rounded-full animate-spin inline-block" />
+                Cargando turnos del servidor...
+              </span>
+            ) : (
+              <>
+                La secretaria no cargó turnos todavía.
+                <button onClick={cargarTurnos} className="block mx-auto mt-1 text-blue-600 dark:text-blue-400 hover:underline text-xs">
+                  🔄 Reintentar
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border border-slate-100 dark:border-slate-700 overflow-hidden">
