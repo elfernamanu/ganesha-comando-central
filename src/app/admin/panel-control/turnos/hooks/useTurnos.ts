@@ -558,6 +558,7 @@ export function useTurnos(fecha: string) {
     guardando,
     autoGuardado,
     cargandoInicial: !cargaInicialCompleta.current,
+    ultimaActualizacion: ultimaActualizacionServidor.current,
     celularesSync,
     agregarTurno,
     actualizarTurno,

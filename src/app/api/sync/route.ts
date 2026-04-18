@@ -3,6 +3,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 // GET /api/sync?fecha=2026-04-14
 // Cache 20s: el cliente ya tiene localStorage; el server confirma cambios recientes.
@@ -85,6 +86,14 @@ export async function POST(req: NextRequest) {
           error: `Protección activa: el servidor tiene ${cantExistente} turnos para ${fecha} pero se enviaron solo ${datos.length}. Para sobrescribir usar forzar: true.`,
         }, { status: 409 });
       }
+    }
+
+    // Guardar backup ANTES de sobreescribir (permite recuperar si algo falla)
+    const current = await query<{ datos: unknown }>(
+      'SELECT datos FROM turnos WHERE fecha = $1', [fecha]
+    );
+    if (current[0]?.datos) {
+      await guardarBackup('turnos', fecha, current[0].datos);
     }
 
     await query(

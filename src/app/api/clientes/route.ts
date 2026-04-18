@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { guardarBackup } from '@/lib/backup';
 
 let tableReady = false;
 async function ensureTable() {
@@ -80,6 +81,14 @@ export async function POST(req: NextRequest) {
       } catch { /* tabla no existe todavía — no hay datos que proteger */ }
     }
 
+    // Guardar backup ANTES de sobreescribir (permite recuperar si algo salió mal)
+    const prev = await query<{ datos: unknown }>(
+      'SELECT datos FROM clientes_telefonos WHERE id = 1'
+    ).catch(() => []);
+    if ((prev as { datos: unknown }[])[0]?.datos) {
+      await guardarBackup('clientes', '1', (prev as { datos: unknown }[])[0].datos);
+    }
+
     // Intentar guardar en clientes_telefonos; si la tabla no existe, usar config_servicios
     let savedMain = false;
     try {
@@ -92,7 +101,7 @@ export async function POST(req: NextRequest) {
       savedMain = true;
     } catch { /* tabla no existe todavía */ }
 
-    // config_servicios: tabla principal de fallback o backup secundario
+    // config_servicios: backup secundario
     await query(
       `INSERT INTO config_servicios (id, datos, actualizado_at) VALUES (-4, $1::jsonb, NOW())
        ON CONFLICT (id) DO UPDATE SET datos = EXCLUDED.datos, actualizado_at = NOW()`,
