@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { AppBottomNav } from '@/components/AppBottomNav';
 import { EstadoSistema } from '@/components/EstadoSistema';
 import { useAccessibility } from '@/context/AccessibilityCtx';
-import DispositivoIndicador from '@/components/DispositivoIndicador';
 
 // Mapa de rutas → título para la app bar mobile
 const PAGE_TITLES: Record<string, string> = {
@@ -63,9 +62,6 @@ function MobileAppBar() {
           {title}
         </h1>
 
-        {/* Dispositivo */}
-        <DispositivoIndicador />
-
         {/* Estado sistema */}
         <div className="scale-90 origin-right">
           <EstadoSistema compact />
@@ -107,7 +103,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <DispositivoIndicador />
               <Link
                 href="/"
                 className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
