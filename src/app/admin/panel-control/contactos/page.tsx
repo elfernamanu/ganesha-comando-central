@@ -383,10 +383,47 @@ export default function ContactosPage() {
     } catch { /* silencioso */ }
   }, []);
 
-  useEffect(() => { setStatsMap(calcularStatsLS()); }, []);
+  // Merge: server gana sobre localStorage; localStorage solo cubre clientes sin datos en servidor
+  function mergeStats(
+    srv: Map<string, ClienteStats>,
+    ls: Map<string, ClienteStats>,
+  ): Map<string, ClienteStats> {
+    const out = new Map<string, ClienteStats>(srv);
+    for (const [nombre, stats] of ls) {
+      const low = nombre.toLowerCase();
+      const yaEsta = [...out.keys()].some(k => k.toLowerCase() === low);
+      if (!yaEsta) out.set(nombre, stats);
+    }
+    return out;
+  }
+
+  const [lsStats, setLsStats]         = useState<Map<string, ClienteStats>>(new Map());
+  const [serverStats, setServerStats] = useState<Map<string, ClienteStats>>(new Map());
+
+  // statsMap combinado: servidor primero, localStorage de respaldo
+  useEffect(() => {
+    setStatsMap(mergeStats(serverStats, lsStats));
+  }, [serverStats, lsStats]);
+
+  // Cargar stats desde localStorage inmediatamente
+  useEffect(() => { setLsStats(calcularStatsLS()); }, []);
+
+  // Cargar stats desde el servidor (fuente real)
+  const cargarStatsServidor = useCallback(async () => {
+    try {
+      const r = await fetch('/api/clientes/stats');
+      const d = await r.json() as { ok: boolean; stats?: Record<string, { totalTurnos: number; presentes: number; ausentes: number; tratamientoFrecuente: string; generoDetectado: 'm' | 'f' }> };
+      if (d.ok && d.stats) {
+        setServerStats(new Map(Object.entries(d.stats) as [string, ClienteStats][]));
+      }
+    } catch { /* sin conexión — queda localStorage */ }
+  }, []);
+
+  useEffect(() => { cargarStatsServidor(); }, [cargarStatsServidor]);
 
   const cargarClientes = useCallback((esInicial = false) => {
-    setStatsMap(calcularStatsLS());
+    setLsStats(calcularStatsLS());
+    cargarStatsServidor();
     fetch('/api/clientes')
       .then(r => r.json())
       .then((d: { ok: boolean; datos?: ClienteData[] }) => {
@@ -413,7 +450,7 @@ export default function ContactosPage() {
       })
       .catch(() => {})
       .finally(() => { if (esInicial) setCargandoInicial(false); });
-  }, []);
+  }, [cargarStatsServidor]);
 
   useEffect(() => { cargarClientes(true); }, [cargarClientes]);
 
