@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -69,6 +69,9 @@ const MESES_ES = [
 const DIAS_ES = [
   'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado',
 ];
+
+// Mínimo entre refetchs disparados por el evento `focus` de la ventana.
+const FOCUS_REFETCH_MIN_MS = 60_000;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -189,11 +192,19 @@ export function AgendaMensual() {
       });
   }, [cargarServiciosDesdeLS]);
 
+  // Throttle del refetch on-focus: evita reconsultar /api/admin/config
+  // cada vez que el usuario alterna pestañas.
+  const ultimoFetchRef = useRef<number>(0);
   useEffect(() => {
     cargarServicios();
-    // Recargar cuando el usuario vuelve a esta pestaña
-    // (por si la dueña configuró servicios en otra pestaña o en el panel admin)
-    const onFocus = () => cargarServicios();
+    ultimoFetchRef.current = Date.now();
+
+    const onFocus = () => {
+      const ahora = Date.now();
+      if (ahora - ultimoFetchRef.current < FOCUS_REFETCH_MIN_MS) return;
+      ultimoFetchRef.current = ahora;
+      cargarServicios();
+    };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [cargarServicios]);

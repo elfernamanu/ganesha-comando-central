@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const LS_DEVICE_ID   = 'ganesha_device_id';
 const LS_DEVICE_NAME = 'ganesha_device_name';
+const HEARTBEAT_MS   = 60_000; // 1 minuto (antes 30s)
 
 export interface Dispositivo {
   device_id: string;
@@ -79,11 +80,32 @@ export function usePresencia() {
     } catch { /* sin conexión → silencioso */ }
   }, [deviceId, pathname, fetchDispositivos]);
 
-  // Heartbeat cada 30s + al cambiar de página
+  // Heartbeat: solo cuando la pestaña está visible. Pausa total en background.
   useEffect(() => {
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 30_000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (interval !== null) return;
+      sendHeartbeat();
+      interval = setInterval(sendHeartbeat, HEARTBEAT_MS);
+    };
+    const stop = () => {
+      if (interval === null) return;
+      clearInterval(interval);
+      interval = null;
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') start();
+      else stop();
+    };
+
+    if (document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      stop();
+    };
   }, [sendHeartbeat]);
 
   return { dispositivos, deviceId, deviceName, setDeviceName };

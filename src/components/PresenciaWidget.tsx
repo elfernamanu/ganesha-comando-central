@@ -46,7 +46,7 @@ export function PresenciaWidget() {
 
       {/* Mi dispositivo */}
       <div className="flex items-center gap-2 px-1 py-1 rounded-lg">
-        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0 animate-pulse" />
+        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
 
         {sinNombre || editando ? (
           <div className="flex-1 space-y-1">
