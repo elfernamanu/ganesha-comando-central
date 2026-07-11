@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { PANEL_PIN } from '@/lib/pin';
 
 /**
  * GET    /api/panel-auth  → { pinRequerido: bool }
@@ -16,14 +17,11 @@ async function sessionToken(pin: string): Promise<string> {
 }
 
 export async function GET() {
-  const pinRequerido = !!process.env.PANEL_PIN;
-  return NextResponse.json({ pinRequerido });
+  return NextResponse.json({ pinRequerido: true });
 }
 
 export async function POST(req: NextRequest) {
-  const panelPin = process.env.PANEL_PIN;
-
-  if (!panelPin) return NextResponse.json({ ok: true });
+  const panelPin = PANEL_PIN;
 
   try {
     const body = await req.json() as { pin?: string; deviceId?: string };
@@ -58,7 +56,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 8 * 60 * 60,
+      maxAge: 30 * 24 * 60 * 60, // 30 días — el PIN se pide una vez por dispositivo
       path: '/',
     });
     return res;

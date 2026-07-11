@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Rutas de API que NO requieren sesión
-const PUBLIC_API = ['/api/panel-auth', '/api/health'];
+import { PANEL_PIN } from '@/lib/pin';
 
 async function sessionToken(pin: string): Promise<string> {
   const data = new TextEncoder().encode(pin + '_ganesha');
@@ -12,9 +10,7 @@ async function sessionToken(pin: string): Promise<string> {
 }
 
 async function isAuthenticated(req: NextRequest): Promise<boolean> {
-  const pin = process.env.PANEL_PIN;
-  if (!pin) return true; // sin PIN → libre acceso
-  const expected = await sessionToken(pin);
+  const expected = await sessionToken(PANEL_PIN);
   const cookie = req.cookies.get('ganesha_session')?.value;
   return cookie === expected;
 }
@@ -22,14 +18,8 @@ async function isAuthenticated(req: NextRequest): Promise<boolean> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ── Rutas /api/* ──────────────────────────────────────────────────────────
-  if (pathname.startsWith('/api/')) {
-    if (PUBLIC_API.some(p => pathname.startsWith(p))) return NextResponse.next();
-    if (await isAuthenticated(req)) return NextResponse.next();
-    return NextResponse.json({ ok: false, error: 'Sesión inválida' }, { status: 401 });
-  }
-
-  // ── Rutas /admin/* (excepto la propia página de login) ───────────────────
+  // Protege las páginas /admin/* con PIN.
+  // Las APIs quedan libres: la agenda pública y el bot las necesitan.
   if (pathname.startsWith('/admin/') && !pathname.startsWith('/admin/login')) {
     if (await isAuthenticated(req)) return NextResponse.next();
     const loginUrl = new URL('/admin/login', req.url);
@@ -40,4 +30,4 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ['/api/:path*', '/admin/:path*'] };
+export const config = { matcher: ['/admin/:path*'] };
