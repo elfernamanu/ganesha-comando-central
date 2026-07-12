@@ -17,7 +17,8 @@ async function sessionToken(pin: string): Promise<string> {
 }
 
 export async function GET() {
-  return NextResponse.json({ pinRequerido: true });
+  // Candado desactivado — la página de login redirige directo sin pedir PIN
+  return NextResponse.json({ pinRequerido: false });
 }
 
 export async function POST(req: NextRequest) {
