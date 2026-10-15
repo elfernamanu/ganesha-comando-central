@@ -3,6 +3,35 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { leerClavesConRespaldo, leerRespaldoInicial, subirCopia, MARCA_COPIA_AUTO, type ResumenImportacion } from '@/lib/copiaLocal';
+import {
+  desdeDispositivo, desdeServidor, unir, totales, documentoHtml, csvClientes, csvTurnos, archivoRestauracion,
+  type DatosBackup,
+} from '@/lib/backupCompleto';
+
+function descargarArchivo(nombre: string, contenido: string, tipo: string) {
+  const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Servidor + este dispositivo (con su respaldo interno), sin perder nada de ninguno. */
+async function armarBackupCompleto(): Promise<DatosBackup> {
+  const dispositivo = desdeDispositivo(await leerClavesConRespaldo());
+  try {
+    const r = await fetch('/api/backup', { cache: 'no-store' });
+    if (r.ok) {
+      const servidor = desdeServidor(await r.json() as Record<string, unknown>);
+      const tieneAlgo = Object.keys(servidor.turnos).length > 0 || servidor.contactos.length > 0 || servidor.servicios.length > 0;
+      if (tieneAlgo) return unir(servidor, dispositivo);
+    }
+  } catch { /* sin servidor: solo este dispositivo */ }
+  return dispositivo;
+}
 
 interface DiaTurnos {
   fecha: string;
@@ -85,6 +114,25 @@ export default function CopiaPage() {
   const [errorSubida, setErrorSubida] = useState('');
   const [copiadoEl, setCopiadoEl] = useState<string | null>(null);
   const [respaldoEl, setRespaldoEl] = useState<string | null>(null);
+  const [backup, setBackup] = useState<DatosBackup | null>(null);
+  const [armandoBackup, setArmandoBackup] = useState(true);
+
+  const prepararBackup = async () => {
+    setArmandoBackup(true);
+    try { setBackup(await armarBackupCompleto()); } catch { setBackup(null); }
+    setArmandoBackup(false);
+  };
+
+  useEffect(() => { prepararBackup(); }, []);
+
+  const bajarBackup = (tipo: 'documento' | 'clientes' | 'turnos' | 'restaurar') => {
+    if (!backup) return;
+    const dia = backup.generado.slice(0, 10);
+    if (tipo === 'documento') descargarArchivo(`Backup_Ganesha_${dia}.html`, documentoHtml(backup), 'text/html;charset=utf-8');
+    if (tipo === 'clientes') descargarArchivo(`Clientes_Ganesha_${dia}.csv`, csvClientes(backup), 'text/csv;charset=utf-8');
+    if (tipo === 'turnos') descargarArchivo(`Turnos_Ganesha_${dia}.csv`, csvTurnos(backup), 'text/csv;charset=utf-8');
+    if (tipo === 'restaurar') descargarArchivo(`Restaurar_Ganesha_${dia}.json`, archivoRestauracion(backup), 'application/json');
+  };
 
   useEffect(() => {
     leerClavesConRespaldo()
@@ -195,6 +243,54 @@ export default function CopiaPage() {
             🛡️ Respaldo interno protegido desde el {new Date(respaldoEl).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}: si algo se borrara de la memoria del navegador, se recupera de ahí
           </p>
         )}
+      </div>
+
+      {/* ── Backup completo de la app (servidor + este dispositivo) ── */}
+      <div className="rounded-2xl border-2 border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/20 p-4 space-y-3">
+        <div>
+          <h2 className="text-base font-bold text-slate-800 dark:text-white">📦 Backup completo de la app</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300">
+            Junta lo del servidor y lo de este dispositivo sin perder nada: clientes con teléfono (también los anotados en los turnos), servicios y precios, jornadas, combos, todos los turnos, gastos y caja.
+          </p>
+        </div>
+
+        {armandoBackup ? (
+          <p className="text-sm text-slate-500">Armando el backup...</p>
+        ) : !backup ? (
+          <p className="text-sm text-red-600">No se pudo armar el backup. <button onClick={prepararBackup} className="underline font-semibold">Reintentar</button></p>
+        ) : (() => {
+          const t = totales(backup);
+          return (
+            <>
+              <p className="text-xs text-slate-600 dark:text-slate-300 tabular-nums">
+                <b>Datos de: {backup.origen.join(' + ')}</b> · {t.clientes} clientes ({t.conCelular} con celular) · {t.turnos} turnos en {t.dias} días · {t.precios} precios en {t.categorias} categorías · {t.combos} combos
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button onClick={() => bajarBackup('documento')}
+                  className="px-4 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 text-left">
+                  📄 Documento completo
+                  <span className="block text-[11px] font-normal opacity-90">Para leer o imprimir. Se abre en cualquier navegador</span>
+                </button>
+                <button onClick={() => bajarBackup('clientes')}
+                  className="px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 font-bold text-sm text-slate-800 dark:text-white hover:bg-violet-50 text-left">
+                  📊 Clientes y teléfonos (Excel)
+                  <span className="block text-[11px] font-normal text-slate-500">Con turnos, asistencias y faltas de cada una</span>
+                </button>
+                <button onClick={() => bajarBackup('turnos')}
+                  className="px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 font-bold text-sm text-slate-800 dark:text-white hover:bg-violet-50 text-left">
+                  📊 Todos los turnos (Excel)
+                  <span className="block text-[11px] font-normal text-slate-500">Día, hora, clienta, servicio, cobro y forma de pago</span>
+                </button>
+                <button onClick={() => bajarBackup('restaurar')}
+                  className="px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 font-bold text-sm text-slate-800 dark:text-white hover:bg-violet-50 text-left">
+                  💾 Archivo para restaurar
+                  <span className="block text-[11px] font-normal text-slate-500">Si hiciera falta, se sube acá y recarga todo</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">Guardá los 4 archivos en un pendrive o en Google Drive.</p>
+            </>
+          );
+        })()}
       </div>
 
       {vacio ? (

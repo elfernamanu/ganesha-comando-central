@@ -5,7 +5,8 @@
  * (la que descarga /admin/panel-control/copia). Nunca borra ni pisa:
  * - Turnos: agrega a cada día los turnos que el servidor no tiene, y en los que
  *   ya tiene completa lo vacío (asistencia, servicio, cobro) sin borrar nada.
- * - Contactos: agrega los que faltan y completa celulares vacíos.
+ * - Contactos: agrega los que faltan y completa celulares vacíos, también con los
+ *   celulares que la secretaria anotó en el detalle de los turnos.
  * - Precios, combos y gastos fijos: solo si el servidor no tiene.
  * - Gastos de caja: solo los días que el servidor no tiene.
  * Antes de modificar algo que ya existía, guarda un respaldo.
@@ -13,41 +14,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, problemaDeConfiguracion, explicarErrorDeConexion } from '@/lib/db';
 import { guardarBackup } from '@/lib/backup';
-
-type Registro = Record<string, unknown>;
+import { claveTurno, combinarTurno, celularDeDetalle, type Registro } from '@/lib/combinarTurnos';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 function lista(v: unknown): Registro[] {
   return Array.isArray(v) ? v.filter((x): x is Registro => !!x && typeof x === 'object') : [];
-}
-
-const vacio = (v: unknown) => v === undefined || v === null || v === '' || v === 0;
-const num = (v: unknown) => Number(v) || 0;
-
-// Mismo turno en el servidor y en la copia: no se pierde ningún dato cargado en
-// cualquiera de los dos. Lo que el servidor ya tiene se respeta; lo vacío se completa;
-// la seña y el extra se quedan con el mayor (un cobro registrado no se pierde).
-function combinarTurno(servidor: Registro, copia: Registro): Registro {
-  const out: Registro = { ...servidor };
-  for (const [k, v] of Object.entries(copia)) {
-    if (vacio(out[k]) && !vacio(v)) out[k] = v;
-  }
-  // La forma de pago acompaña al cobro: si la copia registró más cobro, su forma de pago es la real
-  if (num(copia['seña_pagada']) > num(servidor['seña_pagada']) && !vacio(copia.metodo_pago)) {
-    out.metodo_pago = copia.metodo_pago;
-  }
-  out.extra = Math.max(num(servidor.extra), num(copia.extra));
-  const total = num(out.monto_total) + num(out.extra);
-  let sena = Math.max(num(servidor['seña_pagada']), num(copia['seña_pagada']));
-  if (total > 0 && sena > total) sena = total;
-  out['seña_pagada'] = sena;
-  out.estado_pago = sena === 0 ? 'sin_pago' : (total > 0 && sena >= total) ? 'completo' : 'seña';
-  return out;
-}
-
-function claveTurno(t: Registro): string {
-  return typeof t.id === 'string' && t.id ? t.id : `${t.horario ?? ''}|${String(t.clienteNombre ?? '').trim().toLowerCase()}`;
 }
 
 async function leerDatos(sql: string, params: unknown[]): Promise<Registro[] | null> {
@@ -129,8 +101,18 @@ export async function POST(req: NextRequest) {
       resumen.turnosCompletados += completados;
     }
 
-    // ── Contactos ───────────────────────────────────────────────────────────
+    // ── Contactos: la lista guardada + los celulares anotados en el detalle de los turnos ──
     const contactosLocal = lista(claves['ganesha_clientes_backup']);
+    for (const [k, v] of Object.entries(claves)) {
+      if (!k.startsWith('ganesha_turnos_')) continue;
+      for (const t of lista(v)) {
+        const nombre = String(t.clienteNombre ?? '').trim();
+        const celular = celularDeDetalle(t.detalle);
+        if (nombre && celular) {
+          contactosLocal.push({ id: crypto.randomUUID(), nombre, celular, notas: '' });
+        }
+      }
+    }
     if (contactosLocal.length > 0) {
       const servidor = await leerDatos('SELECT datos FROM clientes_telefonos WHERE id = 1', []) ?? [];
       const porNombre = new Map(servidor.map(c => [String(c.nombre ?? '').trim().toLowerCase(), { ...c }]));
