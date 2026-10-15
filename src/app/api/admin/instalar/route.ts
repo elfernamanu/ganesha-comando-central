@@ -3,7 +3,7 @@
  * POST /api/admin/instalar → crea las tablas que falten (no toca las que existen)
  */
 import { NextResponse } from 'next/server';
-import { query, urlBaseDeDatos } from '@/lib/db';
+import { query, problemaDeConfiguracion, explicarErrorDeConexion } from '@/lib/db';
 import { instalarEsquema, tablasPresentes, TABLAS } from '@/lib/schema';
 
 async function contar() {
@@ -29,27 +29,25 @@ async function contar() {
 }
 
 export async function GET() {
-  if (!urlBaseDeDatos()) {
-    return NextResponse.json({ ok: true, conectado: false, motivo: 'Falta configurar la base de datos en Vercel' });
-  }
+  const problema = problemaDeConfiguracion();
+  if (problema) return NextResponse.json({ ok: true, conectado: false, motivo: problema });
   try {
     const presentes = await tablasPresentes();
     const faltan = TABLAS.filter(t => !presentes.includes(t));
     const datos = faltan.length === 0 ? await contar() : null;
     return NextResponse.json({ ok: true, conectado: true, faltan, datos }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {
-    return NextResponse.json({ ok: true, conectado: false, motivo: String((err as Error).message ?? err) });
+    return NextResponse.json({ ok: true, conectado: false, motivo: explicarErrorDeConexion(err) });
   }
 }
 
 export async function POST() {
-  if (!urlBaseDeDatos()) {
-    return NextResponse.json({ ok: false, error: 'Falta configurar la base de datos en Vercel' }, { status: 503 });
-  }
+  const problema = problemaDeConfiguracion();
+  if (problema) return NextResponse.json({ ok: false, error: problema }, { status: 503 });
   try {
     await instalarEsquema();
     return NextResponse.json({ ok: true, tablas: await tablasPresentes() });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: String((err as Error).message ?? err) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: explicarErrorDeConexion(err) }, { status: 500 });
   }
 }

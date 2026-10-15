@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query, problemaDeConfiguracion, explicarErrorDeConexion } from '@/lib/db';
 
 /**
  * GET /api/health
@@ -23,7 +23,7 @@ export async function GET() {
   } catch (err) {
     resultado.postgres = {
       estado: 'error ❌',
-      detalle: String(err),
+      detalle: problemaDeConfiguracion() ?? explicarErrorDeConexion(err),
     };
   }
 

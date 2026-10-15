@@ -262,6 +262,9 @@ export default function CopiaPage() {
             Los datos quedan seguros en este dispositivo. Cuando se conecte la base de datos nueva, desde acá se suben con un toque.
           </p>
         )}
+        {servidor && !servidor.conectado && servidor.motivo && (
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Motivo: {servidor.motivo}</p>
+        )}
 
         {servidor?.conectado && servidor.datos && (
           <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">

@@ -10,8 +10,39 @@ export function urlBaseDeDatos(): string | undefined {
 
 // Supabase firma con su propia autoridad, que la verificación estricta de pg rechaza:
 // se cifra sin verificar la cadena. sslmode se quita de la URL porque pisaría esta opción.
+// Una clave con @ # / ? : pegada sin codificar rompe la dirección: se codifica acá.
+// Si ya venía codificada (%40...) se decodifica primero para no codificarla dos veces.
+export function normalizarUrl(url: string): string {
+  const m = url.trim().match(/^(postgres(?:ql)?:\/\/)([^:@/]+):(.*)@([^@]+)$/);
+  if (!m) return url.trim();
+  const [, esquema, usuario, clave, resto] = m;
+  let real = clave;
+  try { real = decodeURIComponent(clave); } catch { /* % sueltos: la clave se usa tal cual */ }
+  return `${esquema}${usuario}:${encodeURIComponent(real)}@${resto}`;
+}
+
+// Errores de configuración que se pueden detectar sin conectarse
+export function problemaDeConfiguracion(url = urlBaseDeDatos()): string | null {
+  if (!url) return 'Falta configurar DATABASE_URL en Vercel';
+  if (/\[YOUR[-_ ]PASSWORD\]/i.test(url)) return 'En DATABASE_URL quedó escrito [YOUR-PASSWORD]: reemplazalo por la clave de la base de Supabase';
+  if (/@db\.[a-z0-9]+\.supabase\.co/i.test(url)) return 'DATABASE_URL usa la conexión directa de Supabase, que Vercel no alcanza: copiá la dirección de "Transaction pooler" (puerto 6543)';
+  return null;
+}
+
+export function explicarErrorDeConexion(err: unknown): string {
+  const msg = String((err as Error)?.message ?? err);
+  if (/password authentication failed/i.test(msg)) return 'La clave de la base es incorrecta. Revisala o generá una nueva en Supabase → Project Settings → Database';
+  if (/tenant or user not found/i.test(msg)) return 'El usuario de la dirección no corresponde al proyecto. Copiá de nuevo la dirección completa desde Supabase → Connect';
+  if (/ENOTFOUND|getaddrinfo/i.test(msg)) return 'No se encuentra el servidor de la base. Revisá que la dirección esté completa';
+  if (/ENETUNREACH|EHOSTUNREACH/i.test(msg)) return 'No se llega al servidor de la base. En Supabase usá la dirección de "Transaction pooler"';
+  if (/timeout|ETIMEDOUT/i.test(msg)) return 'La base no responde. Fijate en Supabase si el proyecto está pausado';
+  if (/Invalid URL/i.test(msg)) return 'La dirección de la base está mal escrita. Copiala de nuevo desde Supabase → Connect';
+  return msg;
+}
+
 export function opcionesConexion(url: string | undefined): { connectionString?: string; ssl?: false | { rejectUnauthorized: boolean } } {
   if (!url) return { connectionString: url };
+  url = normalizarUrl(url);
   if (/supabase\.(co|com)/.test(url)) {
     return {
       connectionString: url.replace(/([?&])sslmode=[^&]*(&|$)/, (_m, sep: string, fin: string) => (fin ? sep : '')),

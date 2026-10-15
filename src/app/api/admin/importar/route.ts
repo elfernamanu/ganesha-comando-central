@@ -10,7 +10,7 @@
  * Antes de modificar algo que ya existía, guarda un respaldo.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { query, urlBaseDeDatos } from '@/lib/db';
+import { query, problemaDeConfiguracion, explicarErrorDeConexion } from '@/lib/db';
 import { guardarBackup } from '@/lib/backup';
 
 type Registro = Record<string, unknown>;
@@ -44,9 +44,8 @@ async function cargarConfigSiFalta(id: number, local: Registro[], tablaBackup: s
 }
 
 export async function POST(req: NextRequest) {
-  if (!urlBaseDeDatos()) {
-    return NextResponse.json({ ok: false, error: 'Falta configurar la base de datos en Vercel' }, { status: 503 });
-  }
+  const problema = problemaDeConfiguracion();
+  if (problema) return NextResponse.json({ ok: false, error: problema }, { status: 503 });
 
   let claves: Record<string, unknown>;
   try {
@@ -153,6 +152,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, resumen });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: String((err as Error).message ?? err), resumen }, { status: 500 });
+    return NextResponse.json({ ok: false, error: explicarErrorDeConexion(err), resumen }, { status: 500 });
   }
 }
