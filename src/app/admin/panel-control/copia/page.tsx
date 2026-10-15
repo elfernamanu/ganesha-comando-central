@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { leerClavesLocales, subirCopia, MARCA_COPIA_AUTO, type ResumenImportacion } from '@/lib/copiaLocal';
+import { leerClavesConRespaldo, leerRespaldoInicial, subirCopia, MARCA_COPIA_AUTO, type ResumenImportacion } from '@/lib/copiaLocal';
 
 interface DiaTurnos {
   fecha: string;
@@ -27,8 +27,7 @@ function largo(v: unknown): number {
   return Array.isArray(v) ? v.length : 0;
 }
 
-function leerDispositivo(): Resumen {
-  const claves = leerClavesLocales();
+function armarResumen(claves: Record<string, unknown>): Resumen {
 
   const dias: DiaTurnos[] = [];
   for (const [k, v] of Object.entries(claves)) {
@@ -85,9 +84,13 @@ export default function CopiaPage() {
   const [resultado, setResultado] = useState<{ origen: string; resumen: ResumenImportacion } | null>(null);
   const [errorSubida, setErrorSubida] = useState('');
   const [copiadoEl, setCopiadoEl] = useState<string | null>(null);
+  const [respaldoEl, setRespaldoEl] = useState<string | null>(null);
 
   useEffect(() => {
-    try { setResumen(leerDispositivo()); } catch { setAviso('No se pudo leer la memoria de este navegador.'); }
+    leerClavesConRespaldo()
+      .then(c => setResumen(armarResumen(c)))
+      .catch(() => setAviso('No se pudo leer la memoria de este navegador.'));
+    leerRespaldoInicial().then(f => { if (f) setRespaldoEl(f.fecha); }).catch(() => { /* sin IndexedDB */ });
     try {
       const marca = JSON.parse(localStorage.getItem(MARCA_COPIA_AUTO) || 'null') as { fecha?: string } | null;
       if (marca?.fecha) setCopiadoEl(marca.fecha);
@@ -187,6 +190,11 @@ export default function CopiaPage() {
           Todo lo que este navegador tiene guardado del sistema: turnos, contactos, precios, combos y gastos.
           Descargá el archivo y guardalo en un lugar seguro.
         </p>
+        {respaldoEl && (
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+            🛡️ Respaldo interno protegido desde el {new Date(respaldoEl).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}: si algo se borrara de la memoria del navegador, se recupera de ahí
+          </p>
+        )}
       </div>
 
       {vacio ? (

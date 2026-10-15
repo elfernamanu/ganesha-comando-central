@@ -212,9 +212,11 @@ export function useGastosFijos(fecha: string) {
         } else {
           // Sin datos en servidor: inicializar con todos los defaults
           const defaults = gastoPersonalDefault();
-          setPersonal(defaults);
-          lsSet(LS_PERSONAL, defaults);
-          _guardarEnServidor(lsGet(LS_EMPRESA) ?? [], defaults);
+          // Si este dispositivo ya tiene gastos personales, esos son los reales: no pisarlos con los de fábrica
+          const base = perLS && perLS.length > 0 ? mergePersonalRequeridos(perLS).lista : defaults;
+          setPersonal(base);
+          lsSet(LS_PERSONAL, base);
+          _guardarEnServidor(lsGet(LS_EMPRESA) ?? [], base);
           serverLoaded.current = true;
         }
       })

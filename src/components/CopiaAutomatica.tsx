@@ -1,31 +1,40 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/components/Toast';
-import { leerClavesLocales, tieneDatosParaSubir, subirCopia, MARCA_COPIA_AUTO } from '@/lib/copiaLocal';
+import {
+  leerClavesLocales, leerClavesConRespaldo, guardarRespaldoInicial,
+  tieneDatosParaSubir, subirCopia, MARCA_COPIA_AUTO,
+} from '@/lib/copiaLocal';
 
 let enCurso = false;
 
 /**
- * La primera vez que este dispositivo abre la app con el servidor conectado,
- * sube solo lo que tiene guardado. Invisible salvo un aviso al terminar.
- * Si el servidor no está o algo falla, lo vuelve a intentar en la próxima carga.
+ * 1. Guarda un respaldo interno de los datos de este dispositivo (una sola vez).
+ * 2. La primera vez que abre la app con el servidor conectado, sube esos datos solo.
+ * Invisible salvo un aviso al terminar. Si el servidor no está o algo falla, lo reintenta
+ * en la próxima carga.
  */
 export default function CopiaAutomatica() {
   const { mostrar } = useToast();
 
-  useEffect(() => {
-    if (enCurso) return;
-    let claves: Record<string, unknown>;
-    try {
-      if (localStorage.getItem(MARCA_COPIA_AUTO)) return;
-      claves = leerClavesLocales();
-    } catch { return; }
-    if (!tieneDatosParaSubir(claves)) return;
+  // Se lee al dibujar, antes de que cualquier pantalla consulte al servidor
+  const [alAbrir] = useState<Record<string, unknown> | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try { return leerClavesLocales(); } catch { return null; }
+  });
 
+  useEffect(() => {
+    if (enCurso || !alAbrir) return;
     enCurso = true;
     (async () => {
       try {
+        try { await guardarRespaldoInicial(alAbrir); } catch { /* navegador sin IndexedDB */ }
+
+        try { if (localStorage.getItem(MARCA_COPIA_AUTO)) return; } catch { return; }
+        const claves = await leerClavesConRespaldo();
+        if (!tieneDatosParaSubir(claves)) return;
+
         const r = await fetch('/api/admin/instalar', { cache: 'no-store' });
         const estado = await r.json() as { conectado?: boolean };
         if (!estado.conectado) return;
@@ -39,7 +48,7 @@ export default function CopiaAutomatica() {
       } catch { /* sin conexión o servidor caído: se reintenta en la próxima carga */ }
       finally { enCurso = false; }
     })();
-  }, [mostrar]);
+  }, [alAbrir, mostrar]);
 
   return null;
 }

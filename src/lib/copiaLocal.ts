@@ -39,6 +39,68 @@ export function leerClavesLocales(): Record<string, unknown> {
   return claves;
 }
 
+// ── Respaldo interno (IndexedDB) ─────────────────────────────────────────────
+// Una foto de los datos tomada la primera vez que el dispositivo abre esta versión,
+// antes de cualquier consulta al servidor. Ninguna pantalla lo modifica y nunca se pisa:
+// si algo llegara a vaciar un día en la memoria normal, la copia lo toma de acá.
+
+const BASE_RESPALDO = 'ganesha_respaldo';
+const FOTO_INICIAL = 'inicial';
+
+interface Foto { fecha: string; claves: Record<string, unknown> }
+
+function abrirRespaldo(): Promise<IDBDatabase> {
+  return new Promise((ok, mal) => {
+    const req = indexedDB.open(BASE_RESPALDO, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('copias');
+    req.onsuccess = () => ok(req.result);
+    req.onerror = () => mal(req.error);
+  });
+}
+
+export async function guardarRespaldoInicial(claves: Record<string, unknown>): Promise<void> {
+  if (!tieneDatosParaSubir(claves)) return;
+  const db = await abrirRespaldo();
+  try {
+    await new Promise<void>((ok, mal) => {
+      const tx = db.transaction('copias', 'readwrite');
+      const store = tx.objectStore('copias');
+      const actual = store.get(FOTO_INICIAL);
+      actual.onsuccess = () => {
+        if (actual.result === undefined) store.put({ fecha: new Date().toISOString(), claves } satisfies Foto, FOTO_INICIAL);
+      };
+      tx.oncomplete = () => ok();
+      tx.onerror = () => mal(tx.error);
+    });
+  } finally { db.close(); }
+}
+
+export async function leerRespaldoInicial(): Promise<Foto | null> {
+  const db = await abrirRespaldo();
+  try {
+    return await new Promise<Foto | null>((ok, mal) => {
+      const req = db.transaction('copias', 'readonly').objectStore('copias').get(FOTO_INICIAL);
+      req.onsuccess = () => ok((req.result as Foto | undefined) ?? null);
+      req.onerror = () => mal(req.error);
+    });
+  } finally { db.close(); }
+}
+
+/** Datos del dispositivo; lo que falte o haya quedado vacío se completa con el respaldo interno. */
+export async function leerClavesConRespaldo(): Promise<Record<string, unknown>> {
+  const actuales = leerClavesLocales();
+  let foto: Foto | null = null;
+  try { foto = await leerRespaldoInicial(); } catch { /* navegador sin IndexedDB */ }
+  if (!foto) return actuales;
+  const out = { ...actuales };
+  for (const [k, v] of Object.entries(foto.claves)) {
+    const actual = out[k];
+    const vacia = actual === undefined || actual === null || (Array.isArray(actual) && actual.length === 0);
+    if (vacia && v !== null && v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
 export function tieneDatosParaSubir(claves: Record<string, unknown>): boolean {
   return Object.entries(claves).some(([k, v]) => PARA_SERVIDOR.test(k) && Array.isArray(v) && v.length > 0);
 }

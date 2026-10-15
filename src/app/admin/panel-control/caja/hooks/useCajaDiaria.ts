@@ -46,14 +46,15 @@ export function useCajaDiaria(fecha: string) {
     try {
       const res = await fetch(`/api/sync?fecha=${fecha}`);
       const { ok, datos } = await res.json();
-      if (ok && Array.isArray(datos)) {
+      // Un día vacío en el servidor no pisa la copia de este dispositivo (puede no haberse subido todavía)
+      if (ok && Array.isArray(datos) && datos.length > 0) {
         setTurnos(datos as Turno[]);
         try { localStorage.setItem(`ganesha_turnos_${fecha}`, JSON.stringify(datos)); } catch { /* silencioso */ }
         setCargandoTurnos(false);
         return;
       }
     } catch { /* sin conexión */ }
-    // Fallback: localStorage solo si servidor no respondió
+    // Fallback: copia de este dispositivo (servidor caído o sin turnos ese día)
     try {
       const stored = localStorage.getItem(`ganesha_turnos_${fecha}`);
       if (stored) {
