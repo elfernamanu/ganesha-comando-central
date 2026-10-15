@@ -6,12 +6,17 @@ type Estado = 'cargando' | 'estable' | 'degradado' | 'error';
 
 interface HealthData {
   postgres?: { estado: string };
-  env?: { POSTGRES_URL: string; API_SECRET: string };
+  env?: { DATABASE_URL?: string; POSTGRES_URL?: string; API_SECRET?: string };
+}
+
+// La base puede venir de DATABASE_URL (nueva) o POSTGRES_URL (vieja)
+function hayVariableDeBase(data: HealthData): boolean {
+  return !!(data.env?.DATABASE_URL?.includes('✅') || data.env?.POSTGRES_URL?.includes('✅'));
 }
 
 function calcularEstado(data: HealthData): Estado {
   const pgOk  = data.postgres?.estado?.includes('✅');
-  const envOk = data.env?.POSTGRES_URL?.includes('✅');
+  const envOk = hayVariableDeBase(data);
   if (pgOk && envOk)  return 'estable';
   if (pgOk || envOk)  return 'degradado';
   return 'error';
@@ -46,7 +51,7 @@ export function EstadoSistema({ compact = false }: { compact?: boolean }) {
         if (e !== 'estable') {
           const problemas: string[] = [];
           if (!data.postgres?.estado?.includes('✅')) problemas.push('Base de datos sin conexión');
-          if (!data.env?.POSTGRES_URL?.includes('✅'))  problemas.push('Variable POSTGRES_URL falta');
+          if (!hayVariableDeBase(data))                 problemas.push('Falta la dirección de la base en Vercel');
           setDetalle(problemas.join(' · '));
         } else {
           setDetalle('');
