@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { leerClavesLocales, subirCopia, MARCA_COPIA_AUTO, type ResumenImportacion } from '@/lib/copiaLocal';
 
 interface DiaTurnos {
   fecha: string;
@@ -22,21 +23,12 @@ interface Resumen {
   diasConGastos: number;
 }
 
-function leerJSON(raw: string | null): unknown {
-  if (raw === null) return null;
-  try { return JSON.parse(raw); } catch { return raw; }
-}
-
 function largo(v: unknown): number {
   return Array.isArray(v) ? v.length : 0;
 }
 
 function leerDispositivo(): Resumen {
-  const claves: Record<string, unknown> = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('ganesha')) claves[k] = leerJSON(localStorage.getItem(k));
-  }
+  const claves = leerClavesLocales();
 
   const dias: DiaTurnos[] = [];
   for (const [k, v] of Object.entries(claves)) {
@@ -82,19 +74,6 @@ interface EstadoServidor {
   datos?: { diasConTurnos: number; turnos: number; contactos: number; precios: boolean; gastosFijos: boolean; combos: boolean } | null;
 }
 
-interface ResumenImportacion {
-  diasNuevos: number;
-  diasCompletados: number;
-  turnosAgregados: number;
-  contactosAgregados: number;
-  celularesCompletados: number;
-  precios: string;
-  combos: string;
-  gastosEmpresa: string;
-  gastosPersonal: string;
-  diasConGastos: number;
-}
-
 const fmtFecha = (f: string) =>
   new Date(f + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -105,9 +84,14 @@ export default function CopiaPage() {
   const [subiendo, setSubiendo] = useState(false);
   const [resultado, setResultado] = useState<{ origen: string; resumen: ResumenImportacion } | null>(null);
   const [errorSubida, setErrorSubida] = useState('');
+  const [copiadoEl, setCopiadoEl] = useState<string | null>(null);
 
   useEffect(() => {
     try { setResumen(leerDispositivo()); } catch { setAviso('No se pudo leer la memoria de este navegador.'); }
+    try {
+      const marca = JSON.parse(localStorage.getItem(MARCA_COPIA_AUTO) || 'null') as { fecha?: string } | null;
+      if (marca?.fecha) setCopiadoEl(marca.fecha);
+    } catch { /* sin marca */ }
   }, []);
 
   const consultarServidor = async () => {
@@ -126,17 +110,13 @@ export default function CopiaPage() {
     setErrorSubida('');
     setResultado(null);
     try {
-      const inst = await fetch('/api/admin/instalar', { method: 'POST' });
-      const dInst = await inst.json() as { ok: boolean; error?: string };
-      if (!dInst.ok) throw new Error(dInst.error || 'No se pudieron preparar las tablas');
-      const imp = await fetch('/api/admin/importar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claves }),
-      });
-      const dImp = await imp.json() as { ok: boolean; error?: string; resumen?: ResumenImportacion };
-      if (!dImp.ok || !dImp.resumen) throw new Error(dImp.error || 'El servidor no aceptó la copia');
-      setResultado({ origen, resumen: dImp.resumen });
+      const r = await subirCopia(claves);
+      setResultado({ origen, resumen: r });
+      if (origen === 'este dispositivo') {
+        const ahora = new Date().toISOString();
+        try { localStorage.setItem(MARCA_COPIA_AUTO, JSON.stringify({ fecha: ahora, resumen: r })); } catch { /* sin espacio */ }
+        setCopiadoEl(ahora);
+      }
       await consultarServidor();
     } catch (err) {
       setErrorSubida((err as Error).message);
@@ -275,6 +255,11 @@ export default function CopiaPage() {
         {servidor?.conectado && !servidor.datos && (
           <p className="text-xs text-slate-500 dark:text-slate-400">Base de datos nueva y vacía. Subí la copia para cargarla.</p>
         )}
+        {copiadoEl && (
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+            ✓ Este dispositivo ya copió sus datos al servidor el {new Date(copiadoEl).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
 
         {servidor?.conectado && (
           <div className="flex gap-2 flex-wrap">
@@ -299,7 +284,7 @@ export default function CopiaPage() {
         {resultado && (
           <div className="text-sm bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-3 py-2 space-y-0.5 text-emerald-800 dark:text-emerald-300">
             <p className="font-bold">Copia de {resultado.origen} subida. No se borró nada del servidor.</p>
-            <p>Turnos: {resultado.resumen.turnosAgregados} agregados ({resultado.resumen.diasNuevos} días nuevos, {resultado.resumen.diasCompletados} días completados)</p>
+            <p>Turnos: {resultado.resumen.turnosAgregados} agregados, {resultado.resumen.turnosCompletados} completados ({resultado.resumen.diasNuevos} días nuevos, {resultado.resumen.diasCompletados} días actualizados)</p>
             <p>Contactos: {resultado.resumen.contactosAgregados} agregados, {resultado.resumen.celularesCompletados} celulares completados</p>
             <p>Precios: {resultado.resumen.precios} · Combos: {resultado.resumen.combos}</p>
             <p>Gastos fijos: empresa {resultado.resumen.gastosEmpresa}, personal {resultado.resumen.gastosPersonal} · Días con gastos de caja: {resultado.resumen.diasConGastos}</p>

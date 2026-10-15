@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AccessibilityProvider } from '@/context/AccessibilityCtx';
 import { ToastProvider } from '@/components/Toast';
 import RegistrarDispositivo from '@/components/RegistrarDispositivo';
+import CopiaAutomatica from '@/components/CopiaAutomatica';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -36,6 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
             {/* Registra este dispositivo en PostgreSQL — invisible, fire-and-forget */}
             <RegistrarDispositivo />
+            {/* Sube una vez los datos guardados en este dispositivo al servidor */}
+            <CopiaAutomatica />
           </ToastProvider>
         </AccessibilityProvider>
 
