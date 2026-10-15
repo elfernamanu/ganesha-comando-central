@@ -18,6 +18,8 @@ export function normalizarUrl(url: string): string {
   const [, esquema, usuario, clave, resto] = m;
   let real = clave;
   try { real = decodeURIComponent(clave); } catch { /* % sueltos: la clave se usa tal cual */ }
+  // Al reemplazar [YOUR-PASSWORD] es común dejar los corchetes: una clave de Supabase nunca los lleva
+  if (real.length > 2 && real.startsWith('[') && real.endsWith(']')) real = real.slice(1, -1);
   return `${esquema}${usuario}:${encodeURIComponent(real)}@${resto}`;
 }
 
@@ -26,7 +28,6 @@ export function problemaDeConfiguracion(url = urlBaseDeDatos()): string | null {
   if (!url) return 'Falta configurar DATABASE_URL en Vercel';
   if (/\[YOUR[-_ ]PASSWORD\]/i.test(url)) return 'En DATABASE_URL quedó escrito [YOUR-PASSWORD]: reemplazalo por la clave de la base de Supabase';
   if (/\s/.test(url.trim())) return 'La dirección de la base tiene espacios o saltos de línea en el medio: pegala de nuevo, todo junto';
-  if (/^postgres(?:ql)?:\/\/[^:@/]+:\[.*\]@[^@]+$/i.test(url.trim())) return 'La clave quedó entre corchetes [ ]: sacalos y dejá solo la clave';
   if (/^postgres(?:ql)?:\/\/[^:@/]+:@/i.test(url.trim())) return 'La dirección no tiene clave: falta escribirla después de los dos puntos';
   if (/@db\.[a-z0-9]+\.supabase\.co/i.test(url)) return 'DATABASE_URL usa la conexión directa de Supabase, que Vercel no alcanza: copiá la dirección de "Transaction pooler" (puerto 6543)';
   return null;
