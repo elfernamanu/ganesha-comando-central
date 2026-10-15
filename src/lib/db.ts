@@ -3,11 +3,18 @@ import { Pool } from 'pg';
 // Conexión singleton — reutiliza la misma pool en dev y prod
 let pool: Pool | null = null;
 
+// DATABASE_URL: base nueva (Neon/Vercel). POSTGRES_URL: base anterior de DigitalOcean.
+export function urlBaseDeDatos(): string | undefined {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL;
+}
+
 export function getPool(): Pool {
   if (!pool) {
+    const connectionString = urlBaseDeDatos();
     pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: false,                        // DigitalOcean sin SSL local → OK en red interna
+      connectionString,
+      // Si la URL trae sslmode (Neon, Supabase) manda la URL; la base vieja de DigitalOcean no usa SSL
+      ...(connectionString?.includes('sslmode=') ? {} : { ssl: false }),
       max: 5,                            // Serverless: pocas conexiones por instancia (evita agotar el límite del DB)
       idleTimeoutMillis: 60000,          // Mantener conexiones idle 60s (reduce cold reconnects)
       connectionTimeoutMillis: 4000,     // Timeout de adquisición de conexión

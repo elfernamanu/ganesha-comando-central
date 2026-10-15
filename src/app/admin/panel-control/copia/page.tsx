@@ -75,16 +75,86 @@ function armarArchivo(r: Resumen): string {
   }, null, 2);
 }
 
+interface EstadoServidor {
+  conectado: boolean;
+  motivo?: string;
+  faltan?: string[];
+  datos?: { diasConTurnos: number; turnos: number; contactos: number; precios: boolean; gastosFijos: boolean; combos: boolean } | null;
+}
+
+interface ResumenImportacion {
+  diasNuevos: number;
+  diasCompletados: number;
+  turnosAgregados: number;
+  contactosAgregados: number;
+  celularesCompletados: number;
+  precios: string;
+  combos: string;
+  gastosEmpresa: string;
+  gastosPersonal: string;
+  diasConGastos: number;
+}
+
 const fmtFecha = (f: string) =>
   new Date(f + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function CopiaPage() {
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [aviso, setAviso] = useState('');
+  const [servidor, setServidor] = useState<EstadoServidor | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [resultado, setResultado] = useState<{ origen: string; resumen: ResumenImportacion } | null>(null);
+  const [errorSubida, setErrorSubida] = useState('');
 
   useEffect(() => {
     try { setResumen(leerDispositivo()); } catch { setAviso('No se pudo leer la memoria de este navegador.'); }
   }, []);
+
+  const consultarServidor = async () => {
+    try {
+      const r = await fetch('/api/admin/instalar', { cache: 'no-store' });
+      setServidor(await r.json() as EstadoServidor);
+    } catch {
+      setServidor({ conectado: false, motivo: 'Sin conexión a internet' });
+    }
+  };
+
+  useEffect(() => { consultarServidor(); }, []);
+
+  const subirAlServidor = async (claves: Record<string, unknown>, origen: string) => {
+    setSubiendo(true);
+    setErrorSubida('');
+    setResultado(null);
+    try {
+      const inst = await fetch('/api/admin/instalar', { method: 'POST' });
+      const dInst = await inst.json() as { ok: boolean; error?: string };
+      if (!dInst.ok) throw new Error(dInst.error || 'No se pudieron preparar las tablas');
+      const imp = await fetch('/api/admin/importar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claves }),
+      });
+      const dImp = await imp.json() as { ok: boolean; error?: string; resumen?: ResumenImportacion };
+      if (!dImp.ok || !dImp.resumen) throw new Error(dImp.error || 'El servidor no aceptó la copia');
+      setResultado({ origen, resumen: dImp.resumen });
+      await consultarServidor();
+    } catch (err) {
+      setErrorSubida((err as Error).message);
+    } finally {
+      setSubiendo(false);
+    }
+  };
+
+  const subirArchivo = async (archivo: File | undefined) => {
+    if (!archivo) return;
+    try {
+      const contenido = JSON.parse(await archivo.text()) as { app?: string; claves?: Record<string, unknown> };
+      if (contenido.app !== 'ganesha-comando-central' || !contenido.claves) throw new Error();
+      await subirAlServidor(contenido.claves, archivo.name);
+    } catch {
+      setErrorSubida('Ese archivo no es una copia de seguridad de Ganesha.');
+    }
+  };
 
   const descargar = () => {
     if (!resumen) return;
@@ -177,6 +247,62 @@ export default function CopiaPage() {
       {aviso && (
         <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-3 py-2">{aviso}</p>
       )}
+
+      {/* ── Servidor: estado y subida de copias ── */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${servidor === null ? 'bg-slate-300' : servidor.conectado ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+          <h2 className="text-sm font-bold text-slate-800 dark:text-white">
+            {servidor === null ? 'Consultando el servidor...' : servidor.conectado ? 'Servidor conectado' : 'Sin base de datos en el servidor'}
+          </h2>
+        </div>
+
+        {servidor && !servidor.conectado && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Los datos quedan seguros en este dispositivo. Cuando se conecte la base de datos nueva, desde acá se suben con un toque.
+          </p>
+        )}
+
+        {servidor?.conectado && servidor.datos && (
+          <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+            En el servidor: {servidor.datos.diasConTurnos} días con turnos · {servidor.datos.turnos} turnos · {servidor.datos.contactos} contactos
+            {servidor.datos.precios ? ' · precios cargados' : ' · faltan los precios'}
+          </p>
+        )}
+        {servidor?.conectado && !servidor.datos && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">Base de datos nueva y vacía. Subí la copia para cargarla.</p>
+        )}
+
+        {servidor?.conectado && (
+          <div className="flex gap-2 flex-wrap">
+            {!vacio && (
+              <button onClick={() => subirAlServidor(resumen.claves, 'este dispositivo')} disabled={subiendo}
+                className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 disabled:opacity-50">
+                {subiendo ? '⏳ Subiendo...' : '⬆️ Subir esta copia al servidor'}
+              </button>
+            )}
+            <label className={`px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer ${subiendo ? 'opacity-50 pointer-events-none' : ''}`}>
+              📂 Subir archivo de otro dispositivo
+              <input id="archivo-copia" type="file" accept=".json,application/json" className="hidden"
+                onChange={e => { subirArchivo(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
+          </div>
+        )}
+
+        {errorSubida && (
+          <p className="text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2">{errorSubida}</p>
+        )}
+
+        {resultado && (
+          <div className="text-sm bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-3 py-2 space-y-0.5 text-emerald-800 dark:text-emerald-300">
+            <p className="font-bold">Copia de {resultado.origen} subida. No se borró nada del servidor.</p>
+            <p>Turnos: {resultado.resumen.turnosAgregados} agregados ({resultado.resumen.diasNuevos} días nuevos, {resultado.resumen.diasCompletados} días completados)</p>
+            <p>Contactos: {resultado.resumen.contactosAgregados} agregados, {resultado.resumen.celularesCompletados} celulares completados</p>
+            <p>Precios: {resultado.resumen.precios} · Combos: {resultado.resumen.combos}</p>
+            <p>Gastos fijos: empresa {resultado.resumen.gastosEmpresa}, personal {resultado.resumen.gastosPersonal} · Días con gastos de caja: {resultado.resumen.diasConGastos}</p>
+          </div>
+        )}
+      </div>
 
       {resumen.dias.length > 0 && (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
