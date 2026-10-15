@@ -263,7 +263,7 @@ export default function CopiaPage() {
           return (
             <>
               <p className="text-xs text-slate-600 dark:text-slate-300 tabular-nums">
-                <b>Datos de: {backup.origen.join(' + ')}</b> · {t.clientes} clientes ({t.conCelular} con celular) · {t.turnos} turnos en {t.dias} días · {t.precios} precios en {t.categorias} categorías · {t.combos} combos
+                <b>Datos de: {backup.origen.join(' + ')}</b> · {t.clientes} clientes · {t.conCelular} con celular · {t.listosWhatsapp} listos para WhatsApp{t.aRevisar > 0 && ` · ${t.aRevisar} números a revisar`} · {t.turnos} turnos en {t.dias} días · {t.precios} precios en {t.categorias} categorías · {t.combos} combos
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button onClick={() => bajarBackup('documento')}

@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, problemaDeConfiguracion, explicarErrorDeConexion } from '@/lib/db';
 import { guardarBackup } from '@/lib/backup';
-import { claveTurno, combinarTurno, celularDeDetalle, type Registro } from '@/lib/combinarTurnos';
+import { claveTurno, combinarTurno, celularDeDetalle, normalizarCelularAR, type Registro } from '@/lib/combinarTurnos';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -108,7 +108,9 @@ export async function POST(req: NextRequest) {
       for (const t of lista(v)) {
         const nombre = String(t.clienteNombre ?? '').trim();
         const celular = celularDeDetalle(t.detalle);
-        if (nombre && celular) {
+        // Para crear fichas: el detalle es solo el número, o el número tiene forma de celular válida
+        const soloNumero = /^[\d\s\-()+.]+$/.test(String(t.detalle ?? '').trim());
+        if (nombre && celular && (soloNumero || !normalizarCelularAR(celular).aviso)) {
           contactosLocal.push({ id: crypto.randomUUID(), nombre, celular, notas: '' });
         }
       }

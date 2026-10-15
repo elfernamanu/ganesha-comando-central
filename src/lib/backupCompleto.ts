@@ -3,7 +3,7 @@
  * (sin perder nada de ninguno) y lo exporta como documento legible, planillas para
  * Excel y un archivo que se puede volver a subir para restaurar todo.
  */
-import { unirTurnos, celularDeDetalle, type Registro } from './combinarTurnos';
+import { unirTurnos, extraerCelulares, normalizarCelularAR, type Registro } from './combinarTurnos';
 
 export interface DatosBackup {
   generado: string;
@@ -22,6 +22,12 @@ export interface DatosBackup {
 export interface ClienteBackup {
   nombre: string;
   celular: string;
+  /** Formato internacional para WhatsApp (+549…); vacío si el número no sirve */
+  whatsapp: string;
+  /** Qué revisar del número (vacío = confiable) */
+  revisar: string;
+  /** Otros números encontrados para la misma clienta */
+  otrosNumeros: string[];
   notas: string;
   turnos: number;
   vino: number;
@@ -128,25 +134,39 @@ export function unir(a: DatosBackup, b: DatosBackup): DatosBackup {
 
 // ── Clientes: de la lista de contactos, de cada turno y de los celulares anotados ──
 
+interface ClienteEnArmado {
+  nombre: string; notas: string; turnos: number; vino: number; falto: number;
+  primerTurno: string; ultimoTurno: string;
+  servicios: Map<string, number>; tieneFicha: boolean;
+  numeroFicha: string;      // el que figura en Contactos: es el principal
+  numeros: string[];        // todos los encontrados (ficha, notas, detalle de turnos)
+}
+
 export function clientesConsolidados(d: DatosBackup): ClienteBackup[] {
   const borrados = new Set(d.borrados.map(n => n.trim().toLowerCase()));
-  const mapa = new Map<string, ClienteBackup & { servicios: Map<string, number>; tieneFicha: boolean }>();
+  const mapa = new Map<string, ClienteEnArmado>();
   const obtener = (nombre: string, tieneFicha: boolean) => {
     const k = nombre.trim().toLowerCase();
     let c = mapa.get(k);
     if (!c) {
-      c = { nombre: nombre.trim(), celular: '', notas: '', turnos: 0, vino: 0, falto: 0, primerTurno: '', ultimoTurno: '', servicioFrecuente: '', servicios: new Map(), tieneFicha };
+      c = { nombre: nombre.trim(), notas: '', turnos: 0, vino: 0, falto: 0, primerTurno: '', ultimoTurno: '', servicios: new Map(), tieneFicha, numeroFicha: '', numeros: [] };
       mapa.set(k, c);
     }
     if (tieneFicha) c.tieneFicha = true;
     return c;
+  };
+  const sumarNumeros = (c: ClienteEnArmado, texto: unknown) => {
+    for (const n of extraerCelulares(texto)) if (!c.numeros.includes(n)) c.numeros.push(n);
   };
 
   for (const ficha of d.contactos) {
     const nombre = String(ficha.nombre ?? '').trim();
     if (!nombre) continue;
     const c = obtener(nombre, true);
-    c.celular = c.celular || String(ficha.celular ?? '').trim();
+    const cel = String(ficha.celular ?? '').replace(/\D/g, '');
+    if (cel && !c.numeroFicha) c.numeroFicha = cel;
+    sumarNumeros(c, ficha.celular);
+    sumarNumeros(c, ficha.notas);
     c.notas = c.notas || String(ficha.notas ?? '').trim();
   }
 
@@ -162,22 +182,37 @@ export function clientesConsolidados(d: DatosBackup): ClienteBackup[] {
       if (!c.ultimoTurno || fecha > c.ultimoTurno) c.ultimoTurno = fecha;
       const trat = String(t.tratamiento ?? '').trim();
       if (trat && trat !== 'Otro') c.servicios.set(trat, (c.servicios.get(trat) ?? 0) + 1);
-      if (!c.celular) c.celular = celularDeDetalle(t.detalle) ?? '';
+      sumarNumeros(c, t.detalle);
     }
   }
 
-  return [...mapa.entries()]
+  const clientes = [...mapa.entries()]
     .filter(([k, c]) => c.tieneFicha || !borrados.has(k))
-    .map(([, c]) => {
-      let max = 0;
-      for (const [s, n] of c.servicios) if (n > max) { max = n; c.servicioFrecuente = s; }
-      const cliente: ClienteBackup = {
-        nombre: c.nombre, celular: c.celular, notas: c.notas, turnos: c.turnos, vino: c.vino, falto: c.falto,
-        primerTurno: c.primerTurno, ultimoTurno: c.ultimoTurno, servicioFrecuente: c.servicioFrecuente,
+    .map(([, c]): ClienteBackup => {
+      let servicioFrecuente = '', max = 0;
+      for (const [s, n] of c.servicios) if (n > max) { max = n; servicioFrecuente = s; }
+      // Principal: el de Contactos; si no hay, el primero con forma de celular válida
+      const principal = c.numeroFicha
+        || c.numeros.find(n => !normalizarCelularAR(n).aviso)
+        || c.numeros[0] || '';
+      const { whatsapp, aviso } = principal ? normalizarCelularAR(principal) : { whatsapp: '', aviso: '' };
+      return {
+        nombre: c.nombre, celular: principal, whatsapp, revisar: aviso,
+        otrosNumeros: c.numeros.filter(n => n !== principal),
+        notas: c.notas, turnos: c.turnos, vino: c.vino, falto: c.falto,
+        primerTurno: c.primerTurno, ultimoTurno: c.ultimoTurno, servicioFrecuente,
       };
-      return cliente;
     })
     .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
+
+  // Mismo número en dos clientas (madre e hija, o un error de carga)
+  const porWhatsapp = new Map<string, string[]>();
+  for (const c of clientes) if (c.whatsapp) porWhatsapp.set(c.whatsapp, [...(porWhatsapp.get(c.whatsapp) ?? []), c.nombre]);
+  for (const c of clientes) {
+    const otras = (porWhatsapp.get(c.whatsapp) ?? []).filter(n => n !== c.nombre);
+    if (otras.length > 0) c.revisar = [c.revisar, `mismo número que ${otras.join(', ')}`].filter(Boolean).join('; ');
+  }
+  return clientes;
 }
 
 // ── Totales ───────────────────────────────────────────────────────────────────
@@ -199,6 +234,8 @@ export function totales(d: DatosBackup) {
   return {
     clientes: clientes.length,
     conCelular: clientes.filter(c => c.celular).length,
+    listosWhatsapp: clientes.filter(c => c.whatsapp && !c.revisar).length,
+    aRevisar: clientes.filter(c => c.celular && c.revisar).length,
     dias: Object.keys(d.turnos).length,
     turnos, vino, falto, cobrado,
     categorias: d.servicios.length,
@@ -251,9 +288,10 @@ const comoTexto = (s: string) => (s ? `="${s}"` : '');
 const fechaAR = (f: string) => (f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : '');
 
 export function csvClientes(d: DatosBackup): string {
-  const filas: (string | number)[][] = [['Nombre', 'Celular', 'Notas', 'Turnos', 'Vino', 'Faltó', 'Primer turno', 'Último turno', 'Servicio más frecuente']];
+  const filas: (string | number)[][] = [['Nombre', 'Celular', 'WhatsApp', 'Revisar', 'Otros números', 'Notas', 'Turnos', 'Vino', 'Faltó', 'Primer turno', 'Último turno', 'Servicio más frecuente']];
   for (const c of clientesConsolidados(d)) {
-    filas.push([c.nombre, comoTexto(c.celular), c.notas, c.turnos, c.vino, c.falto, fechaAR(c.primerTurno), fechaAR(c.ultimoTurno), c.servicioFrecuente]);
+    filas.push([c.nombre, comoTexto(c.celular), comoTexto(c.whatsapp), c.revisar, comoTexto(c.otrosNumeros.join(' / ')), c.notas,
+      c.turnos, c.vino, c.falto, fechaAR(c.primerTurno), fechaAR(c.ultimoTurno), c.servicioFrecuente]);
   }
   return csv(filas);
 }
@@ -286,7 +324,7 @@ export function documentoHtml(d: DatosBackup): string {
   const clientes = clientesConsolidados(d);
   const generado = new Date(d.generado).toLocaleString('es-AR', { dateStyle: 'long', timeStyle: 'short' });
 
-  const secClientes = clientes.map(c => `<tr><td>${esc(c.nombre)}</td><td class="mono">${esc(c.celular) || '<span class="gris">—</span>'}</td><td class="n">${c.turnos}</td><td class="n">${c.vino}</td><td class="n ${c.falto ? 'rojo' : ''}">${c.falto}</td><td>${esc(fechaAR(c.ultimoTurno))}</td><td>${esc(c.servicioFrecuente)}</td><td>${esc(c.notas)}</td></tr>`).join('');
+  const secClientes = clientes.map(c => `<tr><td>${esc(c.nombre)}</td><td class="mono">${esc(c.celular) || '<span class="gris">—</span>'}${c.otrosNumeros.length ? `<br><span class="gris chico">otros: ${esc(c.otrosNumeros.join(', '))}</span>` : ''}</td><td class="mono">${esc(c.whatsapp)}${c.revisar ? `<br><span class="aviso">⚠ ${esc(c.revisar)}</span>` : ''}</td><td class="n">${c.turnos}</td><td class="n">${c.vino}</td><td class="n ${c.falto ? 'rojo' : ''}">${c.falto}</td><td>${esc(fechaAR(c.ultimoTurno))}</td><td>${esc(c.servicioFrecuente)}</td><td>${esc(c.notas)}</td></tr>`).join('');
 
   const secServicios = d.servicios.map(cat => {
     const subs = lista(cat.subservicios);
@@ -335,7 +373,7 @@ export function documentoHtml(d: DatosBackup): string {
   th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e6dde1; vertical-align: top; }
   th { background: #f6eff2; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .mono { font-family: ui-monospace, Consolas, monospace; }
-  .gris { color: #7a6e74; } .chico { font-size: 12px; } .rojo { color: #b3261e; font-weight: 600; }
+  .gris { color: #7a6e74; } .chico { font-size: 12px; } .rojo { color: #b3261e; font-weight: 600; } .aviso { color: #a8670f; font-size: 11px; font-family: system-ui, sans-serif; }
   .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
   .resumen div { border: 1px solid #e6dde1; border-radius: 8px; padding: 10px 12px; } .resumen b { display: block; font-size: 22px; }
   nav a { margin-right: 14px; color: #8c2f5b; }
@@ -346,12 +384,13 @@ export function documentoHtml(d: DatosBackup): string {
 <nav><a href="#clientes">Clientes</a><a href="#servicios">Servicios y precios</a><a href="#combos">Combos</a><a href="#turnos">Turnos</a><a href="#caja">Gastos y caja</a></nav>
 <div class="resumen">
   <div><b>${tot.clientes}</b>clientes</div><div><b>${tot.conCelular}</b>con celular</div>
+  <div><b>${tot.listosWhatsapp}</b>listos para WhatsApp</div><div><b>${tot.aRevisar}</b>números a revisar</div>
   <div><b>${tot.dias}</b>días con turnos</div><div><b>${tot.turnos}</b>turnos</div>
   <div><b>${tot.vino}</b>vinieron</div><div><b>${tot.falto}</b>faltaron</div>
   <div><b>${plata(tot.cobrado)}</b>cobrado</div><div><b>${tot.precios}</b>precios en ${tot.categorias} categorías</div>
 </div>
 <h2 id="clientes">Clientes y teléfonos (${clientes.length})</h2>
-<table><thead><tr><th>Nombre</th><th>Celular</th><th class="n">Turnos</th><th class="n">Vino</th><th class="n">Faltó</th><th>Último turno</th><th>Servicio frecuente</th><th>Notas</th></tr></thead><tbody>${secClientes || '<tr><td colspan="8" class="gris">Sin clientes</td></tr>'}</tbody></table>
+<table><thead><tr><th>Nombre</th><th>Celular</th><th>WhatsApp</th><th class="n">Turnos</th><th class="n">Vino</th><th class="n">Faltó</th><th>Último turno</th><th>Servicio frecuente</th><th>Notas</th></tr></thead><tbody>${secClientes || '<tr><td colspan="9" class="gris">Sin clientes</td></tr>'}</tbody></table>
 <h2 id="servicios">Servicios, precios y jornadas</h2>${secServicios}
 <h2 id="combos">Combos</h2>${secCombos}
 <h2 id="turnos">Turnos (${tot.turnos} en ${tot.dias} días)</h2>${secTurnos}

@@ -44,8 +44,38 @@ export function unirTurnos(base: Registro[], otra: Registro[]): Registro[] {
   return [...combinados, ...nuevos].sort((a, b) => String(a.horario ?? '').localeCompare(String(b.horario ?? '')));
 }
 
-/** Detalle de un turno que es un número de celular (como lo detecta la pantalla de Turnos). */
+/** Números de teléfono escritos dentro de un texto ("cel hija 11 5555-0001", "1168824263"). */
+export function extraerCelulares(texto: unknown): string[] {
+  const encontrados = String(texto ?? '').match(/\+?\d[\d\s\-().]{6,20}\d/g) ?? [];
+  const out: string[] = [];
+  for (const e of encontrados) {
+    const digitos = e.replace(/\D/g, '');
+    if (digitos.length >= 8 && digitos.length <= 15 && !out.includes(digitos)) out.push(digitos);
+  }
+  return out;
+}
+
+/** Primer número de celular escrito en el detalle de un turno. */
 export function celularDeDetalle(detalle: unknown): string | null {
-  const limpio = String(detalle ?? '').trim().replace(/[\s\-()+.]/g, '');
-  return /^\d{8,15}$/.test(limpio) ? limpio : null;
+  return extraerCelulares(detalle)[0] ?? null;
+}
+
+/**
+ * Celular argentino al formato que exige WhatsApp: +54 9 <área sin 0> <número sin 15>.
+ * `aviso` vacío = número confiable; si no, explica qué revisar.
+ */
+export function normalizarCelularAR(crudo: string): { whatsapp: string; aviso: string } {
+  let d = String(crudo ?? '').replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('54')) { d = d.slice(2); if (d.startsWith('9')) d = d.slice(1); }
+  if (d.startsWith('0')) d = d.slice(1);
+  // "15" después del código de área: 11 15 5555 0001 → 11 5555 0001
+  if (d.length === 12) {
+    for (const largoArea of d.startsWith('11') ? [2] : [3, 4, 2]) {
+      if (d.slice(largoArea, largoArea + 2) === '15') { d = d.slice(0, largoArea) + d.slice(largoArea + 2); break; }
+    }
+  }
+  if (d.length === 10) return { whatsapp: `+549${d}`, aviso: '' };
+  if (d.length === 8) return { whatsapp: `+54911${d}`, aviso: 'sin código de área: se asumió 11' };
+  return { whatsapp: '', aviso: `número incompleto o con dígitos de más (${d.length} dígitos)` };
 }
