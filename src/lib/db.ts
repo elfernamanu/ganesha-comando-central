@@ -26,7 +26,11 @@ export function normalizarUrl(url: string): string {
 // Errores de configuración que se pueden detectar sin conectarse
 export function problemaDeConfiguracion(url = urlBaseDeDatos()): string | null {
   if (!url) return 'Falta configurar DATABASE_URL en Vercel';
-  if (/\[YOUR[-_ ]PASSWORD\]/i.test(url)) return 'En DATABASE_URL quedó escrito [YOUR-PASSWORD]: reemplazalo por la clave de la base de Supabase';
+  let legible = url;
+  try { legible = decodeURIComponent(url); } catch { /* se revisa tal cual */ }
+  if (/\[?\s*(YOUR|TU|SU)[-_ ]?(PASSWORD|CONTRASE[ÑN]A|CLAVE)\s*\]?/i.test(legible)) {
+    return 'En la dirección quedó el texto de ejemplo de Supabase ([TU-CONTRASEÑA] o [YOUR-PASSWORD]): borralo y escribí tu clave en ese lugar';
+  }
   if (/\s/.test(url.trim())) return 'La dirección de la base tiene espacios o saltos de línea en el medio: pegala de nuevo, todo junto';
   if (/^postgres(?:ql)?:\/\/[^:@/]+:@/i.test(url.trim())) return 'La dirección no tiene clave: falta escribirla después de los dos puntos';
   if (/@db\.[a-z0-9]+\.supabase\.co/i.test(url)) return 'DATABASE_URL usa la conexión directa de Supabase, que Vercel no alcanza: copiá la dirección de "Transaction pooler" (puerto 6543)';
