@@ -25,19 +25,39 @@ export function normalizarUrl(url: string): string {
 export function problemaDeConfiguracion(url = urlBaseDeDatos()): string | null {
   if (!url) return 'Falta configurar DATABASE_URL en Vercel';
   if (/\[YOUR[-_ ]PASSWORD\]/i.test(url)) return 'En DATABASE_URL quedó escrito [YOUR-PASSWORD]: reemplazalo por la clave de la base de Supabase';
+  if (/\s/.test(url.trim())) return 'La dirección de la base tiene espacios o saltos de línea en el medio: pegala de nuevo, todo junto';
+  if (/^postgres(?:ql)?:\/\/[^:@/]+:\[.*\]@[^@]+$/i.test(url.trim())) return 'La clave quedó entre corchetes [ ]: sacalos y dejá solo la clave';
+  if (/^postgres(?:ql)?:\/\/[^:@/]+:@/i.test(url.trim())) return 'La dirección no tiene clave: falta escribirla después de los dos puntos';
   if (/@db\.[a-z0-9]+\.supabase\.co/i.test(url)) return 'DATABASE_URL usa la conexión directa de Supabase, que Vercel no alcanza: copiá la dirección de "Transaction pooler" (puerto 6543)';
   return null;
 }
 
 export function explicarErrorDeConexion(err: unknown): string {
   const msg = String((err as Error)?.message ?? err);
-  if (/password authentication failed/i.test(msg)) return 'La clave de la base es incorrecta. Revisala o generá una nueva en Supabase → Project Settings → Database';
+  if (/password authentication failed/i.test(msg)) return 'La clave de la base es incorrecta. Si la acabás de cambiar en Supabase, esperá 3 minutos y recargá. Si sigue, revisá que en Vercel esté la clave nueva y volvé a desplegar';
   if (/tenant or user not found/i.test(msg)) return 'El usuario de la dirección no corresponde al proyecto. Copiá de nuevo la dirección completa desde Supabase → Connect';
   if (/ENOTFOUND|getaddrinfo/i.test(msg)) return 'No se encuentra el servidor de la base. Revisá que la dirección esté completa';
   if (/ENETUNREACH|EHOSTUNREACH/i.test(msg)) return 'No se llega al servidor de la base. En Supabase usá la dirección de "Transaction pooler"';
   if (/timeout|ETIMEDOUT/i.test(msg)) return 'La base no responde. Fijate en Supabase si el proyecto está pausado';
   if (/Invalid URL/i.test(msg)) return 'La dirección de la base está mal escrita. Copiala de nuevo desde Supabase → Connect';
   return msg;
+}
+
+// Para el diagnóstico: a qué servidor y con qué usuario se conecta, sin la clave
+export function describirConexion(url = urlBaseDeDatos()): Record<string, string> | null {
+  if (!url) return null;
+  try {
+    const u = new URL(normalizarUrl(url));
+    const clave = decodeURIComponent(u.password);
+    return {
+      usuario: decodeURIComponent(u.username),
+      servidor: u.hostname,
+      puerto: u.port || '5432',
+      clave: clave ? `${clave.length} caracteres` : 'falta',
+    };
+  } catch {
+    return { error: 'La dirección está mal escrita' };
+  }
 }
 
 export function opcionesConexion(url: string | undefined): { connectionString?: string; ssl?: false | { rejectUnauthorized: boolean } } {
