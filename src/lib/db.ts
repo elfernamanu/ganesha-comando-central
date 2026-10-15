@@ -26,9 +26,10 @@ export function normalizarUrl(url: string): string {
 // Errores de configuración que se pueden detectar sin conectarse
 export function problemaDeConfiguracion(url = urlBaseDeDatos()): string | null {
   if (!url) return 'Falta configurar DATABASE_URL en Vercel';
-  let legible = url;
-  try { legible = decodeURIComponent(url); } catch { /* se revisa tal cual */ }
-  if (/\[?\s*(YOUR|TU|SU)[-_ ]?(PASSWORD|CONTRASE[ÑN]A|CLAVE)\s*\]?/i.test(legible)) {
+  const claveEnUrl = url.trim().match(/^postgres(?:ql)?:\/\/[^:@/]+:(.*)@[^@]+$/i)?.[1] ?? '';
+  let clave = claveEnUrl;
+  try { clave = decodeURIComponent(claveEnUrl); } catch { /* se revisa tal cual */ }
+  if (/^\[?\s*(YOUR|TU|SU)[-_ ]?(PASSWORD|CONTRASE[ÑN]A|CLAVE)\s*\]?$/i.test(clave)) {
     return 'En la dirección quedó el texto de ejemplo de Supabase ([TU-CONTRASEÑA] o [YOUR-PASSWORD]): borralo y escribí tu clave en ese lugar';
   }
   if (/\s/.test(url.trim())) return 'La dirección de la base tiene espacios o saltos de línea en el medio: pegala de nuevo, todo junto';
