@@ -29,15 +29,15 @@ export async function GET() {
 
   // ── Conteo de registros ───────────────────────────────────────────────────
   try {
-    const [cfg, trn, cmb] = await Promise.all([
+    const [cfg, trn, caja] = await Promise.all([
       query<{ c: string }>('SELECT COUNT(*) as c FROM config_servicios'),
       query<{ c: string }>('SELECT COUNT(*) as c FROM turnos'),
-      query<{ c: string }>('SELECT COUNT(*) as c FROM combos'),
+      query<{ c: string }>('SELECT COUNT(*) as c FROM caja_diaria'),
     ]);
     resultado.tablas = {
       config_servicios: cfg[0]?.c ?? 0,
       turnos:           trn[0]?.c ?? 0,
-      combos:           cmb[0]?.c ?? 0,
+      caja_diaria:      caja[0]?.c ?? 0,
     };
   } catch {
     resultado.tablas = 'no disponible';
@@ -45,7 +45,8 @@ export async function GET() {
 
   // ── Variables de entorno (sin exponer valores) ────────────────────────────
   resultado.env = {
-    POSTGRES_URL: process.env.POSTGRES_URL ? '✅ configurada' : '❌ falta',
+    DATABASE_URL: process.env.DATABASE_URL ? '✅ configurada (base nueva, en uso)' : '— no configurada',
+    POSTGRES_URL: process.env.POSTGRES_URL ? (process.env.DATABASE_URL ? '— base vieja, no se usa' : '✅ configurada') : '— no configurada',
     API_SECRET:   process.env.API_SECRET   ? '✅ configurada' : '❌ falta',
     PANEL_PIN:    process.env.PANEL_PIN    ? '✅ configurada' : '— desactivada',
   };

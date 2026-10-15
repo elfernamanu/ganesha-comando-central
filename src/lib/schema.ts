@@ -51,6 +51,18 @@ CREATE TABLE IF NOT EXISTS presencia (
   pagina      TEXT        NOT NULL DEFAULT '/',
   last_seen   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Supabase publica las tablas por su API REST: con RLS activo y sin políticas,
+-- nadie las lee por ahí. La app entra como dueña de las tablas y no la afecta.
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['turnos','caja_diaria','config_servicios','clientes_telefonos','backups_previos','dispositivos','presencia'] LOOP
+    BEGIN
+      EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+  END LOOP;
+END $$;
 `;
 
 export const TABLAS = ['turnos', 'caja_diaria', 'config_servicios', 'clientes_telefonos', 'backups_previos', 'dispositivos', 'presencia'];
