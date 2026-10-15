@@ -131,8 +131,22 @@ export function useTurnos(fecha: string) {
   // Guard de concurrencia: evita dos POSTs simultáneos al mismo row de PostgreSQL
   // (auto-save + guardar manual al mismo tiempo → servidor se cuelga)
   const isSavingRef = useRef(false);
+  // true = el servidor no responde y se muestra la copia guardada en este dispositivo
+  const [modoLocal, setModoLocal] = useState(false);
+  // Hubo ediciones mientras no había servidor: al volver, no pisarlas con datos del servidor
+  const cambiosSinServidor = useRef(false);
+  const modoLocalRef = useRef(false);
+  // Clave de localStorage cuyos turnos están cargados en pantalla (null mientras carga)
+  const lsKeyCargada = useRef<string | null>(null);
 
   const lsKey = `ganesha_turnos_${fecha}`;
+
+  const leerCopiaLocal = useCallback((): Turno[] => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(lsKey) || '[]');
+      return Array.isArray(parsed) ? parsed as Turno[] : [];
+    } catch { return []; }
+  }, [lsKey]);
 
   const aplicarMigracion = useCallback((parsed: Turno[], catalogoExterno?: ReturnType<typeof leerCatalogo>): Turno[] => {
     const catalogo = catalogoExterno ?? leerCatalogo();
@@ -168,15 +182,16 @@ export function useTurnos(fecha: string) {
 
       if (actualizado_at) ultimaActualizacionServidor.current = actualizado_at;
 
-      if (!ok) return; // error de red/servidor → no tocar nada local
+      if (!ok) { usarCopiaLocal(); return; } // servidor sin base de datos
 
       if (!Array.isArray(datos) || datos.length === 0) {
-        // Servidor vacío — solo limpiar si el usuario lleva más de 60s sin editar
-        if (Date.now() - ultimaInteraccion.current < PROTECCION_MS) return;
-        try { localStorage.removeItem(lsKey); } catch { /* silencioso */ }
-        setTurnos([]);
+        // Servidor vacío (base nueva o restaurada): nunca borrar la copia de este dispositivo
+        if (!cargaInicialCompleta.current && leerCopiaLocal().length > 0) usarCopiaLocal();
         return;
       }
+
+      modoLocalRef.current = false;
+      setModoLocal(false);
 
       // Leer catálogo UNA sola vez (compartido con migración y price-update)
       const catalogo = leerCatalogo();
@@ -216,7 +231,8 @@ export function useTurnos(fecha: string) {
       // Si el usuario editó algo en los últimos 60s → MERGE (preservar local)
       // Si lleva más de 60s sin tocar nada → REPLACE (servidor es la fuente de verdad)
       // El auto-sync guarda al servidor en 3s, así que a los 60s el server ya tiene todo.
-      const usuarioActivo = Date.now() - ultimaInteraccion.current < PROTECCION_MS;
+      const usuarioActivo = Date.now() - ultimaInteraccion.current < PROTECCION_MS
+        || cambiosSinServidor.current;
 
       if (usuarioActivo && cargaInicialCompleta.current) {
         // MERGE: preservar datos y orden local, solo agregar turnos nuevos del servidor
@@ -237,8 +253,20 @@ export function useTurnos(fecha: string) {
       }
       setTurnos(turnosFinales);
       try { localStorage.setItem(lsKey, JSON.stringify(turnosFinales)); } catch { /* silencioso */ }
-    } catch { /* sin conexión — quedamos con localStorage */ }
-  }, [fecha, lsKey, aplicarMigracion]);
+    } catch { usarCopiaLocal(); } // sin conexión
+  }, [fecha, lsKey, aplicarMigracion, leerCopiaLocal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Muestra los turnos guardados en este dispositivo, sin borrarlos ni reemplazarlos
+  function usarCopiaLocal() {
+    if (!cargaInicialCompleta.current) {
+      const local = leerCopiaLocal();
+      if (local.length > 0) {
+        setTurnos(aplicarMigracion(local).sort((a, b) => (a.horario || '').localeCompare(b.horario || '')));
+      }
+    }
+    modoLocalRef.current = true;
+    setModoLocal(true);
+  }
 
   // Carga inicial: localStorage (instantáneo) + servidor (sync)
   useEffect(() => {
@@ -251,6 +279,8 @@ export function useTurnos(fecha: string) {
     hayCambios.current = false;                    // nueva fecha = sin cambios del usuario
     celularInicialSync.current = false;            // nueva fecha = volver a sincronizar celulares una vez
     ultimaActualizacionServidor.current = null;    // nueva fecha = no hay timestamp conocido
+    lsKeyCargada.current = null;                   // no copiar a localStorage hasta terminar de cargar
+    cambiosSinServidor.current = false;
     setTurnos([]);           // limpiar día anterior antes de cargar nuevo
     setCelularesSync(new Set()); // limpiar ojitos del día anterior
     setCargandoInicial(true); // bloquear tabla hasta confirmar con servidor
@@ -259,6 +289,7 @@ export function useTurnos(fecha: string) {
     // localStorage solo se usa como cache interno (no se muestra al usuario).
     cargarDesdeServidor().finally(() => {
       cargaInicialCompleta.current = true;
+      lsKeyCargada.current = lsKey;
       setCargandoInicial(false); // desbloquear tabla con datos reales
     });
   }, [fecha]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -275,8 +306,12 @@ export function useTurnos(fecha: string) {
     };
   }, [cargarDesdeServidor]);
 
-  // Auto-sync a localStorage (para Caja)
+  // Auto-sync a localStorage (para Caja y para trabajar sin servidor).
+  // Al abrir la pantalla o cambiar de día el estado arranca vacío o con el día anterior:
+  // escribirlo pisaría la única copia que puede tener este dispositivo.
   useEffect(() => {
+    if (lsKeyCargada.current !== lsKey) return;
+    if (turnos.length === 0 && !hayCambios.current) return;
     try {
       localStorage.setItem(lsKey, JSON.stringify(turnos));
     } catch { /* silencioso */ }
@@ -329,6 +364,7 @@ export function useTurnos(fecha: string) {
         sincronizarCelularesDesdeDetalle(turnos).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
         }).catch(() => {});
+        cambiosSinServidor.current = false;
         setAutoGuardado('ok');
         setTimeout(() => setAutoGuardado('idle'), 3000);
       } catch (err) {
@@ -365,6 +401,7 @@ export function useTurnos(fecha: string) {
   const agregarTurno = () => {
     ultimaInteraccion.current = Date.now();
     hayCambios.current = true;
+    if (modoLocalRef.current) cambiosSinServidor.current = true;
     const nuevoTurno: Turno = {
       id: `turno_${Date.now()}`,
       horario: proximoHorario(),
@@ -385,6 +422,7 @@ export function useTurnos(fecha: string) {
   const actualizarTurno = (id: string, cambios: Partial<Turno>) => {
     ultimaInteraccion.current = Date.now();
     hayCambios.current = true;
+    if (modoLocalRef.current) cambiosSinServidor.current = true;
     setTurnos(prev => {
       const actualizado = prev.map(t => {
         if (t.id !== id) return t;
@@ -418,6 +456,7 @@ export function useTurnos(fecha: string) {
   const eliminarTurno = (id: string) => {
     ultimaInteraccion.current = Date.now();
     hayCambios.current = true;
+    if (modoLocalRef.current) cambiosSinServidor.current = true;
     setTurnos(prev => prev.filter(t => t.id !== id));
   };
 
@@ -425,6 +464,7 @@ export function useTurnos(fecha: string) {
   const confirmarCelular = (id: string) => {
     ultimaInteraccion.current = Date.now();
     hayCambios.current = true;
+    if (modoLocalRef.current) cambiosSinServidor.current = true;
     setTurnos(prev => prev.map(t => t.id === id ? { ...t, detalle: '' } : t));
   };
 
@@ -498,6 +538,7 @@ export function useTurnos(fecha: string) {
       const resData = await res.json().catch(() => ({})) as { ok: boolean; protegido?: boolean; parcial?: boolean; cantServidor?: number; cantEnviados?: number; error?: string };
       if (res.ok && resData.ok) {
         hayCambios.current = false;   // resetear: ya no hay cambios sin guardar
+        cambiosSinServidor.current = false;
         setAutoGuardado('idle');      // quitar el banner "Guardando..." que dejó el useEffect
         sincronizarCelularesDesdeDetalle(turnos).then(sync => {
           if (sync.size > 0) setCelularesSync(prev => { const next = new Set(prev); sync.forEach(k => next.add(k)); return next; });
@@ -521,6 +562,7 @@ export function useTurnos(fecha: string) {
           const dataForzado = await resForzado.json().catch(() => ({})) as { ok: boolean };
           if (resForzado.ok && dataForzado.ok) {
             hayCambios.current = false;
+            cambiosSinServidor.current = false;
             setAutoGuardado('idle');
             setTurnos(turnos);
             setMensaje('✅ Guardado forzado — se sobrescribieron los datos del servidor');
@@ -555,6 +597,7 @@ export function useTurnos(fecha: string) {
     guardando,
     autoGuardado,
     cargandoInicial,
+    modoLocal,
     ultimaActualizacion: ultimaActualizacionServidor.current,
     celularesSync,
     agregarTurno,

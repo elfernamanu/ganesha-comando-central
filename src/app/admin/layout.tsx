@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/panel-control/ia':          '🤖 IA',
   '/admin/panel-control/integraciones':'🔗 Integraciones',
   '/admin/panel-control/reportes':    '📈 Reportes',
+  '/admin/panel-control/copia':       '💾 Copia de seguridad',
   '/admin/panel-control':             '⚙️ Panel',
 };
 

@@ -62,7 +62,7 @@ function TurnosContent() {
   const fecha  = params.get('fecha') ?? hoy;
   const esHoy  = fecha === hoy;
 
-  const { turnos, totales, mensaje, guardando, autoGuardado, cargandoInicial, ultimaActualizacion, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
+  const { turnos, totales, mensaje, guardando, autoGuardado, cargandoInicial, modoLocal, ultimaActualizacion, celularesSync, agregarTurno, actualizarTurno, eliminarTurno, confirmarCelular, guardar } = useTurnos(fecha);
 
   const sinGuardar = autoGuardado === 'error'; // solo bloquea si falló — pendiente no traba
 
@@ -148,6 +148,24 @@ function TurnosContent() {
                 </Link>
               );
             })}
+        </div>
+      )}
+
+      {/* ── Sin servidor: se trabaja con la copia de este dispositivo ── */}
+      {modoLocal && !cargandoInicial && (
+        <div className="flex items-center justify-between gap-3 flex-wrap px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+              Sin conexión con el servidor — trabajando con la copia de este dispositivo
+            </p>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              Los turnos se ven y se guardan acá. Cuando vuelva el servidor se sincronizan solos.
+            </p>
+          </div>
+          <Link href="/admin/panel-control/copia"
+            className="px-3 py-1 text-xs rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shrink-0">
+            💾 Copia de seguridad
+          </Link>
         </div>
       )}
 
