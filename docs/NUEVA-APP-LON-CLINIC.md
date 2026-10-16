@@ -166,3 +166,29 @@ El técnico quiere poder **vender la app** a varias estéticas. Recomendación d
 6. **Pagos** con medio de pago del negocio. **Verificación en dos pasos** y gestor de contraseñas en todas las cuentas.
 7. Momento para mover Ganesha: ahora está apagada, así que no afecta el trabajo diario. Hacer backup completo antes de mover nada.
 8. Modelo de venta sugerido: **abono mensual por estética** (el código sigue siendo del técnico; cada estética es dueña de sus datos). Si se entrega el código, se pierde "mejorar todo de una vez". Conviene un acuerdo simple con cada estética sobre sus datos (Ley 25.326 de datos personales).
+
+## 12. Visión del técnico: apps para locales, siempre con el mismo orden
+El técnico quiere que, si mañana le piden otra app para otro local, todo tenga **el mismo orden, sea profesional, fácil de repetir y gratis** mientras se pueda.
+
+Estructura objetivo:
+```
+Mail del negocio
+└── Organización de GitHub (gratis)
+    ├── app-esteticas    ← un solo código para todas las estéticas (este repo)
+    │     ├── Ganesha
+    │     ├── LON CLINIC
+    │     └── la próxima estética: se agrega, no se copia
+    ├── app-<otro rubro> ← si piden otro tipo de local
+    └── base-locales     ← plantilla con lo común (copia sin conexión, backups,
+                           caja, diseño, control de salud), para arrancar otro rubro
+```
+
+Etapas:
+1. **Ahora**: LON como segunda instalación (Vercel + Supabase propios), como dice el punto 3. Entra en lo gratis de Supabase (2 proyectos).
+2. **Con el tercer local**: pasar a **una sola app y una sola base por rubro, con los datos separados por local** (columna `local_id` en todas las tablas + Row Level Security + ingreso con usuario y contraseña por local). Sumar un local pasa a ser cargar su nombre, logo y usuario: minutos, sin cuentas nuevas. La base gratis de Supabase (500 MB) alcanza para muchos locales chicos. **Requiere login obligatorio** (hoy la app no tiene candado): sin eso, un local podría ver datos de otro.
+3. **Otro rubro**: repo nuevo en la organización, arrancando desde `base-locales`.
+
+Costos reales:
+- GitHub organización: gratis.
+- Supabase: gratis con 1 base por rubro; pago (≈ USD 25/mes) solo si se supera. El backup diario se hace con GitHub Actions (punto 10), así lo gratis es seguro.
+- Vercel: gratis solo para uso no comercial. Vendiendo, corresponde Pro (≈ USD 20/mes, un solo equipo para todos los proyectos) cubierto con el abono de los locales. Alternativa gratis que permite uso comercial: Cloudflare (requiere adaptar el proyecto; evaluarlo en la etapa 2).
