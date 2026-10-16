@@ -192,3 +192,11 @@ Costos reales:
 - GitHub organización: gratis.
 - Supabase: gratis con 1 base por rubro; pago (≈ USD 25/mes) solo si se supera. El backup diario se hace con GitHub Actions (punto 10), así lo gratis es seguro.
 - Vercel: **decisión del técnico: quedarse en Vercel** (le gusta su sistema y su protección). Gratis (Hobby) mientras se arma y prueba; cuando entre el primer abono, pasar a **Pro** (≈ USD 20/mes, un solo equipo para todos los proyectos) e incluirlo en el precio. No proponer Cloudflare salvo que él lo pida.
+
+## 13. Plan de entrega a LON CLINIC (orden acordado)
+1. **Preparación (el técnico):** Gmail del negocio → organización gratis de GitHub con ese mail. Pedirle a LON: logo en buena calidad, servicios y precios, días y horarios, quién usa la app (dueña, secretaria, profesionales), cómo llaman a sus clientes, confirmar el WhatsApp (el link de Instagram está mal).
+2. **Código (conversación nueva):** pasar el repo a la organización y reconectar Vercel de Ganesha; apagado por instalación (5.1); marca (5.2); catálogo de LON; prueba con link de vista previa; el técnico aprueba.
+3. **Cuentas de LON:** Supabase nuevo y proyecto nuevo en Vercel con el mail del negocio (punto 6).
+4. **Prueba con la dueña:** cargar sus servicios, 2 o 3 turnos de prueba, cobrar, cerrar caja; después borrar las pruebas.
+5. **Entrega:** instalar el ícono en celulares y PC, explicación corta, backup diario andando (punto 10), canal de soporte (WhatsApp del técnico), acuerdo simple (abono mensual + los datos son de LON).
+6. **Después:** diseño nuevo con colores de LON, WhatsApp oficial de Meta, usuarios con contraseña.
