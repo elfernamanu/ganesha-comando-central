@@ -38,18 +38,20 @@ Falta pedirle al técnico:
 4. Si trabaja por **jornadas** como Ganesha (días con cupo) o con **agenda normal + sesiones por paquete** (HIFU, Método LON suelen venderse en paquetes de sesiones). La primera versión usa lo mismo que Ganesha; paquetes de sesiones y ficha de evaluación (fotos antes/después) serían un agregado posterior.
 5. Confirmar el **número de WhatsApp**.
 
-## 3. Decisión: mismo código, dos instalaciones
+## 3. Decisión del técnico: proyecto totalmente separado
 
-Se le recomendó (y está de acuerdo en avanzar) **no copiar el proyecto** sino usar el **mismo repositorio** instalado dos veces:
+El técnico eligió un **proyecto aparte**: repositorio nuevo, Vercel nuevo y Supabase nuevo. El repo de LON es una **copia** del de Ganesha (creada con "Use this template" en GitHub), así que trae todo este código, incluida esta carpeta `docs/`.
 
 | | Ganesha | LON CLINIC |
 |---|---|---|
-| Código (GitHub) | `elfernamanu/ganesha-comando-central` | el mismo |
-| Vercel | proyecto actual (`ganesha-comando-central.vercel.app`) | **proyecto nuevo** desde el mismo repo |
+| Código (GitHub) | `elfernamanu/ganesha-comando-central` | **repo nuevo** (copia) |
+| Vercel | proyecto actual (`ganesha-comando-central.vercel.app`) | **proyecto nuevo** desde el repo nuevo |
 | Base de datos | Supabase de Ganesha | **Supabase nuevo**, vacío |
-| Marca | `NEXT_PUBLIC_MARCA` sin definir → Ganesha | `NEXT_PUBLIC_MARCA=lon` |
 
-Ventajas: un arreglo llega a las dos; datos totalmente separados; sirve para una tercera estética.
+Consecuencias:
+- En el repo de LON se puede cambiar "Ganesha" por "LON CLINIC" directamente. Igual conviene juntar nombre, logo y colores en un solo archivo (`src/config/marca.ts`) para que sea fácil de mantener.
+- Los arreglos que se hagan en un proyecto **no pasan solos al otro**: hay que repetirlos.
+- **Nunca tocar el repo, el Vercel ni la base de Ganesha desde el proyecto LON.**
 
 ## 4. Estado actual (antes de empezar)
 
@@ -61,16 +63,11 @@ Ventajas: un arreglo llega a las dos; datos totalmente separados; sirve para una
 
 ## 5. Cambios a hacer en el código (en orden)
 
-### 5.1 Apagado por instalación (hacer PRIMERO)
-Hoy `src/proxy.ts` apaga todo sin condición, y como el código es compartido **apagaría también LON**.
-Cambiarlo a: **apagado salvo que la instalación tenga `WEB_ENCENDIDA=si`**.
-- Ganesha no tiene esa variable → sigue apagada (no se prende por accidente al publicar).
-- LON se crea con `WEB_ENCENDIDA=si`.
-- Para prender Ganesha: el técnico agrega `WEB_ENCENDIDA=si` en su proyecto de Vercel y redespliega (lo puede hacer solo).
+### 5.1 Sacar el apagado (hacer PRIMERO)
+La copia trae `src/proxy.ts`, que **apaga toda la web** (se puso para Ganesha). En el repo de LON hay que **borrar `src/proxy.ts`**; si no, la app nueva va a mostrar "La aplicación está apagada por mantenimiento".
 
 ### 5.2 Marca en un solo lugar
-Crear `src/config/marca.ts` con un objeto por marca (`ganesha`, `lon`) elegido por `NEXT_PUBLIC_MARCA` (sin valor = `ganesha`, así Ganesha queda idéntica):
-`nombre`, `nombreCorto`, `bajada`, `colores` (principal, fondo, etc.), `logo`, `whatsapp`, `direccion`, `instagram`, `palabraClientes`.
+Crear `src/config/marca.ts` con los datos de LON: `nombre`, `nombreCorto`, `bajada`, `colores` (principal, fondo, etc.), `logo`, `whatsapp`, `direccion`, `instagram`, `palabraClientes`. Usarlo en todos los lugares de abajo.
 
 Archivos que hoy tienen "Ganesha" visible (reemplazar por `marca.*`):
 - `src/app/layout.tsx` (3), `src/app/page.tsx` (2), `src/app/loading.tsx`
@@ -89,10 +86,11 @@ Logo e íconos (6 lugares):
 
 Colores: `src/config/designTokens.ts` y clases de Tailwind sueltas.
 
-### 5.3 Lo que NO hay que cambiar
-- **NO renombrar las claves `ganesha_*` de localStorage.** Cada dirección web tiene su propio localStorage, así que no se mezclan. Si se renombran, la copia de la PC de la dueña de Ganesha deja de verse.
-- **NO cambiar** el marcador de archivos de copia `app: 'ganesha-comando-central'` (`copia/page.tsx`, `backupCompleto.ts`): sirve para reconocer los archivos de copia ya descargados. Para LON se puede aceptar las dos marcas.
+### 5.3 Detalles internos
+- Claves de localStorage `ganesha_*`: en LON se pueden pasar a `lon_*` (es otra dirección web, no hay datos viejos). Hacerlo en todos los archivos a la vez, o dejarlas como están: no se mezclan con Ganesha porque cada dirección tiene su propio almacenamiento.
+- Marcador de archivos de copia `app: 'ganesha-comando-central'` (`copia/page.tsx`, `backupCompleto.ts`): cambiarlo al nombre del proyecto LON en los dos lugares, para que no se pueda subir por error un backup de Ganesha a LON.
 - `normalizarCelularAR` (`src/lib/combinarTurnos.ts`) asume código de área 11: está bien para Don Torcuato.
+- `vercel.json` trae el cron diario a `/api/health` (mantiene despierta la base gratis de Supabase): dejarlo.
 
 ### 5.4 Datos iniciales de LON
 - Base vacía. Crear tablas: `POST /api/admin/instalar` (usa `src/lib/schema.ts`). Verificar que la app nueva lo haga sola o con un botón visible.
@@ -101,15 +99,14 @@ Colores: `src/config/designTokens.ts` y clases de Tailwind sueltas.
 
 ### 5.5 Variables de entorno del proyecto LON en Vercel
 - `DATABASE_URL` = URL del Supabase nuevo (Transaction pooler, puerto 6543, con la contraseña real sin corchetes).
-- `NEXT_PUBLIC_MARCA=lon`
-- `WEB_ENCENDIDA=si`
 - No poner `POSTGRES_URL`. No hace falta `PANEL_PIN` (el candado está sacado).
 - El webhook a n8n (`src/app/api/webhook/route.ts`, usa `ALLOWED_ORIGINS`) es del bot de WhatsApp de Ganesha en DigitalOcean: no configurarlo en LON.
 
 ## 6. Pasos del técnico (guiarlo con capturas)
-1. **Supabase**: crear proyecto nuevo (plan gratis permite 2 proyectos activos: Ganesha + LON). Guardar la contraseña. Copiar la URL de *Connect → Transaction pooler*.
-2. **Vercel**: *Add New → Project* → importar `elfernamanu/ganesha-comando-central` → nombre `lon-clinic` → cargar las variables del punto 5.5 → *Deploy*.
-3. Abrir la dirección nueva, revisar `/api/health` (tiene que decir conectado) y probar.
+1. **GitHub** (ya hecho si estás leyendo esto en el repo nuevo): en `ganesha-comando-central` → *Settings* → tildar *Template repository* → botón *Use this template* → *Create a new repository* → nombre nuevo, privado.
+2. **Supabase**: crear proyecto nuevo (plan gratis permite 2 proyectos activos: Ganesha + LON). Guardar la contraseña. Copiar la URL de *Connect → Transaction pooler*.
+3. **Vercel**, cuando el código ya tenga la marca LON y no tenga el apagado: *Add New → Project* → importar el repo nuevo → cargar las variables del punto 5.5 → *Deploy*.
+4. Abrir la dirección nueva, revisar `/api/health` (tiene que decir conectado) y probar.
 
 A tener en cuenta: el plan gratis de Vercel (Hobby) es para uso personal no comercial. Con dos negocios funcionando conviene pasar a Pro más adelante.
 
@@ -119,13 +116,13 @@ Se diseñó una app nueva (más profesional) para Ganesha, que también sirve de
 - Lienzo de diseño publicado: https://claude.ai/artifact/HB8tgYW9jg2AuAdSX5vd9v
 - Mapa de funciones y datos (qué va dónde): https://claude.ai/artifact/AWcvfHmYzeNeKrsSEAeRMs
 - Estilo: fuente Figtree; Ganesha ciruela `#6B2D5C`, fondo `#F5F4F7`; estados ok `#1F7A4D`, aviso `#9A5B00`, error `#B4232C`; barra Hoy / Agenda / Clientas / Caja / Más.
-- El técnico todavía no la aprobó del todo. Recomendado: construir primero la marca (5.1–5.4) y LON con la app actual, y después aplicar el diseño nuevo a las dos.
+- El técnico todavía no la aprobó del todo. Recomendado: primero dejar LON andando con la app actual y su marca (5.1–5.4), y después preguntarle si quiere el diseño nuevo con los colores de LON.
 
 ## 8. Cómo compilar y probar
 - `npm run build` local falla porque `src/app/icon.tsx` y `apple-icon.tsx` bajan una fuente de jsdelivr (bloqueado en el contenedor). Moverlos fuera temporalmente para compilar y volverlos a poner. Después de `npm install`, revertir `package-lock.json` con `git checkout`.
 - Pruebas de punta a punta usadas (Playwright, datos de ejemplo): `docs/pruebas/*.mjs`. Tienen rutas y puertos fijos de la sesión anterior; ajustarlas antes de usar. Postgres 16 local para simular la base.
 - No usar `pkill -f "next start"` (mata la propia terminal): usar `ps`/`awk`/`kill`.
-- Probar siempre que **Ganesha siga idéntica** (sin `NEXT_PUBLIC_MARCA`) y siga apagada (sin `WEB_ENCENDIDA`).
+- Antes de publicar, buscar que no quede ningún "Ganesha" visible ni precios de Ganesha.
 
 ## 9. Pendientes de Ganesha (no perderlos)
 - Confirmar que la PC de la dueña subió su copia y descargar los 4 archivos de backup (`/admin/panel-control/copia`).
