@@ -1,5 +1,7 @@
 # Nueva app para LON CLINIC — informe de traspaso
 
+> **Actualización 16/10/2026:** el técnico decidió **copiar**, no transferir. El proyecto nuevo es **`Sistemasnew/app-esteticas`** y su informe vigente está allá. Este repo (Ganesha) **no se transfiere** y queda como está, apagado. Lo de abajo queda como historial.
+
 Fecha: 16/10/2026. Este archivo resume todo lo necesario para seguir el trabajo en una conversación nueva.
 
 ## 1. Qué se pide
