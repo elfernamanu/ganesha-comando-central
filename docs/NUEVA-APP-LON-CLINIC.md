@@ -155,3 +155,14 @@ No hace falta: el "Programa para desarrolladores de GitHub" (es para quien hace 
 Límites a tener en cuenta:
 - Supabase gratis: 2 proyectos activos. Una **tercera estética** necesita Supabase pago o pasar a **una sola base con los datos separados por estética** (cambio grande, planificarlo).
 - Vercel Hobby es para uso no comercial; con varias estéticas cobrando conviene Vercel Pro.
+
+## 11. Cuentas del negocio (recomendado, a confirmar con el técnico)
+El técnico quiere poder **vender la app** a varias estéticas. Recomendación dada: separar todo lo del producto de lo personal **antes de crear lo de LON**, así LON nace en las cuentas del negocio.
+1. **Nombre del producto** (no "Ganesha"): falta que el técnico lo elija. Se usa en el mail, la organización y, más adelante, un dominio propio.
+2. **Mail del negocio**: un Gmail nuevo para empezar; después, mail con dominio propio.
+3. **GitHub**: **no crear un segundo usuario** (los términos de GitHub permiten una sola cuenta gratis por persona). Crear una **organización gratis** con el nombre del producto, con el mail del negocio de contacto y `elfernamanu` como dueño. Pasar el repo con *Settings → Transfer* (GitHub deja redirección). Después hay que volver a conectar Vercel y darle acceso a la organización a la app de GitHub de Claude.
+4. **Vercel**: cuenta o equipo con el mail del negocio. Para cobrar a clientes corresponde **Vercel Pro** (Hobby es no comercial). Los proyectos se pueden transferir entre cuentas/equipos de Vercel.
+5. **Supabase**: organización del negocio. Los proyectos se pueden **transferir entre organizaciones sin perder datos** (la de Ganesha también).
+6. **Pagos** con medio de pago del negocio. **Verificación en dos pasos** y gestor de contraseñas en todas las cuentas.
+7. Momento para mover Ganesha: ahora está apagada, así que no afecta el trabajo diario. Hacer backup completo antes de mover nada.
+8. Modelo de venta sugerido: **abono mensual por estética** (el código sigue siendo del técnico; cada estética es dueña de sus datos). Si se entrega el código, se pierde "mejorar todo de una vez". Conviene un acuerdo simple con cada estética sobre sus datos (Ley 25.326 de datos personales).
