@@ -38,20 +38,22 @@ Falta pedirle al técnico:
 4. Si trabaja por **jornadas** como Ganesha (días con cupo) o con **agenda normal + sesiones por paquete** (HIFU, Método LON suelen venderse en paquetes de sesiones). La primera versión usa lo mismo que Ganesha; paquetes de sesiones y ficha de evaluación (fotos antes/después) serían un agregado posterior.
 5. Confirmar el **número de WhatsApp**.
 
-## 3. Decisión del técnico: proyecto totalmente separado
+## 3. Decisión: un solo sistema, una instalación por estética
 
-El técnico eligió un **proyecto aparte**: repositorio nuevo, Vercel nuevo y Supabase nuevo. El repo de LON es una **copia** del de Ganesha (creada con "Use this template" en GitHub), así que trae todo este código, incluida esta carpeta `docs/`.
+El técnico quiere **no copiar nada**: "si mañana quiero mejorar todo el sistema, que pueda hacerlo". Por eso **no se hace un repo copia**. Se usa **este mismo repositorio** y cada estética tiene su propio Vercel y su propia base:
 
 | | Ganesha | LON CLINIC |
 |---|---|---|
-| Código (GitHub) | `elfernamanu/ganesha-comando-central` | **repo nuevo** (copia) |
-| Vercel | proyecto actual (`ganesha-comando-central.vercel.app`) | **proyecto nuevo** desde el repo nuevo |
+| Código (GitHub) | `elfernamanu/ganesha-comando-central` | **el mismo** |
+| Vercel | proyecto actual (`ganesha-comando-central.vercel.app`) | **proyecto nuevo** desde el mismo repo |
 | Base de datos | Supabase de Ganesha | **Supabase nuevo**, vacío |
+| Marca | `NEXT_PUBLIC_MARCA` sin definir → Ganesha | `NEXT_PUBLIC_MARCA=lon` |
 
 Consecuencias:
-- En el repo de LON se puede cambiar "Ganesha" por "LON CLINIC" directamente. Igual conviene juntar nombre, logo y colores en un solo archivo (`src/config/marca.ts`) para que sea fácil de mantener.
-- Los arreglos que se hagan en un proyecto **no pasan solos al otro**: hay que repetirlos.
-- **Nunca tocar el repo, el Vercel ni la base de Ganesha desde el proyecto LON.**
+- Una mejora o arreglo llega a **todas** las estéticas a la vez.
+- Datos totalmente separados: cada una tiene su base.
+- Un error también llega a todas: por eso hay que trabajar con ramas y vista previa (ver punto 10) en vez de publicar directo en `main`.
+- Sirve igual para una tercera estética.
 
 ## 4. Estado actual (antes de empezar)
 
@@ -63,11 +65,16 @@ Consecuencias:
 
 ## 5. Cambios a hacer en el código (en orden)
 
-### 5.1 Sacar el apagado (hacer PRIMERO)
-La copia trae `src/proxy.ts`, que **apaga toda la web** (se puso para Ganesha). En el repo de LON hay que **borrar `src/proxy.ts`**; si no, la app nueva va a mostrar "La aplicación está apagada por mantenimiento".
+### 5.1 Apagado por instalación (hacer PRIMERO)
+Hoy `src/proxy.ts` apaga todo sin condición, y como el código es compartido **apagaría también LON**.
+Cambiarlo a: **apagado salvo que la instalación tenga `WEB_ENCENDIDA=si`**.
+- Ganesha no tiene esa variable → sigue apagada (no se prende por accidente al publicar).
+- LON se crea con `WEB_ENCENDIDA=si`.
+- Para prender Ganesha: el técnico agrega `WEB_ENCENDIDA=si` en su proyecto de Vercel y redespliega (lo puede hacer solo).
 
 ### 5.2 Marca en un solo lugar
-Crear `src/config/marca.ts` con los datos de LON: `nombre`, `nombreCorto`, `bajada`, `colores` (principal, fondo, etc.), `logo`, `whatsapp`, `direccion`, `instagram`, `palabraClientes`. Usarlo en todos los lugares de abajo.
+Crear `src/config/marca.ts` con un objeto por marca (`ganesha`, `lon`) elegido por `NEXT_PUBLIC_MARCA` (sin valor = `ganesha`, así Ganesha queda idéntica):
+`nombre`, `nombreCorto`, `bajada`, `colores` (principal, fondo, etc.), `logo`, `whatsapp`, `direccion`, `instagram`, `palabraClientes`.
 
 Archivos que hoy tienen "Ganesha" visible (reemplazar por `marca.*`):
 - `src/app/layout.tsx` (3), `src/app/page.tsx` (2), `src/app/loading.tsx`
@@ -86,9 +93,9 @@ Logo e íconos (6 lugares):
 
 Colores: `src/config/designTokens.ts` y clases de Tailwind sueltas.
 
-### 5.3 Detalles internos
-- Claves de localStorage `ganesha_*`: en LON se pueden pasar a `lon_*` (es otra dirección web, no hay datos viejos). Hacerlo en todos los archivos a la vez, o dejarlas como están: no se mezclan con Ganesha porque cada dirección tiene su propio almacenamiento.
-- Marcador de archivos de copia `app: 'ganesha-comando-central'` (`copia/page.tsx`, `backupCompleto.ts`): cambiarlo al nombre del proyecto LON en los dos lugares, para que no se pueda subir por error un backup de Ganesha a LON.
+### 5.3 Lo que NO hay que cambiar
+- **NO renombrar las claves `ganesha_*` de localStorage.** Cada dirección web tiene su propio almacenamiento, así que no se mezclan. Si se renombran, la copia de la PC de la dueña de Ganesha deja de verse.
+- **NO cambiar** el marcador de archivos de copia `app: 'ganesha-comando-central'` (`copia/page.tsx`, `backupCompleto.ts`): reconoce los archivos de copia ya descargados. Sí **agregar un campo `marca`** a los archivos nuevos y que la importación rechace un archivo de otra marca, para que no se pueda subir por error un backup de Ganesha a LON.
 - `normalizarCelularAR` (`src/lib/combinarTurnos.ts`) asume código de área 11: está bien para Don Torcuato.
 - `vercel.json` trae el cron diario a `/api/health` (mantiene despierta la base gratis de Supabase): dejarlo.
 
@@ -99,13 +106,15 @@ Colores: `src/config/designTokens.ts` y clases de Tailwind sueltas.
 
 ### 5.5 Variables de entorno del proyecto LON en Vercel
 - `DATABASE_URL` = URL del Supabase nuevo (Transaction pooler, puerto 6543, con la contraseña real sin corchetes).
+- `NEXT_PUBLIC_MARCA=lon`
+- `WEB_ENCENDIDA=si`
 - No poner `POSTGRES_URL`. No hace falta `PANEL_PIN` (el candado está sacado).
 - El webhook a n8n (`src/app/api/webhook/route.ts`, usa `ALLOWED_ORIGINS`) es del bot de WhatsApp de Ganesha en DigitalOcean: no configurarlo en LON.
 
 ## 6. Pasos del técnico (guiarlo con capturas)
-1. **GitHub** (ya hecho si estás leyendo esto en el repo nuevo): en `ganesha-comando-central` → *Settings* → tildar *Template repository* → botón *Use this template* → *Create a new repository* → nombre nuevo, privado.
+1. **GitHub**: nada. No se crea repo nuevo ni se usa "template".
 2. **Supabase**: crear proyecto nuevo (plan gratis permite 2 proyectos activos: Ganesha + LON). Guardar la contraseña. Copiar la URL de *Connect → Transaction pooler*.
-3. **Vercel**, cuando el código ya tenga la marca LON y no tenga el apagado: *Add New → Project* → importar el repo nuevo → cargar las variables del punto 5.5 → *Deploy*.
+3. **Vercel**, cuando el código ya tenga la marca y el apagado por instalación (5.1 y 5.2): *Add New → Project* → importar `elfernamanu/ganesha-comando-central` (el mismo repo) → nombre `lon-clinic` → cargar las variables del punto 5.5 → *Deploy*.
 4. Abrir la dirección nueva, revisar `/api/health` (tiene que decir conectado) y probar.
 
 A tener en cuenta: el plan gratis de Vercel (Hobby) es para uso personal no comercial. Con dos negocios funcionando conviene pasar a Pro más adelante.
@@ -122,10 +131,27 @@ Se diseñó una app nueva (más profesional) para Ganesha, que también sirve de
 - `npm run build` local falla porque `src/app/icon.tsx` y `apple-icon.tsx` bajan una fuente de jsdelivr (bloqueado en el contenedor). Moverlos fuera temporalmente para compilar y volverlos a poner. Después de `npm install`, revertir `package-lock.json` con `git checkout`.
 - Pruebas de punta a punta usadas (Playwright, datos de ejemplo): `docs/pruebas/*.mjs`. Tienen rutas y puertos fijos de la sesión anterior; ajustarlas antes de usar. Postgres 16 local para simular la base.
 - No usar `pkill -f "next start"` (mata la propia terminal): usar `ps`/`awk`/`kill`.
-- Antes de publicar, buscar que no quede ningún "Ganesha" visible ni precios de Ganesha.
+- Probar siempre que **Ganesha siga idéntica** (sin `NEXT_PUBLIC_MARCA`) y siga apagada (sin `WEB_ENCENDIDA`), y que LON no muestre ningún "Ganesha" ni precios de Ganesha.
 
 ## 9. Pendientes de Ganesha (no perderlos)
 - Confirmar que la PC de la dueña subió su copia y descargar los 4 archivos de backup (`/admin/panel-control/copia`).
 - Riesgos conocidos: `/api/admin/fix` (GET pisa la configuración, conviene sacarlo); borrar fechas viejas (`DELETE antes_de`) sin backup previo; el botón "Recuperar backup" manda `?restaurar=turnos` en vez de `tabla=`; solo se guardan 5 versiones de backup.
 - WhatsApp a futuro: plataforma oficial de Meta con número nuevo, nunca herramientas no oficiales de envío masivo.
 - Planes publicados: https://claude.ai/artifact/Do9ScNxNd5qnmUKrc5nBq2 (plan general) y https://claude.ai/artifact/Am1Su4WsbaPagEmppoSL2Y (WhatsApp).
+
+## 10. Forma de trabajo profesional con GitHub (gratis)
+Con dos estéticas en el mismo código, publicar directo en `main` es riesgoso: un error llega a las dos al instante. Herramientas gratis a usar, en este orden:
+1. **Ramas + Pull Request + vista previa de Vercel**: cada cambio se hace en una rama; Vercel arma un link de prueba solo para esa rama; el técnico lo prueba y recién ahí se une a `main` y se publica en todas las estéticas.
+2. **GitHub Actions** (plan gratis: 2.000 minutos por mes en repos privados):
+   - Control automático en cada cambio: que compile (`npm run build`) y pasen las pruebas antes de unir a `main`.
+   - **Backup diario de cada base** (Ganesha y LON) guardado en privado (artefactos de Actions, hasta 90 días). La `DATABASE_URL` de cada una va como *secret* del repo. Cubre el pendiente "backup diario fuera del sistema".
+3. **Issues + Projects**: tablero de pedidos y errores por estética (etiquetas `ganesha`, `lon`).
+4. **Releases** (versiones v1.0, v1.1…): saber qué cambió en cada publicación. Para volver atrás rápido, Vercel tiene *Instant Rollback*.
+5. **Dependabot**: avisos de seguridad de las librerías.
+6. Más adelante: **organización gratis de GitHub** con el nombre del producto, para que el repo no dependa de la cuenta personal. Mover el repo obliga a reconectar Vercel: no hacerlo mientras haya estéticas trabajando sin avisar.
+
+No hace falta: el "Programa para desarrolladores de GitHub" (es para quien hace integraciones con GitHub), Copilot (se trabaja con Claude), protección de ramas en repo privado (es de pago, GitHub Pro).
+
+Límites a tener en cuenta:
+- Supabase gratis: 2 proyectos activos. Una **tercera estética** necesita Supabase pago o pasar a **una sola base con los datos separados por estética** (cambio grande, planificarlo).
+- Vercel Hobby es para uso no comercial; con varias estéticas cobrando conviene Vercel Pro.
