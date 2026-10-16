@@ -194,7 +194,7 @@ Costos reales:
 - Vercel: **decisión del técnico: quedarse en Vercel** (le gusta su sistema y su protección). Gratis (Hobby) mientras se arma y prueba; cuando entre el primer abono, pasar a **Pro** (≈ USD 20/mes, un solo equipo para todos los proyectos) e incluirlo en el precio. No proponer Cloudflare salvo que él lo pida.
 
 ## 13. Plan de entrega a LON CLINIC (orden acordado)
-1. **Preparación (el técnico):** Gmail del negocio (✅ ya creado, el técnico lo indica) → organización gratis de GitHub con ese mail. Pedirle a LON: logo en buena calidad, servicios y precios, días y horarios, quién usa la app (dueña, secretaria, profesionales), cómo llaman a sus clientes, confirmar el WhatsApp (el link de Instagram está mal).
+1. **Preparación (el técnico):** Gmail del negocio (✅ ya creado, el técnico lo indica) → organización gratis de GitHub (✅ creada: **`Sistemasnew`**, plan Free, dueño `elfernamanu`; ahí van todos sus trabajos de apps y webs). Pasar este repo a `Sistemasnew` (*Settings → Transfer ownership*) e instalar la app de GitHub de Claude en la organización (https://claude.ai/connect-github). Pedirle a LON: logo en buena calidad, servicios y precios, días y horarios, quién usa la app (dueña, secretaria, profesionales), cómo llaman a sus clientes, confirmar el WhatsApp (el link de Instagram está mal).
 2. **Código (conversación nueva):** pasar el repo a la organización y reconectar Vercel de Ganesha; apagado por instalación (5.1); marca (5.2); catálogo de LON; prueba con link de vista previa; el técnico aprueba.
 3. **Cuentas de LON:** Supabase nuevo y proyecto nuevo en Vercel con el mail del negocio (punto 6).
 4. **Prueba con la dueña:** cargar sus servicios, 2 o 3 turnos de prueba, cobrar, cerrar caja; después borrar las pruebas.
