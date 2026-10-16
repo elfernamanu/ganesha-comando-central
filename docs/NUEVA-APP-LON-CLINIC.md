@@ -191,4 +191,4 @@ Etapas:
 Costos reales:
 - GitHub organización: gratis.
 - Supabase: gratis con 1 base por rubro; pago (≈ USD 25/mes) solo si se supera. El backup diario se hace con GitHub Actions (punto 10), así lo gratis es seguro.
-- Vercel: gratis solo para uso no comercial. Vendiendo, corresponde Pro (≈ USD 20/mes, un solo equipo para todos los proyectos) cubierto con el abono de los locales. Alternativa gratis que permite uso comercial: Cloudflare (requiere adaptar el proyecto; evaluarlo en la etapa 2).
+- Vercel: **decisión del técnico: quedarse en Vercel** (le gusta su sistema y su protección). Gratis (Hobby) mientras se arma y prueba; cuando entre el primer abono, pasar a **Pro** (≈ USD 20/mes, un solo equipo para todos los proyectos) e incluirlo en el precio. No proponer Cloudflare salvo que él lo pida.
